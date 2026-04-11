@@ -1,0 +1,95 @@
+/*
+ * DarkVeil.css
+ *
+ * The canvas is absolutely positioned to fill its parent container.
+ * Wrap in a fixed/absolute positioned div to use as a full-page background.
+ *
+ * IMPORTANT: The component already checks for the `.light` class on <html>
+ * and won't render the WebGL context in dark mode. These CSS rules also
+ * hide the canvas in dark mode as a double-guard.
+ *
+ * Recommended wrapper pattern (in your layout):
+ *
+ *   <div className="darkveil-wrap">
+ *     <DarkVeil hueShift={30} speed={0.35} warpAmount={0.25} noiseIntensity={0.015} />
+ *   </div>
+ */
+
+.darkveil-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+
+    /* Pointer events off so it never blocks clicks */
+    pointer-events: none;
+    user-select: none;
+
+    /* Soft fade-in on mount */
+    animation: darkveil-fadein 1.8s ease forwards;
+    opacity: 0;
+}
+
+@keyframes darkveil-fadein {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/*
+ * Full-page background wrapper utility class.
+ * Apply to the container div wrapping <DarkVeil />.
+ *
+ * Usage:
+ *   <div className="darkveil-wrap">
+ *     <DarkVeil ... />
+ *   </div>
+ */
+.darkveil-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+
+    /* Sits behind all content */
+    isolation: isolate;
+}
+
+/*
+ * Overlay: a soft cream gradient on top of the canvas to keep
+ * text readable. Place this as a sibling AFTER the canvas wrapper.
+ *
+ * <div className="darkveil-wrap"><DarkVeil /></div>
+ * <div className="darkveil-overlay" />
+ * <main>...your content...</main>
+ */
+.darkveil-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+
+    /* Cream vignette — edges stay readable, center shows the animation */
+    background: radial-gradient(ellipse 120% 100% at 50% 50%,
+            rgba(240, 230, 204, 0.10) 0%,
+            rgba(240, 230, 204, 0.45) 60%,
+            rgba(240, 230, 204, 0.78) 100%);
+}
+
+/* Hide in dark mode — the JS also prevents rendering, but belt + braces */
+:root:not(.light) .darkveil-canvas,
+:root:not(.light) .darkveil-wrap,
+:root:not(.light) .darkveil-overlay {
+    display: none !important;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .darkveil-canvas {
+        animation: none;
+        opacity: 0.6;
+    }
+}
