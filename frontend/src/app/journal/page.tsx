@@ -9,7 +9,7 @@ import { journalAPI, moodAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
 
-type Stage = 'scene' | 'opening' | 'open'
+type Stage = 'scene' | 'open'
 
 interface JournalEntry {
     id: string
@@ -26,6 +26,7 @@ export default function JournalPage() {
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
+        // Respect reduced motion - skip the scene
         if (typeof window !== 'undefined') {
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             if (reduced) setStage('open')
@@ -42,18 +43,12 @@ export default function JournalPage() {
             }))
             setEntries(mapped)
         } catch {
-            // not logged in or error - no entries
+            // not signed in or error
         }
     }
 
     const handleBookClick = () => {
-        setStage('opening')
-        setTimeout(() => setStage('open'), 480)
-    }
-
-    const handleSkip = () => {
-        setStage('opening')
-        setTimeout(() => setStage('open'), 280)
+        setStage('open')
     }
 
     const handleSave = async (content: string, mood: number, tags: string[], stickers: Sticker[]) => {
@@ -93,62 +88,26 @@ export default function JournalPage() {
             />
 
             <AnimatePresence mode="wait">
-
-                {/* SCENE STAGE - ambient book on desk */}
                 {stage === 'scene' && (
                     <motion.div
                         key="scene"
                         style={{ position: 'fixed', inset: 0, zIndex: 100 }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0, scale: 1.08 }}
-                        transition={{ duration: 0.35 }}
+                        exit={{ opacity: 0, scale: 1.06 }}
+                        transition={{ duration: 0.4 }}
                     >
-                        <BookScene onBookClick={handleBookClick} onSkip={handleSkip} />
+                        <BookScene onBookClick={handleBookClick} />
                     </motion.div>
                 )}
 
-                {/* OPENING TRANSITION - cinematic dissolve */}
-                {stage === 'opening' && (
-                    <motion.div
-                        key="opening"
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 90,
-                            background: 'radial-gradient(ellipse 70% 60% at 50% 45%, rgba(60,30,5,0.4) 0%, #070300 100%)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        {/* Transitional book cover flash */}
-                        <motion.div
-                            initial={{ scale: 0.7, opacity: 0, rotateX: 25 }}
-                            animate={{ scale: 1.3, opacity: [0, 1, 0], rotateX: 0 }}
-                            transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-                            style={{
-                                width: '200px', height: '260px',
-                                background: 'linear-gradient(135deg, #1c0900, #2a1200, #1e0b00)',
-                                borderRadius: '3px 6px 6px 3px',
-                                border: '1px solid rgba(212,175,55,0.3)',
-                                boxShadow: '0 0 80px rgba(212,175,55,0.25)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
-                        >
-                            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '32px', color: 'rgba(212,175,55,0.6)' }}>✦</span>
-                        </motion.div>
-                    </motion.div>
-                )}
-
-                {/* OPEN BOOK STAGE */}
                 {stage === 'open' && (
                     <motion.div
                         key="open"
                         style={{ position: 'relative', zIndex: 10, width: '100%', minHeight: '100vh' }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.4 }}
+                        transition={{ duration: 0.5 }}
                     >
                         <Navigation />
                         <OpenBook
@@ -159,7 +118,6 @@ export default function JournalPage() {
                         />
                     </motion.div>
                 )}
-
             </AnimatePresence>
         </main>
     )
