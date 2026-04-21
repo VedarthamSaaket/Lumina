@@ -92,7 +92,7 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
             >
                 <video
                     ref={videoRef}
-                    src="/src/components/BookOpening.mp4"
+                    src="/BookOpening.mp4"
                     autoPlay
                     loop
                     muted
