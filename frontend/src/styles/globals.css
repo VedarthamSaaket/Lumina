@@ -996,3 +996,132 @@ body {
     border-radius: 20px !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ADDITIONS TO globals.css - paste these at the end of the file
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── LIGHT THEME CHAT - complementary warm amber shades ── */
+.light .chat-bubble-lumina {
+  background: rgba(230, 210, 170, 0.55) !important;
+  border-color: rgba(160, 120, 50, 0.3) !important;
+  color: #2a1a08 !important;
+}
+
+.light .chat-bubble-user {
+  background: rgba(42, 26, 8, 0.1) !important;
+  border-color: rgba(130, 95, 30, 0.28) !important;
+  color: #2a1a08 !important;
+}
+
+.light .chat-sidebar {
+  background: rgba(240, 225, 185, 0.45) !important;
+  border-right-color: rgba(160, 120, 50, 0.18) !important;
+}
+
+.light .chat-history-item.active {
+  background: rgba(139, 100, 16, 0.12) !important;
+  border-color: rgba(139, 100, 16, 0.28) !important;
+}
+
+.light .chat-input-wrap {
+  background: rgba(240, 225, 190, 0.5) !important;
+  border-color: rgba(160, 120, 50, 0.3) !important;
+}
+
+.light .chat-redirect-btn {
+  background: rgba(139, 100, 16, 0.12) !important;
+  border-color: rgba(139, 100, 16, 0.32) !important;
+  color: #6b4c0a !important;
+}
+
+.light .chat-timestamp {
+  color: rgba(42, 26, 8, 0.35) !important;
+}
+
+/* Conversations appear here - use Baskerville with gold shimmer heading */
+.conversations-empty-text {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 44px 24px;
+}
+
+/* ── GOLD SHIMMER HEADING - used across all sections ── */
+/* Same font as "Your conversations will appear here" text, with gold shimmer */
+.lumina-section-heading {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  background: linear-gradient(90deg,
+      var(--text-primary) 0%,
+      #f0d060 28%,
+      #d4af37 50%,
+      #f9e07a 72%,
+      var(--text-primary) 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 5s linear infinite;
+}
+
+/* Apply to page titles */
+h1.page-title,
+.page-title {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+}
+
+/* Gold shimmer for Lumina heading specifically */
+.lumina-title-shimmer {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 300;
+  background: linear-gradient(90deg,
+      var(--text-primary) 0%,
+      #f0d060 25%,
+      #d4af37 48%,
+      #f9e07a 70%,
+      var(--text-primary) 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 4.5s linear infinite;
+}
+
+/* Light mode adjustments for shimmer */
+.light .lumina-section-heading,
+.light .lumina-title-shimmer {
+  background: linear-gradient(90deg,
+      #2a1a08 0%,
+      #8b6410 28%,
+      #a07820 50%,
+      #6b4c0a 72%,
+      #2a1a08 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 5s linear infinite;
+}
+
+/* ── Spinner keyframe for BookScene loading ── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── textarea user-select override - critical for journal ── */
+textarea.journal-write-area,
+.journal-write-area textarea {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  pointer-events: all !important;
+}

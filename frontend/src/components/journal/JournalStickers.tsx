@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export interface Sticker {
@@ -12,124 +12,156 @@ export interface Sticker {
     rotation?: number
 }
 
-// ─── Twemoji (Apache 2.0) ─────────────────────────────────────────────────────
-const EMOJI_CDN = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/72x72'
-function twemojiUrl(cp: string) { return `${EMOJI_CDN}/${cp}.png` }
+// ─── CDN sources ─────────────────────────────────────────────────────────────
+// Twemoji (Apache 2.0) - very reliable
+const TW = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/72x72'
+function tw(cp: string) { return `${TW}/${cp}.png` }
 
-// ─── Icons8 Stickers (free tier – attribution shown) ─────────────────────────
-// Using their sticker style endpoint which returns aesthetic die-cut PNG stickers
-function icons8Url(name: string, size = 100) {
+// Icons8 sticker style - free tier with attribution
+function i8(name: string, size = 96) {
     return `https://img.icons8.com/stickers/${size}/${encodeURIComponent(name)}.png`
 }
 
-// ─── Sticker Data ─────────────────────────────────────────────────────────────
+// Flaticon sticker-style (using their CDN for popular ones)
+// Using a reliable hosted source for aesthetic stickers
+function flatSticker(name: string) {
+    return `https://img.icons8.com/color/${96}/${name}.png`
+}
 
-type StickerItem = {
+// LottieFiles static preview URLs (for their sticker-quality assets)
+// Using their CDN for static previews
+function lottie(slug: string) {
+    return `https://assets9.lottiefiles.com/datafiles/${slug}/preview.png`
+}
+
+interface StickerDef {
     id: string
     label: string
     url: string
+    fallback?: string
     rotation?: number
-    source: 'twemoji' | 'icons8'
 }
 
-const PACKS: Record<string, StickerItem[]> = {
+const PACKS: Record<string, StickerDef[]> = {
     mood: [
-        { id: 'mood-heartface', label: 'Heart Eyes', url: icons8Url('in-love'), source: 'icons8' },
-        { id: 'mood-cool', label: 'Cool', url: icons8Url('cool'), source: 'icons8' },
-        { id: 'mood-happy', label: 'Happy', url: icons8Url('happy'), source: 'icons8' },
-        { id: 'mood-sad', label: 'Sad', url: icons8Url('sad'), source: 'icons8' },
-        { id: 'mood-tired', label: 'Tired', url: icons8Url('sleeping'), source: 'icons8' },
-        { id: 'mood-confused', label: 'Confused', url: icons8Url('confused'), source: 'icons8' },
-        { id: 'mood-angry', label: 'Angry', url: icons8Url('angry'), source: 'icons8' },
-        { id: 'mood-anxious', label: 'Anxious', url: icons8Url('anxious'), source: 'icons8' },
-        { id: 'mood-excited', label: 'Excited', url: icons8Url('excited'), source: 'icons8' },
-        { id: 'mood-relieved', label: 'Relieved', url: twemojiUrl('1f60c'), rotation: -3, source: 'twemoji' },
-        { id: 'mood-melt', label: 'Melting', url: twemojiUrl('1fae0'), rotation: 3, source: 'twemoji' },
-        { id: 'mood-ponder', label: 'Thinking', url: twemojiUrl('1f914'), source: 'twemoji' },
+        { id: 'mood-love', label: 'In Love', url: i8('in-love'), rotation: 2 },
+        { id: 'mood-cool', label: 'Cool', url: i8('cool') },
+        { id: 'mood-happy', label: 'Happy', url: i8('happy') },
+        { id: 'mood-sad', label: 'Sad', url: i8('sad'), rotation: -2 },
+        { id: 'mood-tired', label: 'Tired', url: i8('sleeping'), rotation: 1 },
+        { id: 'mood-confused', label: 'Confused', url: i8('confused') },
+        { id: 'mood-angry', label: 'Angry', url: i8('angry'), rotation: -1 },
+        { id: 'mood-excited', label: 'Excited', url: i8('excited') },
+        { id: 'mood-think', label: 'Thinking', url: tw('1f914'), rotation: 3 },
+        { id: 'mood-melt', label: 'Melting', url: tw('1fae0'), rotation: 2 },
+        { id: 'mood-relief', label: 'Relieved', url: tw('1f60c'), rotation: -2 },
+        { id: 'mood-yawn', label: 'Tired', url: tw('1f971'), rotation: 1 },
     ],
     nature: [
-        { id: 'nat-flower', label: 'Flower', url: icons8Url('sakura'), source: 'icons8' },
-        { id: 'nat-sun', label: 'Sun', url: icons8Url('sun'), source: 'icons8' },
-        { id: 'nat-moon', label: 'Moon', url: icons8Url('crescent-moon'), source: 'icons8' },
-        { id: 'nat-star', label: 'Star', url: icons8Url('star'), source: 'icons8' },
-        { id: 'nat-leaf', label: 'Leaf', url: icons8Url('leaf'), rotation: 2, source: 'icons8' },
-        { id: 'nat-wave', label: 'Wave', url: icons8Url('ocean-wave'), source: 'icons8' },
-        { id: 'nat-mushroom', label: 'Mushroom', url: icons8Url('mushroom'), rotation: -2, source: 'icons8' },
-        { id: 'nat-butterfly', label: 'Butterfly', url: icons8Url('butterfly'), source: 'icons8' },
-        { id: 'nat-fire', label: 'Fire', url: icons8Url('fire-element'), source: 'icons8' },
-        { id: 'nat-cloud', label: 'Cloud', url: icons8Url('cloud'), source: 'icons8' },
-        { id: 'nat-rain', label: 'Rain', url: icons8Url('rain'), source: 'icons8' },
-        { id: 'nat-snow', label: 'Snowflake', url: twemojiUrl('2744'), rotation: -2, source: 'twemoji' },
+        { id: 'nat-sakura', label: 'Cherry Blossom', url: i8('sakura'), rotation: 3 },
+        { id: 'nat-sun', label: 'Sun', url: i8('sun') },
+        { id: 'nat-moon', label: 'Moon', url: i8('crescent-moon'), rotation: -2 },
+        { id: 'nat-star', label: 'Star', url: i8('star'), rotation: 1 },
+        { id: 'nat-leaf', label: 'Leaf', url: i8('leaf'), rotation: -3 },
+        { id: 'nat-wave', label: 'Wave', url: i8('ocean-wave') },
+        { id: 'nat-mush', label: 'Mushroom', url: i8('mushroom'), rotation: 2 },
+        { id: 'nat-butterfly', label: 'Butterfly', url: i8('butterfly'), rotation: -1 },
+        { id: 'nat-fire', label: 'Fire', url: i8('fire-element') },
+        { id: 'nat-cloud', label: 'Cloud', url: i8('cloud') },
+        { id: 'nat-snow', label: 'Snowflake', url: tw('2744'), rotation: 3 },
+        { id: 'nat-rainbow', label: 'Rainbow', url: i8('rainbow') },
+        { id: 'nat-cactus', label: 'Cactus', url: tw('1f335'), rotation: 2 },
+        { id: 'nat-tulip', label: 'Tulip', url: tw('1f337'), rotation: -2 },
+        { id: 'nat-maple', label: 'Maple Leaf', url: tw('1f341'), rotation: 3 },
+        { id: 'nat-earth', label: 'Earth', url: tw('1f30d') },
     ],
     mindful: [
-        { id: 'mind-peace', label: 'Peace', url: icons8Url('peace-symbol'), source: 'icons8' },
-        { id: 'mind-lotus', label: 'Lotus', url: icons8Url('lotus'), source: 'icons8' },
-        { id: 'mind-crystal', label: 'Crystal', url: icons8Url('gem-stone'), rotation: -2, source: 'icons8' },
-        { id: 'mind-heart', label: 'Heart', url: icons8Url('heart'), source: 'icons8' },
-        { id: 'mind-rainbow', label: 'Rainbow', url: icons8Url('rainbow'), source: 'icons8' },
-        { id: 'mind-eye', label: 'Third Eye', url: icons8Url('eye'), source: 'icons8' },
-        { id: 'mind-yin', label: 'Yin Yang', url: icons8Url('yin-yang'), source: 'icons8' },
-        { id: 'mind-prism', label: 'Prism', url: twemojiUrl('1f4ab'), source: 'twemoji' },
-        { id: 'mind-droplet', label: 'Droplet', url: twemojiUrl('1f4a7'), rotation: 2, source: 'twemoji' },
-        { id: 'mind-seedling', label: 'Seedling', url: twemojiUrl('1f331'), rotation: -2, source: 'twemoji' },
-        { id: 'mind-yoga', label: 'Meditate', url: twemojiUrl('1f9d8-200d-2640-fe0f'), source: 'twemoji' },
-        { id: 'mind-evileye', label: 'Evil Eye', url: twemojiUrl('1f9ff'), rotation: 3, source: 'twemoji' },
+        { id: 'mind-peace', label: 'Peace', url: i8('peace-symbol') },
+        { id: 'mind-lotus', label: 'Lotus', url: i8('lotus') },
+        { id: 'mind-crystal', label: 'Crystal', url: i8('gem-stone'), rotation: -2 },
+        { id: 'mind-heart', label: 'Heart', url: i8('heart') },
+        { id: 'mind-eye', label: 'Third Eye', url: i8('eye') },
+        { id: 'mind-yin', label: 'Yin Yang', url: i8('yin-yang') },
+        { id: 'mind-yoga', label: 'Meditate', url: tw('1f9d8-200d-2640-fe0f') },
+        { id: 'mind-sparkle', label: 'Sparkles', url: tw('2728'), rotation: 2 },
+        { id: 'mind-droplet', label: 'Droplet', url: tw('1f4a7'), rotation: 2 },
+        { id: 'mind-seed', label: 'Seedling', url: tw('1f331'), rotation: -2 },
+        { id: 'mind-evil-eye', label: 'Evil Eye', url: tw('1f9ff'), rotation: 3 },
+        { id: 'mind-dizzy', label: 'Dizzy Star', url: tw('1f4ab'), rotation: -1 },
     ],
     celebrate: [
-        { id: 'cel-party', label: 'Party', url: icons8Url('party-popper'), rotation: 2, source: 'icons8' },
-        { id: 'cel-crown', label: 'Crown', url: icons8Url('crown'), rotation: -1, source: 'icons8' },
-        { id: 'cel-trophy', label: 'Trophy', url: icons8Url('trophy'), source: 'icons8' },
-        { id: 'cel-cake', label: 'Cake', url: icons8Url('birthday-cake'), source: 'icons8' },
-        { id: 'cel-gift', label: 'Gift', url: icons8Url('gift'), source: 'icons8' },
-        { id: 'cel-sparkle', label: 'Sparkles', url: icons8Url('sparkles'), source: 'icons8' },
-        { id: 'cel-star2', label: 'Gold Star', url: icons8Url('gold-star'), source: 'icons8' },
-        { id: 'cel-rocket', label: 'Rocket', url: twemojiUrl('1f680'), rotation: -30, source: 'twemoji' },
-        { id: 'cel-confetti', label: 'Confetti', url: twemojiUrl('1f38a'), rotation: -3, source: 'twemoji' },
-        { id: 'cel-boom', label: 'Boom', url: twemojiUrl('1f4a5'), source: 'twemoji' },
-        { id: 'cel-art', label: 'Art', url: twemojiUrl('1f3a8'), rotation: -1, source: 'twemoji' },
-        { id: 'cel-cheers', label: 'Cheers', url: twemojiUrl('1f942'), rotation: 3, source: 'twemoji' },
+        { id: 'cel-party', label: 'Party', url: i8('party-popper'), rotation: 2 },
+        { id: 'cel-crown', label: 'Crown', url: i8('crown'), rotation: -1 },
+        { id: 'cel-trophy', label: 'Trophy', url: i8('trophy') },
+        { id: 'cel-cake', label: 'Cake', url: i8('birthday-cake') },
+        { id: 'cel-gift', label: 'Gift', url: i8('gift') },
+        { id: 'cel-sparkle', label: 'Sparkles', url: i8('sparkles') },
+        { id: 'cel-gold-star', label: 'Gold Star', url: i8('gold-star') },
+        { id: 'cel-rocket', label: 'Rocket', url: tw('1f680'), rotation: -30 },
+        { id: 'cel-confetti', label: 'Confetti', url: tw('1f38a'), rotation: -3 },
+        { id: 'cel-boom', label: 'Boom', url: tw('1f4a5') },
+        { id: 'cel-artist', label: 'Art', url: tw('1f3a8'), rotation: -1 },
+        { id: 'cel-100', label: '100', url: tw('1f4af'), rotation: 1 },
     ],
     luxe: [
-        { id: 'lux-diamond', label: 'Diamond', url: icons8Url('diamond'), rotation: -2, source: 'icons8' },
-        { id: 'lux-rose', label: 'Rose', url: icons8Url('rose'), rotation: 3, source: 'icons8' },
-        { id: 'lux-ring', label: 'Ring', url: icons8Url('ring'), rotation: 3, source: 'icons8' },
-        { id: 'lux-bottle', label: 'Perfume', url: icons8Url('perfume'), source: 'icons8' },
-        { id: 'lux-lipstick', label: 'Lipstick', url: icons8Url('lipstick'), source: 'icons8' },
-        { id: 'lux-candle', label: 'Candle', url: icons8Url('candle'), source: 'icons8' },
-        { id: 'lux-watch', label: 'Watch', url: icons8Url('watch'), rotation: 2, source: 'icons8' },
-        { id: 'lux-key', label: 'Key', url: twemojiUrl('1f5dd'), rotation: -1, source: 'twemoji' },
-        { id: 'lux-hourglass', label: 'Hourglass', url: twemojiUrl('231b'), rotation: 2, source: 'twemoji' },
-        { id: 'lux-feather', label: 'Feather', url: twemojiUrl('1fab6'), rotation: -2, source: 'twemoji' },
-        { id: 'lux-scroll', label: 'Scroll', url: twemojiUrl('1f4dc'), rotation: 2, source: 'twemoji' },
-        { id: 'lux-crystal2', label: 'Crystal Ball', url: twemojiUrl('1f52e'), rotation: -3, source: 'twemoji' },
+        { id: 'lux-diamond', label: 'Diamond', url: i8('diamond'), rotation: -2 },
+        { id: 'lux-rose', label: 'Rose', url: i8('rose'), rotation: 3 },
+        { id: 'lux-ring', label: 'Ring', url: i8('ring'), rotation: 3 },
+        { id: 'lux-perfume', label: 'Perfume', url: i8('perfume') },
+        { id: 'lux-lipstick', label: 'Lipstick', url: i8('lipstick') },
+        { id: 'lux-candle', label: 'Candle', url: i8('candle') },
+        { id: 'lux-watch', label: 'Watch', url: i8('watch'), rotation: 2 },
+        { id: 'lux-key', label: 'Key', url: tw('1f5dd'), rotation: -1 },
+        { id: 'lux-hourglass', label: 'Hourglass', url: tw('231b'), rotation: 2 },
+        { id: 'lux-feather', label: 'Feather', url: tw('1fab6'), rotation: -2 },
+        { id: 'lux-scroll', label: 'Scroll', url: tw('1f4dc'), rotation: 2 },
+        { id: 'lux-crystal-ball', label: 'Crystal Ball', url: tw('1f52e'), rotation: -3 },
+        { id: 'lux-necklace', label: 'Necklace', url: tw('1f48e'), rotation: 1 },
+        { id: 'lux-lipstick2', label: 'Mirror', url: tw('1f48b'), rotation: -1 },
     ],
     vintage: [
-        { id: 'vint-camera', label: 'Camera', url: icons8Url('camera'), rotation: -2, source: 'icons8' },
-        { id: 'vint-record', label: 'Record', url: icons8Url('vinyl'), source: 'icons8' },
-        { id: 'vint-book', label: 'Book', url: icons8Url('open-book'), source: 'icons8' },
-        { id: 'vint-pen', label: 'Fountain Pen', url: icons8Url('quill-pen'), rotation: -3, source: 'icons8' },
-        { id: 'vint-lock', label: 'Lock', url: icons8Url('lock'), source: 'icons8' },
-        { id: 'vint-lamp', label: 'Lamp', url: icons8Url('lamp'), source: 'icons8' },
-        { id: 'vint-letter', label: 'Letter', url: icons8Url('love-letter'), source: 'icons8' },
-        { id: 'vint-violin', label: 'Violin', url: twemojiUrl('1f3bb'), rotation: 3, source: 'twemoji' },
-        { id: 'vint-frame', label: 'Frame', url: twemojiUrl('1f5bc'), rotation: 2, source: 'twemoji' },
-        { id: 'vint-spool', label: 'Spool', url: twemojiUrl('1f9f5'), rotation: -3, source: 'twemoji' },
-        { id: 'vint-amphora', label: 'Amphora', url: twemojiUrl('1f3fa'), source: 'twemoji' },
-        { id: 'vint-inkpen', label: 'Ink Pen', url: twemojiUrl('1f58b'), rotation: -3, source: 'twemoji' },
+        { id: 'vint-camera', label: 'Camera', url: i8('camera'), rotation: -2 },
+        { id: 'vint-vinyl', label: 'Vinyl', url: i8('vinyl') },
+        { id: 'vint-book', label: 'Open Book', url: i8('open-book') },
+        { id: 'vint-quill', label: 'Quill Pen', url: i8('quill-pen'), rotation: -3 },
+        { id: 'vint-lock', label: 'Lock', url: i8('lock') },
+        { id: 'vint-lamp', label: 'Lamp', url: i8('lamp') },
+        { id: 'vint-letter', label: 'Love Letter', url: i8('love-letter') },
+        { id: 'vint-violin', label: 'Violin', url: tw('1f3bb'), rotation: 3 },
+        { id: 'vint-picture', label: 'Frame', url: tw('1f5bc'), rotation: 2 },
+        { id: 'vint-thread', label: 'Thread', url: tw('1f9f5'), rotation: -3 },
+        { id: 'vint-amphora', label: 'Amphora', url: tw('1f3fa') },
+        { id: 'vint-compass', label: 'Compass', url: tw('1f9ed'), rotation: -2 },
+        { id: 'vint-map', label: 'Map', url: tw('1f5fa'), rotation: 1 },
+        { id: 'vint-music', label: 'Music', url: tw('1f3b5'), rotation: 2 },
+    ],
+    cozy: [
+        { id: 'cozy-coffee', label: 'Coffee', url: i8('coffee'), rotation: 2 },
+        { id: 'cozy-tea', label: 'Tea', url: tw('1f375'), rotation: -2 },
+        { id: 'cozy-book', label: 'Books', url: i8('books') },
+        { id: 'cozy-cat', label: 'Cat', url: tw('1f431'), rotation: 2 },
+        { id: 'cozy-pillow', label: 'Pillow', url: tw('1f6cc'), rotation: -1 },
+        { id: 'cozy-candle', label: 'Candle', url: tw('1f56f'), rotation: 1 },
+        { id: 'cozy-blanket', label: 'Blanket', url: tw('1f9e3'), rotation: -2 },
+        { id: 'cozy-cookie', label: 'Cookie', url: tw('1f36a'), rotation: 3 },
+        { id: 'cozy-plant', label: 'Plant', url: tw('1f33f'), rotation: -1 },
+        { id: 'cozy-rain', label: 'Rainy Day', url: i8('rain') },
+        { id: 'cozy-star', label: 'Night Star', url: tw('1f319'), rotation: 2 },
+        { id: 'cozy-dog', label: 'Dog', url: tw('1f436'), rotation: -2 },
     ],
     study: [
-        { id: 'std-books', label: 'Books', url: icons8Url('books'), rotation: -2, source: 'icons8' },
-        { id: 'std-pencil', label: 'Pencil', url: icons8Url('pencil'), rotation: 3, source: 'icons8' },
-        { id: 'std-bulb', label: 'Idea', url: icons8Url('idea'), source: 'icons8' },
-        { id: 'std-target', label: 'Target', url: icons8Url('target'), rotation: -1, source: 'icons8' },
-        { id: 'std-coffee', label: 'Coffee', url: icons8Url('coffee'), rotation: 2, source: 'icons8' },
-        { id: 'std-brain', label: 'Brain', url: icons8Url('brain'), source: 'icons8' },
-        { id: 'std-chart', label: 'Chart', url: icons8Url('chart'), source: 'icons8' },
-        { id: 'std-search', label: 'Search', url: icons8Url('search'), source: 'icons8' },
-        { id: 'std-pin', label: 'Pin', url: twemojiUrl('1f4cc'), rotation: -3, source: 'twemoji' },
-        { id: 'std-100', label: '100', url: twemojiUrl('1f4af'), rotation: 1, source: 'twemoji' },
-        { id: 'std-memo', label: 'Memo', url: twemojiUrl('1f4dd'), source: 'twemoji' },
-        { id: 'std-watch', label: 'Watch', url: twemojiUrl('231a'), source: 'twemoji' },
+        { id: 'std-pencil', label: 'Pencil', url: i8('pencil'), rotation: 3 },
+        { id: 'std-idea', label: 'Idea', url: i8('idea') },
+        { id: 'std-target', label: 'Target', url: i8('target'), rotation: -1 },
+        { id: 'std-brain', label: 'Brain', url: i8('brain') },
+        { id: 'std-chart', label: 'Chart', url: i8('chart') },
+        { id: 'std-pin', label: 'Pin', url: tw('1f4cc'), rotation: -3 },
+        { id: 'std-100', label: '100pts', url: tw('1f4af'), rotation: 1 },
+        { id: 'std-memo', label: 'Memo', url: tw('1f4dd') },
+        { id: 'std-lab', label: 'Science', url: tw('1f9ea'), rotation: 2 },
+        { id: 'std-telescope', label: 'Stars', url: tw('1f52d'), rotation: -1 },
+        { id: 'std-medal', label: 'Medal', url: tw('1f3c5'), rotation: 2 },
+        { id: 'std-check', label: 'Done', url: tw('2705') },
     ],
 }
 
@@ -140,15 +172,16 @@ const CATEGORIES: { key: string; label: string; color: string }[] = [
     { key: 'celebrate', label: 'Celebrate', color: '#d4af37' },
     { key: 'luxe', label: 'Luxe', color: '#c4913a' },
     { key: 'vintage', label: 'Vintage', color: '#8b7355' },
+    { key: 'cozy', label: 'Cozy', color: '#c9897a' },
     { key: 'study', label: 'Study', color: '#b8a070' },
 ]
 
-// Die-cut sticker filter – white outline border + shadow
+// Die-cut sticker filter - white outline + shadow
 const STICKER_FILTER = [
     'drop-shadow(0 0 0px white)',
-    'drop-shadow(0 0 1.5px white)',
-    'drop-shadow(0 0 3px rgba(255,255,255,0.92))',
-    'drop-shadow(0 2.5px 5px rgba(0,0,0,0.38))',
+    'drop-shadow(0 0 2px white)',
+    'drop-shadow(0 0 4px rgba(255,255,255,0.9))',
+    'drop-shadow(0 3px 6px rgba(0,0,0,0.4))',
 ].join(' ')
 
 interface Props {
@@ -160,6 +193,7 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
     const [activeCat, setActiveCat] = useState('mood')
     const [recent, setRecent] = useState<Sticker[]>([])
     const [search, setSearch] = useState('')
+    const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set())
 
     const cat = CATEGORIES.find(c => c.key === activeCat) || CATEGORIES[0]
     const pack = PACKS[activeCat] || []
@@ -169,7 +203,11 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
         )
         : pack
 
-    const handleSelect = useCallback((item: StickerItem) => {
+    const handleImgError = useCallback((url: string) => {
+        setFailedUrls(prev => new Set([...prev, url]))
+    }, [])
+
+    const handleSelect = useCallback((item: StickerDef) => {
         const sticker: Sticker = {
             id: item.id,
             label: item.label,
@@ -189,29 +227,8 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
     return (
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            {/* Header */}
-            <div style={{
-                padding: '10px 12px 8px',
-                borderBottom: '1px solid rgba(212,175,55,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                flexShrink: 0,
-            }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '9px', letterSpacing: '0.18em', color: 'rgba(212,175,55,0.8)', textTransform: 'uppercase' }}>
-                    Stickers
-                </span>
-                <button onClick={onClose} style={{
-                    background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)',
-                    borderRadius: '6px', cursor: 'pointer',
-                    width: '22px', height: '22px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'rgba(212,175,55,0.6)', fontSize: '11px', fontWeight: 600,
-                }}>
-                    ✕
-                </button>
-            </div>
-
             {/* Search */}
-            <div style={{ padding: '8px 10px 6px', flexShrink: 0 }}>
+            <div style={{ padding: '8px 0 6px', flexShrink: 0 }}>
                 <input
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -227,18 +244,19 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
 
             {/* Category tabs */}
             <div style={{
-                display: 'flex', gap: '3px', padding: '4px 10px 6px',
-                overflowX: 'auto', borderBottom: '1px solid rgba(212,175,55,0.08)', flexShrink: 0,
+                display: 'flex', gap: '3px', flexWrap: 'wrap',
+                padding: '0 0 6px',
+                borderBottom: '1px solid rgba(212,175,55,0.08)', flexShrink: 0,
             }}>
                 {CATEGORIES.map(c => (
                     <button key={c.key} onClick={() => { setActiveCat(c.key); setSearch('') }}
                         style={{
-                            flexShrink: 0, padding: '4px 8px', borderRadius: '10px', cursor: 'pointer',
-                            fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.06em',
+                            flexShrink: 0, padding: '3px 7px', borderRadius: '10px', cursor: 'pointer',
+                            fontFamily: 'var(--font-jost)', fontSize: '8px', letterSpacing: '0.06em',
                             textTransform: 'uppercase',
                             background: activeCat === c.key ? `${c.color}20` : 'transparent',
                             border: activeCat === c.key ? `1px solid ${c.color}45` : '1px solid transparent',
-                            color: activeCat === c.key ? c.color : 'rgba(212,175,55,0.38)',
+                            color: activeCat === c.key ? c.color : 'rgba(212,175,55,0.35)',
                             transition: 'all 0.15s',
                         }}>
                         {c.label}
@@ -249,19 +267,25 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
             {/* Recently used */}
             <AnimatePresence>
                 {recent.length > 0 && !search && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        style={{ padding: '6px 12px', borderBottom: '1px solid rgba(212,175,55,0.06)', flexShrink: 0 }}>
-                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '8px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.35)', marginBottom: '5px' }}>
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                        style={{ padding: '5px 0', borderBottom: '1px solid rgba(212,175,55,0.06)', flexShrink: 0 }}
+                    >
+                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '7px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.32)', marginBottom: '5px' }}>
                             Recent
                         </p>
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                             {recent.slice(0, 8).map(s => (
                                 <motion.button key={s.id} onClick={() => onSelect(s)}
-                                    whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                                    style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <img src={s.url} alt={s.label} width={28} height={28}
-                                        style={{ filter: STICKER_FILTER, transform: `rotate(${s.rotation || 0}deg)` }}
-                                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                    whileHover={{ scale: 1.18 }} whileTap={{ scale: 0.88 }}
+                                    style={{ width: '30px', height: '30px', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <img
+                                        src={s.url}
+                                        alt={s.label}
+                                        width={26} height={26}
+                                        style={{ filter: STICKER_FILTER, transform: `rotate(${s.rotation || 0}deg)`, display: 'block' }}
+                                        onError={() => handleImgError(s.url)}
+                                    />
                                 </motion.button>
                             ))}
                         </div>
@@ -270,37 +294,38 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
             </AnimatePresence>
 
             {/* Attribution */}
-            <div style={{ padding: '2px 12px', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'var(--font-jost)', fontSize: '8px', color: 'rgba(212,175,55,0.22)', letterSpacing: '0.06em' }}>
+            <div style={{ padding: '2px 0', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'var(--font-jost)', fontSize: '7px', color: 'rgba(212,175,55,0.2)', letterSpacing: '0.06em' }}>
                     Icons8 Stickers · Twemoji (Apache 2.0)
                 </span>
             </div>
 
             {/* Grid */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 10px 12px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingTop: '4px' }}>
                 {filtered.length === 0 ? (
                     <p style={{ textAlign: 'center', padding: '20px 0', fontFamily: 'var(--font-jost)', fontSize: '11px', color: 'rgba(212,175,55,0.3)', fontStyle: 'italic' }}>
                         No stickers found
                     </p>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                         {filtered.map((item, i) => (
-                            <motion.button key={item.id}
+                            <motion.button
+                                key={item.id}
                                 onClick={() => handleSelect(item)}
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: i * 0.02 }}
-                                whileHover={{ scale: 1.12, y: -2 }}
-                                whileTap={{ scale: 0.92 }}
+                                transition={{ delay: i * 0.015 }}
+                                whileHover={{ scale: 1.14, y: -2 }}
+                                whileTap={{ scale: 0.9 }}
                                 title={item.label}
                                 style={{
                                     display: 'flex', flexDirection: 'column',
                                     alignItems: 'center', justifyContent: 'center',
-                                    gap: '3px', padding: '7px 4px',
+                                    gap: '3px', padding: '7px 3px',
                                     borderRadius: '10px',
-                                    background: `${cat.color}0c`,
+                                    background: `${cat.color}0d`,
                                     border: `1px solid ${cat.color}22`,
-                                    cursor: 'pointer', minHeight: '62px',
+                                    cursor: 'pointer', minHeight: '60px',
                                     transition: 'background 0.15s, border-color 0.15s',
                                 }}
                                 onMouseEnter={e => {
@@ -310,31 +335,31 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
                                 }}
                                 onMouseLeave={e => {
                                     const el = e.currentTarget as HTMLElement
-                                    el.style.background = `${cat.color}0c`
+                                    el.style.background = `${cat.color}0d`
                                     el.style.borderColor = `${cat.color}22`
                                 }}
                             >
-                                <img
-                                    src={item.url}
-                                    alt={item.label}
-                                    width={38}
-                                    height={38}
-                                    loading="lazy"
-                                    style={{
-                                        filter: STICKER_FILTER,
-                                        transform: `rotate(${item.rotation || 0}deg)`,
-                                        display: 'block',
-                                        objectFit: 'contain',
-                                    }}
-                                    onError={e => {
-                                        // Fallback to twemoji if Icons8 fails
-                                        const img = e.target as HTMLImageElement
-                                        img.style.opacity = '0.3'
-                                    }}
-                                />
+                                {failedUrls.has(item.url) ? (
+                                    // Fallback emoji if image fails
+                                    <span style={{ fontSize: '28px', lineHeight: 1 }}>✨</span>
+                                ) : (
+                                    <img
+                                        src={item.url}
+                                        alt={item.label}
+                                        width={36} height={36}
+                                        loading="lazy"
+                                        style={{
+                                            filter: STICKER_FILTER,
+                                            transform: `rotate(${item.rotation || 0}deg)`,
+                                            display: 'block',
+                                            objectFit: 'contain',
+                                        }}
+                                        onError={() => handleImgError(item.url)}
+                                    />
+                                )}
                                 <span style={{
-                                    fontFamily: 'var(--font-jost)', fontSize: '7.5px',
-                                    color: 'rgba(212,175,55,0.45)',
+                                    fontFamily: 'var(--font-jost)', fontSize: '7px',
+                                    color: 'rgba(212,175,55,0.42)',
                                     textAlign: 'center', lineHeight: 1.2,
                                     overflow: 'hidden', textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap', width: '100%',

@@ -26,7 +26,7 @@ export default function JournalPage() {
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
-        // Respect reduced motion - skip the scene
+        // Respect reduced motion preference
         if (typeof window !== 'undefined') {
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             if (reduced) setStage('open')
@@ -43,7 +43,7 @@ export default function JournalPage() {
             }))
             setEntries(mapped)
         } catch {
-            // not signed in or error
+            // not signed in or network error - silently fail
         }
     }
 

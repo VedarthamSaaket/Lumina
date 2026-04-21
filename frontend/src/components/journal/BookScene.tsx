@@ -9,7 +9,7 @@ interface BookSceneProps {
 export default function BookScene({ onBookClick }: BookSceneProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [phase, setPhase] = useState<'idle' | 'zooming' | 'flash' | 'done'>('idle')
-    const [videoLoaded, setVideoLoaded] = useState(false)
+    const [videoReady, setVideoReady] = useState(false)
     const [isLight, setIsLight] = useState(false)
 
     useEffect(() => {
@@ -21,27 +21,44 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
         return () => obs.disconnect()
     }, [])
 
-    // Autoplay video on mount
     useEffect(() => {
         const v = videoRef.current
         if (!v) return
-        v.play().catch(() => {
-            // autoplay blocked — user interaction will start it
-        })
-    }, [videoLoaded])
+
+        const tryPlay = () => {
+            v.play().then(() => {
+                setVideoReady(true)
+            }).catch((e) => {
+                console.warn('[BookScene] Autoplay blocked:', e)
+                setVideoReady(true) // still show video even if autoplay blocked
+            })
+        }
+
+        if (v.readyState >= 2) {
+            tryPlay()
+        } else {
+            v.addEventListener('canplay', tryPlay, { once: true })
+        }
+
+        return () => {
+            v.removeEventListener('canplay', tryPlay)
+        }
+    }, [])
 
     const handleClick = () => {
         if (phase !== 'idle') return
-        setPhase('zooming')
 
-        // Phase 1: zoom in (600ms)
-        // Phase 2: bright flash (400ms)
-        // Phase 3: done → open journal
-        setTimeout(() => setPhase('flash'), 600)
+        // Try to play video on user interaction (in case autoplay was blocked)
+        if (videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(() => { })
+        }
+
+        setPhase('zooming')
+        setTimeout(() => setPhase('flash'), 650)
         setTimeout(() => {
             setPhase('done')
             onBookClick()
-        }, 1100)
+        }, 1150)
     }
 
     return (
@@ -56,7 +73,7 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                 background: isLight ? '#f0e6cc' : '#050200',
             }}
         >
-            {/* ── VIDEO ── */}
+            {/* VIDEO LAYER */}
             <motion.div
                 animate={
                     phase === 'zooming' || phase === 'flash'
@@ -65,7 +82,7 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                 }
                 transition={{
                     scale: { duration: 0.65, ease: [0.4, 0, 0.2, 1] },
-                    opacity: { duration: 0.35, delay: phase === 'flash' ? 0 : 0 },
+                    opacity: { duration: 0.38, delay: phase === 'flash' ? 0 : 0 },
                 }}
                 style={{
                     position: 'absolute',
@@ -75,12 +92,12 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
             >
                 <video
                     ref={videoRef}
-                    src="/BookOpening.mp4"
+                    src="/src/components/BookOpening.mp4"
                     autoPlay
                     loop
                     muted
                     playsInline
-                    onLoadedData={() => setVideoLoaded(true)}
+                    preload="auto"
                     style={{
                         width: '100%',
                         height: '100%',
@@ -90,7 +107,7 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                 />
             </motion.div>
 
-            {/* ── VIGNETTE ── */}
+            {/* VIGNETTE */}
             <div
                 style={{
                     position: 'absolute',
@@ -102,14 +119,14 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                 }}
             />
 
-            {/* ── CLICK HINT ── */}
+            {/* CLICK HINT */}
             <AnimatePresence>
-                {phase === 'idle' && videoLoaded && (
+                {phase === 'idle' && videoReady && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
-                        transition={{ delay: 1.2, duration: 0.6 }}
+                        transition={{ delay: 1.4, duration: 0.7 }}
                         style={{
                             position: 'absolute',
                             bottom: '11%',
@@ -130,9 +147,8 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                                 color: isLight ? 'rgba(139,100,16,0.7)' : 'rgba(212,175,55,0.65)',
                             }}
                         >
-                            Click to Open
+                            Click to Open Your Journal
                         </motion.div>
-                        {/* Small pulsing rings below hint */}
                         <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', gap: '5px' }}>
                             {[0, 0.4, 0.8].map((d, i) => (
                                 <motion.div
@@ -150,7 +166,48 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                 )}
             </AnimatePresence>
 
-            {/* ── WHITE FLASH on click ── */}
+            {/* Loading state */}
+            {!videoReady && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: isLight ? '#f0e6cc' : '#050200',
+                    zIndex: 5,
+                }}>
+                    <motion.div
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '16px',
+                        }}
+                    >
+                        <div style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            border: '2px solid transparent',
+                            borderTopColor: isLight ? 'rgba(139,100,16,0.6)' : 'rgba(212,175,55,0.6)',
+                            animation: 'spin 1s linear infinite',
+                        }} />
+                        <span style={{
+                            fontFamily: 'var(--font-cinzel)',
+                            fontSize: '9px',
+                            letterSpacing: '0.24em',
+                            textTransform: 'uppercase',
+                            color: isLight ? 'rgba(139,100,16,0.5)' : 'rgba(212,175,55,0.4)',
+                        }}>
+                            Opening...
+                        </span>
+                    </motion.div>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
+            )}
+
+            {/* WHITE FLASH on click */}
             <AnimatePresence>
                 {(phase === 'zooming' || phase === 'flash') && (
                     <motion.div
@@ -176,29 +233,6 @@ export default function BookScene({ onBookClick }: BookSceneProps) {
                     />
                 )}
             </AnimatePresence>
-
-            {/* Fallback if video not loaded */}
-            {!videoLoaded && (
-                <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isLight ? '#f0e6cc' : '#050200',
-                }}>
-                    <motion.div
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        style={{
-                            fontFamily: 'var(--font-cinzel)',
-                            fontSize: '14px',
-                            letterSpacing: '0.28em',
-                            textTransform: 'uppercase',
-                            color: isLight ? 'rgba(139,100,16,0.6)' : 'rgba(212,175,55,0.5)',
-                        }}
-                    >
-                        Loading…
-                    </motion.div>
-                </div>
-            )}
         </div>
     )
 }
