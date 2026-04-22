@@ -25,9 +25,10 @@ def run_migrations():
     """Add new columns to existing tables if they are missing (safe to call repeatedly)."""
     from sqlalchemy import text
     new_columns = [
-        ("users", "full_name", "VARCHAR"),
-        ("users", "age",       "INTEGER"),
-        ("users", "gender",    "VARCHAR"),
+        ("users", "full_name",     "VARCHAR"),
+        ("users", "age",           "INTEGER"),
+        ("users", "gender",        "VARCHAR"),
+        ("users", "settings_json", "TEXT"),      # ← settings storage
     ]
     with engine.connect() as conn:
         inspector = sa_inspect(engine)
@@ -56,6 +57,7 @@ class User(Base):
     full_name     = Column(String, nullable=True)
     age           = Column(Integer, nullable=True)
     gender        = Column(String, nullable=True)
+    settings_json = Column(Text, nullable=True)   # JSON blob for all user preferences
 
 
 class JournalEntry(Base):

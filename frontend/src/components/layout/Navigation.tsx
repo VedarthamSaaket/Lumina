@@ -15,6 +15,7 @@ const NAV = [
   { href: '/cognitive/memory', label: 'Memory', icon: '◉' },
   { href: '/crisis', label: 'Crisis', icon: '⚡', crisis: true },
   { href: '/dashboard', label: 'Profile', icon: '◉', profile: true },
+  { href: '/settings', label: 'Settings', icon: '⚙', settings: true },
 ]
 
 export function Navigation() {
@@ -39,7 +40,7 @@ export function Navigation() {
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-6 py-3 md:py-4 glass no-select"
         style={{ borderBottom: '1px solid var(--border-subtle)' }}>
 
-        {/* Logo - gold spinning orb */}
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 md:gap-3" onClick={() => setOpen(false)}>
           <motion.div
             className="w-6 h-6 md:w-7 md:h-7 rounded-full"
@@ -53,7 +54,7 @@ export function Navigation() {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-6">
-          {NAV.filter(n => !n.crisis && !n.profile).map(({ href, label, icon }) => {
+          {NAV.filter(n => !n.crisis && !n.profile && !n.settings).map(({ href, label, icon }) => {
             const active = path === href || (href !== '/chat' && path.startsWith(href))
             return (
               <Link key={href} href={href}
@@ -81,6 +82,18 @@ export function Navigation() {
             style={{ background: 'rgba(220,38,38,0.13)', border: '1px solid rgba(220,38,38,0.35)', color: '#fca5a5' }}>
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             Crisis
+          </Link>
+
+          {/* Settings — gear icon */}
+          <Link href="/settings"
+            className="hidden md:flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 hover:scale-105"
+            style={{
+              background: path.startsWith('/settings') ? 'rgba(212,175,55,0.2)' : 'rgba(212,175,55,0.08)',
+              border: path.startsWith('/settings') ? '1px solid rgba(212,175,55,0.5)' : '1px solid rgba(212,175,55,0.22)',
+              color: 'var(--gold)',
+            }}
+            title="Settings">
+            <span className="text-xs font-jost">⚙</span>
           </Link>
 
           {/* Profile */}

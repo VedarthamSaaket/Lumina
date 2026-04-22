@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy import text
 from routers import dashboard
 from models.database import engine, run_migrations
-from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive
+from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router
 from config import settings
 from services.llm import warmup_model, close_http_client
 from middleware.security import SecurityMiddleware
@@ -46,7 +46,6 @@ app = FastAPI(
 )
 
 # ── 1. Security middleware (runs before everything) ───────────────────────────
-#   Set enforce_https=True in production behind TLS termination proxy
 app.add_middleware(
     SecurityMiddleware,
     enforce_https=settings.ENFORCE_HTTPS,
@@ -72,6 +71,7 @@ app.include_router(crisis.router)
 app.include_router(summary.router)
 app.include_router(cognitive.router)
 app.include_router(dashboard.router)
+app.include_router(settings_router.router)   # ← settings endpoints
 
 
 @app.get("/health")

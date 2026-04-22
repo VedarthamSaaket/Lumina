@@ -1,4 +1,4 @@
-# backend/routers/chat.py  (ownership-hardened version)
+# backend/routers/chat.py  (settings-aware version)
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -16,7 +16,6 @@ from services.llm import (
 from middleware.ownership import require_owner
 from datetime import datetime
 import json, re
-import json
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -31,58 +30,191 @@ class NewConversationRequest(BaseModel):
     title: str | None = None
 
 
-# ── User context builder ──────────────────────────────────────────────────────
-def _get_user_context(user_id: str, db: Session) -> str:
+# ── Settings helpers ──────────────────────────────────────────────────────────
+
+def _get_user_settings(user_id: str, db: Session) -> dict:
+    """Load settings_json from the User row; merge with defaults."""
+    from models.database import User as UserModel
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    raw = getattr(user, "settings_json", None) if user else None
+    defaults = {
+        "preferred_name": "",
+        "pronouns": "",
+        "about_me": "",
+        "ai_tone": "warm",
+        "response_length": "medium",
+        "use_name_in_chat": True,
+        "use_mood_context": True,
+        "use_screening_context": True,
+        "use_cbt_context": True,
+        "use_memory_context": True,
+        "use_journal_context": True,
+        "crisis_sensitivity": "standard",
+        "focus_areas": [],
+    }
+    if not raw:
+        return defaults
     try:
-        screening_rows = (
-            db.query(ScreeningResult)
-            .filter(ScreeningResult.user_id == user_id)
-            .order_by(ScreeningResult.completed_at.desc())
-            .limit(6).all()
-        )
-        screening_history = [{"type": r.type, "score": r.score, "severity": r.severity} for r in screening_rows]
+        stored = json.loads(raw) if isinstance(raw, str) else {}
+        return {**defaults, **stored}
+    except Exception:
+        return defaults
 
-        import json as _json
-        memory_rows = (
-            db.query(CognitiveTestResult)
-            .filter(CognitiveTestResult.user_id == user_id)
-            .order_by(CognitiveTestResult.completed_at.desc())
-            .limit(20).all()
+
+def _build_settings_prompt(s: dict) -> str:
+    """Turn user settings into a system-prompt block appended before context."""
+    lines = ["\n\n═══════════════════════════════════════════════"]
+    lines.append("USER PREFERENCES (follow these carefully)")
+    lines.append("═══════════════════════════════════════════════")
+
+    # Identity
+    name     = s.get("preferred_name", "").strip()
+    pronouns = s.get("pronouns", "").strip()
+    use_name = s.get("use_name_in_chat", True)
+    if name:
+        if use_name:
+            lines.append(
+                f"- This user prefers to be called '{name}'. Use their name occasionally "
+                "in conversation — naturally, the way a friend would, not in every message."
+            )
+        else:
+            lines.append(
+                f"- The user's preferred name is '{name}' but they prefer you NOT use it "
+                "in chat. Avoid addressing them by name."
+            )
+    if pronouns and pronouns not in ("prefer not to say",):
+        lines.append(f"- The user's pronouns are {pronouns}. Use these when referring to them.")
+
+    # About me
+    about = s.get("about_me", "").strip()
+    if about:
+        lines.append(
+            "\nUSER'S SELF-DESCRIPTION (read this and let it inform how you respond — "
+            "do not quote it back):"
         )
+        lines.append(f'"{about}"')
+
+    # Focus areas
+    focus = s.get("focus_areas", [])
+    if focus:
+        lines.append(
+            f"\n- The user has flagged these as their current focus areas: "
+            f"{', '.join(focus)}. Weight your responses to be more attentive to these themes."
+        )
+
+    # Tone
+    tone = s.get("ai_tone", "warm")
+    tone_map = {
+        "warm":     "Speak with warmth, gentleness, and care. Be patient and emotionally supportive. This is your default.",
+        "direct":   "Be honest and concise. Avoid over-softening or filler phrases. Get to the point while remaining kind.",
+        "clinical": "Use a structured, CBT-informed approach. Be methodical and clear. Less personal warmth, more practical framing.",
+        "playful":  "Be relaxed and conversational. Light humor is welcome. Less formal, more like a trusted friend.",
+    }
+    if tone in tone_map:
+        lines.append(f"\nCOMMUNICATION STYLE: {tone_map[tone]}")
+
+    # Response length
+    length = s.get("response_length", "medium")
+    length_map = {
+        "short":  "Keep responses SHORT — 2 to 3 sentences maximum unless the situation genuinely demands more. Err toward brevity.",
+        "medium": "Balance response length to the question — short for casual things, longer when the topic deserves depth.",
+        "long":   "Give thorough, full responses. Explore ideas and reflections completely. The user prefers depth.",
+    }
+    if length in length_map:
+        lines.append(f"RESPONSE LENGTH: {length_map[length]}")
+
+    # Crisis sensitivity
+    crisis = s.get("crisis_sensitivity", "standard")
+    crisis_map = {
+        "low":      "CRISIS SENSITIVITY: Only escalate to crisis mode for very clear, explicit statements of intent. Be less likely to flag passive mentions of distress.",
+        "standard": "CRISIS SENSITIVITY: Use standard detection. Flag clear signs of distress as normal.",
+        "high":     "CRISIS SENSITIVITY: Be more vigilant. Flag subtle signs of distress earlier, offer more frequent check-ins, and gently probe when something feels heavy.",
+    }
+    if crisis in crisis_map:
+        lines.append(crisis_map[crisis])
+
+    lines.append("═══════════════════════════════════════════════")
+    return "\n".join(lines)
+
+
+# ── User context builder (settings-aware) ────────────────────────────────────
+
+def _get_user_context(user_id: str, db: Session, user_settings: dict | None = None) -> str:
+    """Build context string, honouring the context-toggle flags in settings."""
+    s = user_settings or {}
+
+    # Defaults: include everything unless settings say otherwise
+    include_mood       = s.get("use_mood_context", True)
+    include_screening  = s.get("use_screening_context", True)
+    include_cbt        = s.get("use_cbt_context", True)
+    include_memory     = s.get("use_memory_context", True)
+    include_journal    = s.get("use_journal_context", True)
+
+    try:
+        screening_history = []
+        if include_screening:
+            screening_rows = (
+                db.query(ScreeningResult)
+                .filter(ScreeningResult.user_id == user_id)
+                .order_by(ScreeningResult.completed_at.desc())
+                .limit(6).all()
+            )
+            screening_history = [
+                {"type": r.type, "score": r.score, "severity": r.severity}
+                for r in screening_rows
+            ]
+
         memory_history = []
-        for r in memory_rows:
-            try:   scores = _json.loads(r.score_data) if r.score_data else {}
-            except: scores = {}
-            try:   rounds = _json.loads(r.raw_results) if r.raw_results else []
-            except: rounds = []
-            memory_history.append({
-                "game_type": r.test_type,
-                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
-                "scores": scores,
-                "rounds": rounds,
-            })
+        if include_memory:
+            import json as _json
+            memory_rows = (
+                db.query(CognitiveTestResult)
+                .filter(CognitiveTestResult.user_id == user_id)
+                .order_by(CognitiveTestResult.completed_at.desc())
+                .limit(20).all()
+            )
+            for r in memory_rows:
+                try:   scores = _json.loads(r.score_data) if r.score_data else {}
+                except: scores = {}
+                try:   rounds = _json.loads(r.raw_results) if r.raw_results else []
+                except: rounds = []
+                memory_history.append({
+                    "game_type":    r.test_type,
+                    "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+                    "scores":       scores,
+                    "rounds":       rounds,
+                })
 
-        mood_rows = (
-            db.query(MoodLog)
-            .filter(MoodLog.user_id == user_id)
-            .order_by(MoodLog.created_at.desc())
-            .limit(10).all()
-        )
-        mood_history = [{"score": m.score, "note": m.note} for m in mood_rows]
+        mood_history = []
+        if include_mood:
+            mood_rows = (
+                db.query(MoodLog)
+                .filter(MoodLog.user_id == user_id)
+                .order_by(MoodLog.created_at.desc())
+                .limit(10).all()
+            )
+            mood_history = [{"score": m.score, "note": m.note} for m in mood_rows]
 
-        cbt_rows = db.query(CBTProgress).filter(CBTProgress.user_id == user_id).all()
-        completed_ids = {r.module_id for r in cbt_rows}
-        all_modules = ["distortion", "reframing", "activation", "esteem", "exposure", "habit"]
-        cbt_modules = [{"id": mid, "completed": mid in completed_ids} for mid in all_modules]
+        cbt_modules = []
+        if include_cbt:
+            cbt_rows = db.query(CBTProgress).filter(CBTProgress.user_id == user_id).all()
+            completed_ids = {r.module_id for r in cbt_rows}
+            all_modules   = ["distortion", "reframing", "activation", "esteem", "exposure", "habit"]
+            cbt_modules   = [{"id": mid, "completed": mid in completed_ids} for mid in all_modules]
 
-        journal_count = db.query(JournalEntry).filter(JournalEntry.user_id == user_id).count()
-        recent_journals = (
-            db.query(JournalEntry)
-            .filter(JournalEntry.user_id == user_id)
-            .order_by(JournalEntry.created_at.desc())
-            .limit(5).all()
-        )
-        journal_tags = list({tag for j in recent_journals for tag in (j.tags or [])})
+        journal_count  = 0
+        journal_tags   = []
+        if include_journal:
+            journal_count = (
+                db.query(JournalEntry).filter(JournalEntry.user_id == user_id).count()
+            )
+            recent_journals = (
+                db.query(JournalEntry)
+                .filter(JournalEntry.user_id == user_id)
+                .order_by(JournalEntry.created_at.desc())
+                .limit(5).all()
+            )
+            journal_tags = list({tag for j in recent_journals for tag in (j.tags or [])})
 
         from models.database import InsightSummary
         summary_rows = (
@@ -91,10 +223,11 @@ def _get_user_context(user_id: str, db: Session) -> str:
             .order_by(InsightSummary.created_at.desc())
             .limit(3).all()
         )
-        insight_summaries = [{"title": s.title, "content": s.content} for s in summary_rows]
+        insight_summaries = [{"title": sr.title, "content": sr.content} for sr in summary_rows]
 
-        user = db.query(User).filter(User.id == user_id).first()
-        user_name = user.full_name if user else None
+        user      = db.query(User).filter(User.id == user_id).first()
+        # Prefer preferred_name from settings over full_name
+        user_name = s.get("preferred_name", "").strip() or (user.full_name if user else None)
 
         return build_user_context(
             screening_history=screening_history,
@@ -110,109 +243,12 @@ def _get_user_context(user_id: str, db: Session) -> str:
         print(f"[Chat context error] {type(e).__name__}: {e}")
         return ""
 
-def _get_user_settings(user_id: str, db) -> dict:
-    """
-    Load settings from the User row. Returns defaults if not set.
-    """
-    from models.database import User as UserModel
-    user = db.query(UserModel).filter(UserModel.id == user_id).first()
-    raw = getattr(user, 'settings_json', None) if user else None
-    defaults = {
-        'preferred_name': '',
-        'pronouns': '',
-        'about_me': '',
-        'ai_tone': 'warm',
-        'response_length': 'medium',
-        'use_name_in_chat': True,
-        'use_mood_context': True,
-        'use_screening_context': True,
-        'use_cbt_context': True,
-        'use_memory_context': True,
-        'use_journal_context': True,
-        'crisis_sensitivity': 'standard',
-        'focus_areas': [],
-    }
-    if not raw:
-        return defaults
-    try:
-        stored = json.loads(raw) if isinstance(raw, str) else {}
-        return {**defaults, **stored}
-    except Exception:
-        return defaults
- 
- 
-def _build_settings_prompt(settings: dict) -> str:
-    """
-    Builds a system prompt section from user settings.
-    This is appended to the BASE_SYSTEM_PROMPT every conversation.
-    """
-    lines = ["\n\n═══════════════════════════════════════════════"]
-    lines.append("USER PREFERENCES (follow these carefully)")
-    lines.append("═══════════════════════════════════════════════")
- 
-    # Identity
-    name = settings.get('preferred_name', '').strip()
-    pronouns = settings.get('pronouns', '').strip()
-    use_name = settings.get('use_name_in_chat', True)
-    if name:
-        if use_name:
-            lines.append(f"- This user prefers to be called '{name}'. Use their name occasionally in conversation — naturally, the way a friend would, not in every message.")
-        else:
-            lines.append(f"- The user's preferred name is '{name}' but they prefer you NOT use it in chat. Avoid addressing them by name.")
-    if pronouns and pronouns not in ('prefer not to say',):
-        lines.append(f"- The user's pronouns are {pronouns}. Use these when referring to them.")
- 
-    # About me / bio
-    about = settings.get('about_me', '').strip()
-    if about:
-        lines.append(f"\nUSER'S SELF-DESCRIPTION (read this and let it inform how you respond — do not quote it back):")
-        lines.append(f'"{about}"')
- 
-    # Focus areas
-    focus = settings.get('focus_areas', [])
-    if focus:
-        lines.append(f"\n- The user has flagged these as their current focus areas: {', '.join(focus)}. Weight your responses to be more attentive to these themes.")
- 
-    # Tone
-    tone = settings.get('ai_tone', 'warm')
-    tone_instructions = {
-        'warm': "Speak with warmth, gentleness, and care. Be patient and emotionally supportive. This is your default.",
-        'direct': "Be honest and concise. Avoid over-softening or filler phrases. Get to the point while remaining kind.",
-        'clinical': "Use a structured, CBT-informed approach. Be methodical and clear. Less personal warmth, more practical framing.",
-        'playful': "Be relaxed and conversational. Light humor is welcome. Less formal, more like a trusted friend.",
-    }
-    if tone in tone_instructions:
-        lines.append(f"\nCOMMUNICATION STYLE: {tone_instructions[tone]}")
- 
-    # Response length
-    length = settings.get('response_length', 'medium')
-    length_instructions = {
-        'short': "Keep responses SHORT — 2 to 3 sentences maximum unless the situation genuinely demands more. Err toward brevity.",
-        'medium': "Balance response length to the question — short for casual things, longer when the topic deserves depth.",
-        'long': "Give thorough, full responses. Explore ideas and reflections completely. The user prefers depth.",
-    }
-    if length in length_instructions:
-        lines.append(f"RESPONSE LENGTH: {length_instructions[length]}")
- 
-    # Crisis sensitivity
-    crisis = settings.get('crisis_sensitivity', 'standard')
-    crisis_instructions = {
-        'low': "CRISIS SENSITIVITY: Only escalate to crisis mode for very clear, explicit statements of intent. Be less likely to flag passive mentions of distress.",
-        'standard': "CRISIS SENSITIVITY: Use standard detection. Flag clear signs of distress as normal.",
-        'high': "CRISIS SENSITIVITY: Be more vigilant. Flag subtle signs of distress earlier, offer more frequent check-ins, and gently probe when something feels heavy.",
-    }
-    if crisis in crisis_instructions:
-        lines.append(crisis_instructions[crisis])
- 
-    lines.append("═══════════════════════════════════════════════")
-    return "\n".join(lines)
- 
+
 def _get_or_create_convo(data: MessageRequest, user_id: str, db: Session) -> Conversation:
     if data.conversation_id:
-        # IDOR guard — only fetch if it belongs to this user
         convo = db.query(Conversation).filter(
             Conversation.id == data.conversation_id,
-            Conversation.user_id == user_id,          # ← ownership enforced in query
+            Conversation.user_id == user_id,
         ).first()
         if not convo:
             raise HTTPException(status_code=404, detail="Conversation not found")
@@ -233,7 +269,7 @@ def list_conversations(
 ):
     convos = (
         db.query(Conversation)
-        .filter(Conversation.user_id == current_user.id)   # only this user's convos
+        .filter(Conversation.user_id == current_user.id)
         .order_by(desc(Conversation.updated_at))
         .all()
     )
@@ -261,7 +297,7 @@ def get_conversation(
 ):
     convo = db.query(Conversation).filter(
         Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,   # IDOR guard
+        Conversation.user_id == current_user.id,
     ).first()
     require_owner(convo, current_user_id=current_user.id, resource_name="Conversation")
 
@@ -269,14 +305,14 @@ def get_conversation(
         db.query(ChatMessage)
         .filter(
             ChatMessage.conversation_id == conversation_id,
-            ChatMessage.user_id == current_user.id,   # belt-and-suspenders
+            ChatMessage.user_id == current_user.id,
         )
         .order_by(ChatMessage.created_at)
         .all()
     )
     return {
-        "id": convo.id,
-        "title": convo.title,
+        "id":       convo.id,
+        "title":    convo.title,
         "messages": [
             {"role": m.role, "content": m.content, "created_at": m.created_at}
             for m in messages
@@ -290,12 +326,8 @@ def delete_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    convo = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-    ).first()
+    convo = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     require_owner(convo, current_user_id=current_user.id, resource_name="Conversation")
-
-    # Only delete messages that also belong to this user
     db.query(ChatMessage).filter(
         ChatMessage.conversation_id == conversation_id,
         ChatMessage.user_id == current_user.id,
@@ -325,19 +357,25 @@ async def stream_message(
 
     if risk_level >= 3:
         async def crisis_stream():
-            msg = ("Your safety is the only thing that matters right now. "
-                   "Please call emergency services (112 or 911) immediately, "
-                   "or contact iCall at 9152987821. You are not alone.")
+            msg = (
+                "Your safety is the only thing that matters right now. "
+                "Please call emergency services (112 or 911) immediately, "
+                "or contact iCall at 9152987821. You are not alone."
+            )
             yield f"data: {json.dumps({'text': msg})}\n\n"
             yield f"data: {json.dumps({'conversation_id': str(convo.id), 'risk_level': risk_level})}\n\n"
             yield "data: [DONE]\n\n"
-        return StreamingResponse(crisis_stream(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return StreamingResponse(
+            crisis_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
-    db.add(ChatMessage(conversation_id=convo.id, user_id=current_user.id, role="user", content=data.content))
+    db.add(ChatMessage(
+        conversation_id=convo.id, user_id=current_user.id, role="user", content=data.content
+    ))
     db.commit()
 
-    # Build history from DB (only this user's messages) — never trust client-supplied history
     history_rows = (
         db.query(ChatMessage)
         .filter(
@@ -347,14 +385,21 @@ async def stream_message(
         .order_by(ChatMessage.created_at)
         .all()
     )
-    history      = [{"role": m.role, "content": m.content} for m in history_rows]
-    user_context = _get_user_context(current_user.id, db)
+    history = [{"role": m.role, "content": m.content} for m in history_rows]
+
+    # Load settings and build context / prompt additions
+    user_settings          = _get_user_settings(current_user.id, db)
+    user_context           = _get_user_context(current_user.id, db, user_settings)
+    settings_prompt        = _build_settings_prompt(user_settings)
 
     async def generate():
         full_response = ""
         try:
             async for token in chat_with_llama_stream(
-                data.content, history, risk_level=risk_level, user_context=user_context
+                data.content, history,
+                risk_level=risk_level,
+                user_context=user_context,
+                settings_prompt=settings_prompt,
             ):
                 full_response += token
                 yield f"data: {json.dumps({'text': token})}\n\n"
@@ -376,10 +421,10 @@ async def stream_message(
 
         try:
             db.add(ChatMessage(
-                conversation_id = convo.id,
-                user_id         = current_user.id,
-                role            = "assistant",
-                content         = full_response,
+                conversation_id=convo.id,
+                user_id=current_user.id,
+                role="assistant",
+                content=full_response,
             ))
             convo.updated_at = datetime.utcnow()
             db.commit()
@@ -417,15 +462,19 @@ async def send_message(
 
     if risk_level >= 3:
         return {
-            "response": ("Your safety is the only thing that matters right now. "
-                         "Please call emergency services (112 or 911) immediately, "
-                         "or contact iCall at 9152987821. You are not alone."),
-            "risk_level": risk_level,
-            "conversation_id": convo.id,
-            "tool_redirect": None,
+            "response": (
+                "Your safety is the only thing that matters right now. "
+                "Please call emergency services (112 or 911) immediately, "
+                "or contact iCall at 9152987821. You are not alone."
+            ),
+            "risk_level":       risk_level,
+            "conversation_id":  convo.id,
+            "tool_redirect":    None,
         }
 
-    db.add(ChatMessage(conversation_id=convo.id, user_id=current_user.id, role="user", content=data.content))
+    db.add(ChatMessage(
+        conversation_id=convo.id, user_id=current_user.id, role="user", content=data.content
+    ))
 
     history_rows = (
         db.query(ChatMessage)
@@ -436,11 +485,18 @@ async def send_message(
         .order_by(ChatMessage.created_at)
         .all()
     )
-    history      = [{"role": m.role, "content": m.content} for m in history_rows]
-    user_context = _get_user_context(current_user.id, db)
+    history = [{"role": m.role, "content": m.content} for m in history_rows]
 
-    response     = await chat_with_llama(data.content, history, risk_level, user_context=user_context)
-    response     = post_process_response(response, risk_level)
+    user_settings   = _get_user_settings(current_user.id, db)
+    user_context    = _get_user_context(current_user.id, db, user_settings)
+    settings_prompt = _build_settings_prompt(user_settings)
+
+    response = await chat_with_llama(
+        data.content, history, risk_level,
+        user_context=user_context,
+        settings_prompt=settings_prompt,
+    )
+    response = post_process_response(response, risk_level)
 
     tool_redirect = None
     tool_match    = re.search(r'TOOL_REDIRECT:(\{[^}]+\})', response)
@@ -451,13 +507,15 @@ async def send_message(
         except Exception:
             pass
 
-    db.add(ChatMessage(conversation_id=convo.id, user_id=current_user.id, role="assistant", content=response))
+    db.add(ChatMessage(
+        conversation_id=convo.id, user_id=current_user.id, role="assistant", content=response
+    ))
     convo.updated_at = datetime.utcnow()
     db.commit()
 
     return {
-        "response": response,
-        "risk_level": risk_level,
-        "conversation_id": convo.id,
-        "tool_redirect": tool_redirect,
+        "response":         response,
+        "risk_level":       risk_level,
+        "conversation_id":  convo.id,
+        "tool_redirect":    tool_redirect,
     }
