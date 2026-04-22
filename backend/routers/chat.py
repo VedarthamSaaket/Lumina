@@ -16,6 +16,7 @@ from services.llm import (
 from middleware.ownership import require_owner
 from datetime import datetime
 import json, re
+import json
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -109,7 +110,103 @@ def _get_user_context(user_id: str, db: Session) -> str:
         print(f"[Chat context error] {type(e).__name__}: {e}")
         return ""
 
-
+def _get_user_settings(user_id: str, db) -> dict:
+    """
+    Load settings from the User row. Returns defaults if not set.
+    """
+    from models.database import User as UserModel
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    raw = getattr(user, 'settings_json', None) if user else None
+    defaults = {
+        'preferred_name': '',
+        'pronouns': '',
+        'about_me': '',
+        'ai_tone': 'warm',
+        'response_length': 'medium',
+        'use_name_in_chat': True,
+        'use_mood_context': True,
+        'use_screening_context': True,
+        'use_cbt_context': True,
+        'use_memory_context': True,
+        'use_journal_context': True,
+        'crisis_sensitivity': 'standard',
+        'focus_areas': [],
+    }
+    if not raw:
+        return defaults
+    try:
+        stored = json.loads(raw) if isinstance(raw, str) else {}
+        return {**defaults, **stored}
+    except Exception:
+        return defaults
+ 
+ 
+def _build_settings_prompt(settings: dict) -> str:
+    """
+    Builds a system prompt section from user settings.
+    This is appended to the BASE_SYSTEM_PROMPT every conversation.
+    """
+    lines = ["\n\n═══════════════════════════════════════════════"]
+    lines.append("USER PREFERENCES (follow these carefully)")
+    lines.append("═══════════════════════════════════════════════")
+ 
+    # Identity
+    name = settings.get('preferred_name', '').strip()
+    pronouns = settings.get('pronouns', '').strip()
+    use_name = settings.get('use_name_in_chat', True)
+    if name:
+        if use_name:
+            lines.append(f"- This user prefers to be called '{name}'. Use their name occasionally in conversation — naturally, the way a friend would, not in every message.")
+        else:
+            lines.append(f"- The user's preferred name is '{name}' but they prefer you NOT use it in chat. Avoid addressing them by name.")
+    if pronouns and pronouns not in ('prefer not to say',):
+        lines.append(f"- The user's pronouns are {pronouns}. Use these when referring to them.")
+ 
+    # About me / bio
+    about = settings.get('about_me', '').strip()
+    if about:
+        lines.append(f"\nUSER'S SELF-DESCRIPTION (read this and let it inform how you respond — do not quote it back):")
+        lines.append(f'"{about}"')
+ 
+    # Focus areas
+    focus = settings.get('focus_areas', [])
+    if focus:
+        lines.append(f"\n- The user has flagged these as their current focus areas: {', '.join(focus)}. Weight your responses to be more attentive to these themes.")
+ 
+    # Tone
+    tone = settings.get('ai_tone', 'warm')
+    tone_instructions = {
+        'warm': "Speak with warmth, gentleness, and care. Be patient and emotionally supportive. This is your default.",
+        'direct': "Be honest and concise. Avoid over-softening or filler phrases. Get to the point while remaining kind.",
+        'clinical': "Use a structured, CBT-informed approach. Be methodical and clear. Less personal warmth, more practical framing.",
+        'playful': "Be relaxed and conversational. Light humor is welcome. Less formal, more like a trusted friend.",
+    }
+    if tone in tone_instructions:
+        lines.append(f"\nCOMMUNICATION STYLE: {tone_instructions[tone]}")
+ 
+    # Response length
+    length = settings.get('response_length', 'medium')
+    length_instructions = {
+        'short': "Keep responses SHORT — 2 to 3 sentences maximum unless the situation genuinely demands more. Err toward brevity.",
+        'medium': "Balance response length to the question — short for casual things, longer when the topic deserves depth.",
+        'long': "Give thorough, full responses. Explore ideas and reflections completely. The user prefers depth.",
+    }
+    if length in length_instructions:
+        lines.append(f"RESPONSE LENGTH: {length_instructions[length]}")
+ 
+    # Crisis sensitivity
+    crisis = settings.get('crisis_sensitivity', 'standard')
+    crisis_instructions = {
+        'low': "CRISIS SENSITIVITY: Only escalate to crisis mode for very clear, explicit statements of intent. Be less likely to flag passive mentions of distress.",
+        'standard': "CRISIS SENSITIVITY: Use standard detection. Flag clear signs of distress as normal.",
+        'high': "CRISIS SENSITIVITY: Be more vigilant. Flag subtle signs of distress earlier, offer more frequent check-ins, and gently probe when something feels heavy.",
+    }
+    if crisis in crisis_instructions:
+        lines.append(crisis_instructions[crisis])
+ 
+    lines.append("═══════════════════════════════════════════════")
+    return "\n".join(lines)
+ 
 def _get_or_create_convo(data: MessageRequest, user_id: str, db: Session) -> Conversation:
     if data.conversation_id:
         # IDOR guard — only fetch if it belongs to this user
