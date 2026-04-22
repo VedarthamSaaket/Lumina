@@ -46,75 +46,100 @@ export function Navigation() {
 
   const isDark = theme === 'dark'
 
+  // Reference screenshot colours — warm golden on cream/dark
+  const bg = isDark
+    ? 'rgba(10, 6, 2, 0.92)'
+    : 'rgba(242, 228, 190, 0.97)'
+  const border = isDark
+    ? 'rgba(212,175,55,0.13)'
+    : 'rgba(180,140,40,0.18)'
+  const logoColor = isDark ? '#d4af37' : '#8b6410'
+  const mutedText = isDark ? 'rgba(254,244,228,0.52)' : 'rgba(60,38,8,0.52)'
+  const activeGold = isDark ? '#d4af37' : '#8b6410'
+
   return (
     <>
+      {/* ── NAV BAR ─────────────────────────────────────────────── */}
       <motion.nav
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          height: '58px', display: 'flex', alignItems: 'center',
-          padding: '0 24px', gap: '0',
-          background: scrolled
-            ? (isDark ? 'rgba(8, 4, 1, 0.88)' : 'rgba(240, 230, 204, 0.92)')
-            : 'transparent',
-          backdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'none',
-          borderBottom: scrolled
-            ? (isDark ? '1px solid rgba(212,175,55,0.10)' : '1px solid rgba(160,120,50,0.15)')
-            : 'none',
-          transition: 'background 0.3s, border-color 0.3s, backdrop-filter 0.3s',
+          height: '52px',
+          display: 'flex', alignItems: 'center',
+          padding: '0 20px',
+          gap: '0',
+          background: bg,
+          backdropFilter: 'blur(32px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+          borderBottom: `1px solid ${border}`,
+          transition: 'background 0.3s, border-color 0.3s',
         }}
       >
-        {/* Logo */}
-        <Link href="/" style={{ textDecoration: 'none', flexShrink: 0, marginRight: '28px' }}>
+
+        {/* ── LOGO CIRCLE + WORDMARK ── */}
+        <Link href="/" style={{ textDecoration: 'none', flexShrink: 0, marginRight: '20px', display: 'flex', alignItems: 'center', gap: '9px' }}>
+          {/* Golden orb — matches reference screenshot exactly */}
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: isDark
+              ? 'radial-gradient(circle at 38% 35%, #ffe484 0%, #d4af37 45%, #8b6010 100%)'
+              : 'radial-gradient(circle at 38% 35%, #ffe97a 0%, #c9960a 45%, #7a5200 100%)',
+            boxShadow: isDark
+              ? '0 0 12px rgba(212,175,55,0.45), inset 0 1px 0 rgba(255,240,140,0.4)'
+              : '0 0 10px rgba(180,130,0,0.30), inset 0 1px 0 rgba(255,240,140,0.5)',
+            flexShrink: 0,
+          }} />
           <span style={{
             fontFamily: 'var(--font-cormorant)',
-            fontStyle: 'italic', fontWeight: 300,
-            fontSize: '22px',
-            color: isDark ? 'rgba(254,244,228,0.95)' : 'rgba(42,26,8,0.92)',
-            letterSpacing: '0.02em',
+            fontStyle: 'italic', fontWeight: 400,
+            fontSize: '19px',
+            color: isDark ? 'rgba(254,244,228,0.92)' : 'rgba(42,24,4,0.88)',
+            letterSpacing: '0.04em',
           }}>
-            Lumina
+            LUMINA
           </span>
         </Link>
 
-        {/* Desktop nav links — inline, no hamburger on desktop */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', gap: '2px',
-        }}
+        {/* ── DESKTOP NAV LINKS ── */}
+        <div
           className="hidden md:flex"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1px' }}
         >
           {navLinks.map(link => {
             const active = isActive(link.href)
-            const accentColor = link.orion ? '#5B9BD5' : (isDark ? '#d4af37' : '#8b6410')
+            const accent = link.orion
+              ? '#5B9BD5'
+              : activeGold
+
             return (
               <Link key={link.href} href={link.href} style={{ textDecoration: 'none' }}>
                 <motion.div
                   whileHover={{ y: -1 }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '5px 10px', borderRadius: '20px',
+                    padding: '4px 11px', borderRadius: '20px',
                     fontFamily: 'var(--font-jost)', fontSize: '10px',
-                    fontWeight: 500, letterSpacing: '0.13em',
-                    color: active
-                      ? accentColor
-                      : (isDark ? 'rgba(254,244,228,0.50)' : 'rgba(42,26,8,0.50)'),
+                    fontWeight: 600, letterSpacing: '0.14em',
+                    color: active ? accent : mutedText,
                     background: active
-                      ? (link.orion ? 'rgba(91,155,213,0.12)' : (isDark ? 'rgba(212,175,55,0.10)' : 'rgba(139,100,16,0.08)'))
+                      ? (link.orion
+                        ? 'rgba(91,155,213,0.12)'
+                        : (isDark ? 'rgba(212,175,55,0.12)' : 'rgba(139,100,16,0.10)'))
                       : 'transparent',
                     border: active
-                      ? (link.orion ? '1px solid rgba(91,155,213,0.28)' : (isDark ? '1px solid rgba(212,175,55,0.22)' : '1px solid rgba(139,100,16,0.22)'))
+                      ? (link.orion
+                        ? '1px solid rgba(91,155,213,0.30)'
+                        : (isDark ? '1px solid rgba(212,175,55,0.25)' : '1px solid rgba(139,100,16,0.25)'))
                       : '1px solid transparent',
-                    transition: 'all 0.2s',
+                    transition: 'all 0.18s',
+                    cursor: 'pointer',
                   }}
                 >
                   <span style={{
-                    fontSize: '9px',
-                    color: active
-                      ? accentColor
-                      : (isDark ? 'rgba(254,244,228,0.28)' : 'rgba(42,26,8,0.28)'),
+                    fontSize: '8px',
+                    color: active ? accent : (isDark ? 'rgba(254,244,228,0.25)' : 'rgba(42,26,8,0.22)'),
                     filter: active && link.orion ? 'drop-shadow(0 0 4px #5B9BD560)' : 'none',
                   }}>
                     {link.icon}
@@ -126,83 +151,147 @@ export function Navigation() {
           })}
         </div>
 
-        {/* Right controls — theme toggle, profile, sign out, settings */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: 'auto' }}>
+        {/* ── RIGHT CONTROLS ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: 'auto' }}>
 
-          {/* Theme toggle - simple icon button */}
+          {/* THEME TOGGLE — pill / switch style matching reference screenshot */}
           <motion.button
             onClick={toggleTheme}
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.94 }}
             title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
             style={{
-              background: 'none',
-              border: `1px solid ${isDark ? 'rgba(212,175,55,0.22)' : 'rgba(139,100,16,0.22)'}`,
-              borderRadius: '50%', width: '32px', height: '32px',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: isDark ? 'rgba(212,175,55,0.7)' : 'rgba(139,100,16,0.7)',
-              fontSize: '13px', transition: 'all 0.2s',
+              position: 'relative',
+              width: '48px', height: '26px', borderRadius: '13px',
+              cursor: 'pointer',
+              border: 'none', outline: 'none',
+              background: isDark
+                ? 'rgba(212,175,55,0.18)'
+                : 'rgba(139,100,16,0.15)',
+              boxShadow: isDark
+                ? 'inset 0 0 0 1px rgba(212,175,55,0.28)'
+                : 'inset 0 0 0 1px rgba(139,100,16,0.25)',
+              transition: 'background 0.25s',
+              flexShrink: 0,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(212,175,55,0.1)' : 'rgba(139,100,16,0.1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
           >
-            {isDark ? '◑' : '◐'}
+            {/* thumb */}
+            <motion.div
+              animate={{ x: isDark ? 24 : 2 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              style={{
+                position: 'absolute', top: '3px',
+                width: '20px', height: '20px', borderRadius: '50%',
+                background: isDark
+                  ? 'radial-gradient(circle at 38% 35%, #ffe484, #d4af37)'
+                  : 'radial-gradient(circle at 38% 35%, #ffe97a, #c9960a)',
+                boxShadow: isDark
+                  ? '0 0 8px rgba(212,175,55,0.6)'
+                  : '0 0 6px rgba(180,130,0,0.4)',
+              }}
+            />
+            {/* sun/moon icon inside track */}
+            <span style={{
+              position: 'absolute',
+              left: isDark ? '5px' : '28px',
+              top: '50%', transform: 'translateY(-50%)',
+              fontSize: '9px',
+              color: isDark ? 'rgba(254,244,228,0.4)' : 'rgba(42,26,8,0.4)',
+              pointerEvents: 'none',
+              transition: 'left 0.25s',
+            }}>
+              {isDark ? '☽' : '☀'}
+            </span>
           </motion.button>
 
           {isAuthed && (
             <>
-              {/* Profile button — desktop only */}
+              {/* CRISIS BUTTON — matches reference pill with dot */}
+              <Link href="/crisis" className="hidden md:block" style={{ textDecoration: 'none' }}>
+                <motion.div
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '4px 13px', borderRadius: '20px',
+                    background: isDark
+                      ? 'rgba(220, 60, 60, 0.13)'
+                      : 'rgba(220, 60, 60, 0.10)',
+                    border: isDark
+                      ? '1px solid rgba(220,80,80,0.30)'
+                      : '1px solid rgba(200,50,50,0.25)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-jost)', fontSize: '10px',
+                    fontWeight: 600, letterSpacing: '0.14em',
+                    color: isDark ? 'rgba(255,120,120,0.85)' : 'rgba(180,30,30,0.80)',
+                  }}
+                >
+                  <span style={{
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: isDark ? '#ff6060' : '#cc2222',
+                    boxShadow: '0 0 6px rgba(255,60,60,0.6)',
+                    display: 'inline-block', flexShrink: 0,
+                  }} />
+                  CRISIS
+                </motion.div>
+              </Link>
+
+              {/* SETTINGS gear */}
+              <Link href="/settings" style={{ textDecoration: 'none' }} className="hidden md:block">
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 20 }} whileTap={{ scale: 0.92 }}
+                  title="Settings"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    width: '28px', height: '28px', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: isDark ? 'rgba(254,244,228,0.32)' : 'rgba(42,26,8,0.32)',
+                    fontSize: '15px', transition: 'color 0.2s', borderRadius: '50%',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = logoColor)}
+                  onMouseLeave={e => (e.currentTarget.style.color = isDark ? 'rgba(254,244,228,0.32)' : 'rgba(42,26,8,0.32)')}
+                >
+                  ⚙
+                </motion.button>
+              </Link>
+
+              {/* PROFILE — desktop */}
               <Link href="/dashboard" style={{ textDecoration: 'none' }} className="hidden md:block">
                 <motion.button
                   whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                   style={{
                     background: 'none',
-                    border: `1px solid ${isDark ? 'rgba(212,175,55,0.22)' : 'rgba(139,100,16,0.22)'}`,
-                    borderRadius: '20px', padding: '5px 14px', cursor: 'pointer',
+                    border: `1px solid ${isDark ? 'rgba(212,175,55,0.20)' : 'rgba(139,100,16,0.20)'}`,
+                    borderRadius: '20px', padding: '4px 13px', cursor: 'pointer',
                     fontFamily: 'var(--font-jost)', fontSize: '10px',
                     letterSpacing: '0.12em', textTransform: 'uppercase',
-                    color: isDark ? 'rgba(254,244,228,0.55)' : 'rgba(42,26,8,0.55)',
-                    transition: 'all 0.2s',
+                    color: mutedText, transition: 'all 0.2s',
                   }}
                 >
                   PROFILE
                 </motion.button>
               </Link>
 
-              {/* Sign out — desktop only */}
+              {/* OUT (sign out) — matches reference screenshot "OUT" pill */}
               <button
                 onClick={handleSignOut}
                 className="hidden md:block"
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+                  background: isDark ? 'rgba(254,244,228,0.04)' : 'rgba(42,26,8,0.04)',
+                  border: `1px solid ${isDark ? 'rgba(254,244,228,0.10)' : 'rgba(42,26,8,0.10)'}`,
+                  borderRadius: '20px', padding: '4px 12px', cursor: 'pointer',
                   fontFamily: 'var(--font-jost)', fontSize: '10px',
                   letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: isDark ? 'rgba(254,244,228,0.32)' : 'rgba(42,26,8,0.32)',
-                  transition: 'color 0.2s',
+                  color: isDark ? 'rgba(254,244,228,0.30)' : 'rgba(42,26,8,0.30)',
+                  transition: 'all 0.2s',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.color = isDark ? 'rgba(254,244,228,0.7)' : 'rgba(42,26,8,0.7)')}
-                onMouseLeave={e => (e.currentTarget.style.color = isDark ? 'rgba(254,244,228,0.32)' : 'rgba(42,26,8,0.32)')}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? 'rgba(254,244,228,0.65)' : 'rgba(42,26,8,0.65)'
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? 'rgba(254,244,228,0.30)' : 'rgba(42,26,8,0.30)'
+                }}
               >
-                SIGN OUT
+                OUT
               </button>
-
-              {/* Settings icon — desktop */}
-              <Link href="/settings" style={{ textDecoration: 'none' }} className="hidden md:block">
-                <motion.button
-                  whileHover={{ scale: 1.08, rotate: 18 }} whileTap={{ scale: 0.92 }}
-                  title="Settings"
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: isDark ? 'rgba(254,244,228,0.35)' : 'rgba(42,26,8,0.35)',
-                    fontSize: '14px', transition: 'color 0.2s',
-                    borderRadius: '50%',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = isDark ? 'rgba(212,175,55,0.8)' : 'rgba(139,100,16,0.8)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = isDark ? 'rgba(254,244,228,0.35)' : 'rgba(42,26,8,0.35)')}
-                >
-                  ⚙
-                </motion.button>
-              </Link>
             </>
           )}
 
@@ -211,7 +300,7 @@ export function Navigation() {
               <button style={{
                 background: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(139,100,16,0.08)',
                 border: `1px solid ${isDark ? 'rgba(212,175,55,0.22)' : 'rgba(139,100,16,0.22)'}`,
-                borderRadius: '20px', padding: '5px 16px', cursor: 'pointer',
+                borderRadius: '20px', padding: '4px 16px', cursor: 'pointer',
                 fontFamily: 'var(--font-jost)', fontSize: '10px',
                 letterSpacing: '0.12em', textTransform: 'uppercase',
                 color: isDark ? 'rgba(254,244,228,0.6)' : 'rgba(42,26,8,0.6)',
@@ -222,7 +311,7 @@ export function Navigation() {
             </Link>
           )}
 
-          {/* Hamburger — mobile only */}
+          {/* HAMBURGER — mobile only */}
           <button
             onClick={() => setMenuOpen(v => !v)}
             className="md:hidden"
@@ -250,7 +339,7 @@ export function Navigation() {
         </div>
       </motion.nav>
 
-      {/* Mobile slide-down menu */}
+      {/* ── MOBILE SLIDE-DOWN MENU ── */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -259,17 +348,17 @@ export function Navigation() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
             style={{
-              position: 'fixed', top: '58px', left: 0, right: 0, zIndex: 99,
-              background: isDark ? 'rgba(8,4,1,0.97)' : 'rgba(240,230,204,0.97)',
+              position: 'fixed', top: '52px', left: 0, right: 0, zIndex: 99,
+              background: isDark ? 'rgba(8,4,1,0.97)' : 'rgba(240,228,192,0.97)',
               backdropFilter: 'blur(32px)',
               WebkitBackdropFilter: 'blur(32px)',
-              borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.10)' : 'rgba(139,100,16,0.15)'}`,
+              borderBottom: `1px solid ${border}`,
               padding: '10px 16px 16px',
             }}
           >
             {navLinks.map(link => {
               const active = isActive(link.href)
-              const accentColor = link.orion ? '#5B9BD5' : (isDark ? '#d4af37' : '#8b6410')
+              const accent = link.orion ? '#5B9BD5' : activeGold
               return (
                 <Link key={link.href} href={link.href}
                   onClick={() => setMenuOpen(false)}
@@ -280,11 +369,11 @@ export function Navigation() {
                     background: active
                       ? (link.orion ? 'rgba(91,155,213,0.10)' : (isDark ? 'rgba(212,175,55,0.08)' : 'rgba(139,100,16,0.08)'))
                       : 'transparent',
-                    color: active ? accentColor : (isDark ? 'rgba(254,244,228,0.60)' : 'rgba(42,26,8,0.60)'),
+                    color: active ? accent : mutedText,
                     fontFamily: 'var(--font-jost)', fontSize: '11px',
                     letterSpacing: '0.13em', textTransform: 'uppercase',
                   }}>
-                    <span style={{ fontSize: '11px', color: active ? accentColor : 'inherit' }}>{link.icon}</span>
+                    <span style={{ fontSize: '11px', color: active ? accent : 'inherit' }}>{link.icon}</span>
                     {link.label}
                   </div>
                 </Link>
@@ -304,17 +393,16 @@ export function Navigation() {
                       width: '100%', padding: '10px', borderRadius: '12px', cursor: 'pointer',
                       background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(139,100,16,0.06)',
                       border: `1px solid ${isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,100,16,0.15)'}`,
-                      color: isDark ? 'rgba(254,244,228,0.6)' : 'rgba(42,26,8,0.6)',
-                      fontFamily: 'var(--font-jost)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase',
-                    }}>Profile</button>
+                      color: mutedText, fontFamily: 'var(--font-jost)', fontSize: '10px',
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                    }}>PROFILE</button>
                   </Link>
                   <Link href="/settings" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}>
                     <button style={{
                       padding: '10px 16px', borderRadius: '12px', cursor: 'pointer',
                       background: 'none',
                       border: `1px solid ${isDark ? 'rgba(212,175,55,0.12)' : 'rgba(139,100,16,0.12)'}`,
-                      color: isDark ? 'rgba(254,244,228,0.5)' : 'rgba(42,26,8,0.5)',
-                      fontFamily: 'var(--font-jost)', fontSize: '14px',
+                      color: mutedText, fontFamily: 'var(--font-jost)', fontSize: '15px',
                     }}>⚙</button>
                   </Link>
                   <button onClick={handleSignOut} style={{
@@ -322,8 +410,9 @@ export function Navigation() {
                     background: 'none',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(42,26,8,0.08)'}`,
                     color: isDark ? 'rgba(254,244,228,0.35)' : 'rgba(42,26,8,0.40)',
-                    fontFamily: 'var(--font-jost)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase',
-                  }}>Sign out</button>
+                    fontFamily: 'var(--font-jost)', fontSize: '10px',
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                  }}>OUT</button>
                 </>
               ) : (
                 <Link href="/auth/signin" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', flex: 1 }}>
@@ -332,8 +421,9 @@ export function Navigation() {
                     background: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(139,100,16,0.08)',
                     border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,100,16,0.2)'}`,
                     color: isDark ? 'rgba(254,244,228,0.7)' : 'rgba(42,26,8,0.7)',
-                    fontFamily: 'var(--font-jost)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase',
-                  }}>Sign in</button>
+                    fontFamily: 'var(--font-jost)', fontSize: '10px',
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                  }}>SIGN IN</button>
                 </Link>
               )}
             </div>
