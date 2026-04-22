@@ -42,8 +42,8 @@
   --input-bar-fade: rgba(8, 3, 0, 0.94);
   --scrollbar-thumb: rgba(212, 175, 55, 0.2);
 
-  /* Feature accent colours (warm palette, no blue) */
-  --feature-teal: #4fada0;
+  /* Feature accent colours (warm palette — teal overridden to amber below) */
+  --feature-teal: #c4913a;
   --feature-rose: #c9897a;
   --feature-sage: #7a9e7e;
   --feature-amber: #c4913a;
@@ -53,7 +53,7 @@
 
   /* Particle colours */
   --particle-a: #d4af37;
-  --particle-b: #4fada0;
+  --particle-b: #c9897a;
   --particle-c: #c9897a;
 
   /* CTA buttons */
@@ -91,7 +91,7 @@
   --input-bar-fade: rgba(240, 230, 204, 0.97);
 
   /* Feature accent colours adjusted for light bg */
-  --feature-teal: #3a8a80;
+  --feature-teal: #9a6a1a;
   --feature-rose: #a86050;
   --feature-sage: #507a55;
   --feature-amber: #9a6a1a;
@@ -99,7 +99,7 @@
   --divider-color: #8b6410;
 
   --particle-a: #8b6410;
-  --particle-b: #3a8a80;
+  --particle-b: #a86050;
   --particle-c: #a86050;
 
   /* CTA buttons */
@@ -122,6 +122,9 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
 }
 
 html {
@@ -136,6 +139,16 @@ body {
   transition: var(--transition-theme);
   overflow-x: hidden;
   min-height: 100vh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
 
 .no-select {
@@ -176,27 +189,8 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   PAGE BACKGROUNDS
+   KEYFRAMES
    ───────────────────────────────────────────────────────────────────────────── */
-
-/* DARK backgrounds - deep chocolate brown family */
-.bg-landing {
-  background: linear-gradient(145deg, #090400 0%, #130800 30%, #1c0d04 60%, #0e0602 100%);
-  position: relative;
-}
-
-.bg-landing::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 70% 45% at 20% 25%, rgba(212, 175, 55, 0.09) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 40% at 80% 70%, rgba(180, 100, 20, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 55% at 50% 50%, rgba(90, 40, 10, 0.12) 0%, transparent 70%);
-  animation: auroraShift 16s ease-in-out infinite alternate;
-}
-
 @keyframes auroraShift {
   0% {
     opacity: 0.7;
@@ -209,23 +203,6 @@ body {
   }
 }
 
-.bg-chat {
-  background: linear-gradient(145deg, #090400 0%, #120700 28%, #1a0c02 55%, #110700 80%, #070300 100%);
-  position: relative;
-}
-
-.bg-chat::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 38% at 50% 0%, rgba(212, 175, 55, 0.07) 0%, transparent 58%),
-    radial-gradient(ellipse 42% 52% at 8% 60%, rgba(160, 80, 10, 0.06) 0%, transparent 58%),
-    radial-gradient(ellipse 32% 42% at 92% 38%, rgba(212, 175, 55, 0.04) 0%, transparent 55%);
-  animation: warmGlow 20s ease-in-out infinite alternate;
-}
-
 @keyframes warmGlow {
   0% {
     opacity: 0.7;
@@ -236,8 +213,115 @@ body {
   }
 }
 
+@keyframes journalGlow {
+  0% {
+    opacity: 0.65;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes memoryPulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes crisisGlow {
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes crisisBorder {
+
+  0%,
+  100% {
+    border-color: #dc262660;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+  }
+
+  50% {
+    border-color: #ff000080;
+    box-shadow: 0 0 50px rgba(255, 0, 0, 0.7);
+  }
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: -220% center;
+  }
+
+  100% {
+    background-position: 220% center;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PAGE BACKGROUNDS — DARK MODE
+   (Radial-gradient versions; these replace the earlier linear-gradient drafts)
+   ───────────────────────────────────────────────────────────────────────────── */
+.bg-landing {
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(80, 42, 12, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 50% at 75% 70%, rgba(60, 30, 8, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 70% at 50% 50%, rgba(40, 18, 4, 0.4) 0%, transparent 70%),
+    #0c0601;
+  position: relative;
+}
+
+.bg-landing::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 38% at 18% 22%, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 42% at 82% 68%, rgba(180, 110, 25, 0.07) 0%, transparent 55%);
+  animation: auroraShift 18s ease-in-out infinite alternate;
+}
+
+.bg-chat {
+  background:
+    radial-gradient(ellipse 70% 55% at 25% 15%, rgba(70, 35, 8, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 50% at 78% 80%, rgba(55, 25, 6, 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 60% at 50% 45%, rgba(35, 15, 3, 0.35) 0%, transparent 65%),
+    #0a0400;
+  position: relative;
+}
+
+.bg-chat::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 30% at 50% 2%, rgba(212, 175, 55, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 38% 48% at 5% 55%, rgba(155, 80, 15, 0.05) 0%, transparent 55%);
+  animation: warmGlow 22s ease-in-out infinite alternate;
+}
+
 .bg-journal {
-  background: linear-gradient(148deg, #0a0401 0%, #160a03 40%, #120804 75%, #0a0500 100%);
+  background:
+    radial-gradient(ellipse 65% 50% at 65% 22%, rgba(75, 40, 10, 0.52) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 55% at 20% 75%, rgba(55, 28, 7, 0.42) 0%, transparent 55%),
+    #0a0401;
   position: relative;
 }
 
@@ -252,18 +336,11 @@ body {
   animation: journalGlow 14s ease-in-out infinite alternate;
 }
 
-@keyframes journalGlow {
-  0% {
-    opacity: 0.65;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
 .bg-cbt {
-  background: linear-gradient(152deg, #090400 0%, #130800 32%, #180b03 62%, #0e0601 100%);
+  background:
+    radial-gradient(ellipse 60% 48% at 70% 25%, rgba(68, 38, 10, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 48% 55% at 25% 65%, rgba(50, 25, 6, 0.42) 0%, transparent 55%),
+    #090400;
   position: relative;
 }
 
@@ -278,7 +355,10 @@ body {
 }
 
 .bg-screening {
-  background: linear-gradient(138deg, #080300 0%, #110800 38%, #160b03 62%, #0c0500 100%);
+  background:
+    radial-gradient(ellipse 72% 28% at 50% 2%, rgba(65, 35, 8, 0.48) 0%, transparent 55%),
+    radial-gradient(ellipse 32% 70% at 92% 48%, rgba(55, 28, 6, 0.38) 0%, transparent 55%),
+    #080300;
   position: relative;
 }
 
@@ -293,7 +373,10 @@ body {
 }
 
 .bg-memory {
-  background: linear-gradient(142deg, #090400 0%, #140900 38%, #1a0c03 68%, #0e0600 100%);
+  background:
+    radial-gradient(ellipse 55% 40% at 28% 25%, rgba(72, 38, 10, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 42% 55% at 72% 70%, rgba(55, 28, 6, 0.42) 0%, transparent 55%),
+    #090400;
   position: relative;
 }
 
@@ -308,18 +391,11 @@ body {
   animation: memoryPulse 9s ease-in-out infinite alternate;
 }
 
-@keyframes memoryPulse {
-  0% {
-    opacity: 0.6;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
 .bg-dashboard {
-  background: linear-gradient(142deg, #090400 0%, #130800 35%, #190c03 65%, #0e0601 100%);
+  background:
+    radial-gradient(ellipse 60% 38% at 38% 18%, rgba(70, 36, 9, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 48% 52% at 78% 72%, rgba(52, 26, 6, 0.4) 0%, transparent 55%),
+    #090400;
   position: relative;
 }
 
@@ -334,7 +410,10 @@ body {
 }
 
 .bg-crisis {
-  background: linear-gradient(135deg, #0e0000 0%, #180000 40%, #1e0505 65%, #090000 100%) !important;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 28%, rgba(100, 15, 15, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 55% at 25% 72%, rgba(80, 10, 10, 0.38) 0%, transparent 55%),
+    #0e0000 !important;
   position: relative;
 }
 
@@ -347,54 +426,78 @@ body {
   animation: crisisGlow 2s ease-in-out infinite alternate;
 }
 
-@keyframes crisisGlow {
-  0% {
-    opacity: 0.5;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-/* ── LIGHT MODE backgrounds - warm cream parchment (NOT orange) ── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   PAGE BACKGROUNDS — LIGHT MODE
+   ───────────────────────────────────────────────────────────────────────────── */
 .light .bg-landing {
-  background: radial-gradient(ellipse 100% 80% at 50% 0%, #e8d8b0 0%, #f0e6cc 40%, #ece0c4 100%);
+  background:
+    radial-gradient(ellipse 85% 60% at 30% 15%, rgba(220, 195, 140, 0.6) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 55% at 78% 75%, rgba(195, 165, 110, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 70% at 50% 50%, rgba(210, 185, 130, 0.35) 0%, transparent 70%),
+    #f0e6cc;
 }
 
 .light .bg-landing::before {
   background:
-    radial-gradient(ellipse 70% 45% at 20% 25%, rgba(139, 100, 16, 0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 40% at 80% 70%, rgba(79, 173, 160, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 55% at 50% 50%, rgba(180, 140, 60, 0.06) 0%, transparent 70%);
+    radial-gradient(ellipse 65% 42% at 18% 22%, rgba(139, 100, 16, 0.08) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 82% 68%, rgba(79, 138, 128, 0.06) 0%, transparent 58%);
+  animation: none;
+  opacity: 0.7;
 }
 
 .light .bg-chat {
-  background: linear-gradient(145deg, #ede3cb 0%, #f0e6cc 40%, #e8dab8 75%, #ece0c4 100%);
+  background:
+    radial-gradient(ellipse 75% 55% at 22% 12%, rgba(215, 190, 140, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 82%, rgba(195, 168, 115, 0.42) 0%, transparent 55%),
+    radial-gradient(ellipse 42% 62% at 50% 48%, rgba(208, 182, 128, 0.32) 0%, transparent 65%),
+    #ede3cb;
+}
+
+.light .bg-chat::before {
+  animation: none;
+  opacity: 0.7;
 }
 
 .light .bg-journal {
-  background: linear-gradient(148deg, #eee4cc 0%, #f2e8d0 40%, #eadfc0 75%, #e8dab8 100%);
+  background:
+    radial-gradient(ellipse 65% 52% at 62% 20%, rgba(218, 192, 142, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 52% 58% at 22% 78%, rgba(198, 172, 118, 0.42) 0%, transparent 55%),
+    #eee4cc;
 }
 
 .light .bg-cbt {
-  background: linear-gradient(152deg, #ece2ca 0%, #f0e6cc 35%, #e8dcc0 65%, #e4d6b8 100%);
+  background:
+    radial-gradient(ellipse 62% 50% at 68% 22%, rgba(212, 186, 136, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 58% at 25% 68%, rgba(192, 165, 112, 0.42) 0%, transparent 55%),
+    #ece2ca;
 }
 
 .light .bg-screening {
-  background: linear-gradient(138deg, #eee4cc 0%, #f0e8d2 40%, #eae0c4 65%, #e6dabb 100%);
+  background:
+    radial-gradient(ellipse 78% 30% at 50% 2%, rgba(215, 190, 140, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 72% at 94% 50%, rgba(198, 172, 118, 0.38) 0%, transparent 55%),
+    #eee4cc;
 }
 
 .light .bg-memory {
-  background: linear-gradient(142deg, #ede3cb 0%, #f0e6cc 40%, #eadfc2 68%, #e8dab8 100%);
+  background:
+    radial-gradient(ellipse 58% 42% at 26% 22%, rgba(216, 190, 140, 0.52) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 58% at 74% 70%, rgba(195, 168, 114, 0.42) 0%, transparent 55%),
+    #ede3cb;
 }
 
 .light .bg-dashboard {
-  background: linear-gradient(142deg, #eee4cc 0%, #f0e6cc 35%, #ece0c2 65%, #e8dab8 100%);
+  background:
+    radial-gradient(ellipse 62% 38% at 38% 18%, rgba(214, 188, 138, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 48% 54% at 80% 74%, rgba(194, 166, 112, 0.4) 0%, transparent 55%),
+    #eee4cc;
 }
 
 .light .bg-crisis {
-  background: linear-gradient(135deg, #fff0f0 0%, #ffe0e0 50%, #ffd8d8 100%) !important;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 28%, rgba(255, 210, 210, 0.65) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 55% at 22% 72%, rgba(255, 195, 195, 0.45) 0%, transparent 55%),
+    #fff0f0 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -419,6 +522,14 @@ body {
     0 8px 32px rgba(0, 0, 0, 0.28);
 }
 
+.glass-card {
+  background: rgba(255, 210, 140, 0.055);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.1), 0 4px 24px rgba(0, 0, 0, 0.22);
+}
+
 .light .glass {
   background: rgba(255, 245, 220, 0.55);
   box-shadow: 0 2px 16px rgba(100, 70, 20, 0.07);
@@ -430,14 +541,6 @@ body {
     inset 0 1px 0 rgba(220, 195, 120, 0.35),
     inset 0 -1px 0 rgba(80, 50, 10, 0.1),
     0 8px 32px rgba(80, 50, 10, 0.12);
-}
-
-.glass-card {
-  background: rgba(255, 210, 140, 0.055);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1px solid var(--border-subtle);
-  box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.1), 0 4px 24px rgba(0, 0, 0, 0.22);
 }
 
 .light .glass-card {
@@ -472,22 +575,9 @@ body {
   animation: textShimmer 4s linear infinite;
 }
 
-@keyframes textShimmer {
-  0% {
-    background-position: -220% center;
-  }
-
-  100% {
-    background-position: 220% center;
-  }
-}
-
 /* ─────────────────────────────────────────────────────────────────────────────
    CHAT BUBBLES
    ───────────────────────────────────────────────────────────────────────────── */
-/* FIND whatever font is set on .chat-bubble-lumina and .chat-bubble-user */
-/* REPLACE WITH: */
-/* Unified Baskerville for all chat bubbles */
 .chat-bubble-lumina,
 .chat-bubble-user {
   font-family: var(--font-jost), sans-serif;
@@ -497,6 +587,18 @@ body {
   letter-spacing: 0.012em;
 }
 
+/* Lumina bubble — full definition here, no separate block needed */
+.chat-bubble-lumina {
+  background: var(--bubble-lumina-bg) !important;
+  border: 1px solid var(--bubble-lumina-border) !important;
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border-radius: 4px 22px 22px 22px;
+  padding: 14px 22px;
+  font-size: 14.5px;
+  color: var(--text-primary);
+}
+
 .chat-bubble-user {
   background: var(--bubble-user-bg);
   border: 1px solid var(--bubble-user-border);
@@ -504,13 +606,9 @@ body {
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   border-radius: 22px 4px 22px 22px;
   padding: 14px 22px;
-  /* ↓ REMOVED: font-family: var(--font-dm-sans); - this was overriding Baskerville */
   font-size: 15px;
   font-weight: 300;
-  /* change to 300 if you prefer lighter */
-  line-height: 1.72;
   color: var(--text-primary);
-  letter-spacing: 0.012em;
 }
 
 .chat-timestamp {
@@ -519,6 +617,23 @@ body {
   letter-spacing: 0.08em;
   color: var(--text-muted);
   margin-top: 10px;
+}
+
+/* Light mode chat bubbles */
+.light .chat-bubble-lumina {
+  background: rgba(230, 210, 170, 0.55) !important;
+  border-color: rgba(160, 120, 50, 0.3) !important;
+  color: #2a1a08 !important;
+}
+
+.light .chat-bubble-user {
+  background: rgba(42, 26, 8, 0.1) !important;
+  border-color: rgba(130, 95, 30, 0.28) !important;
+  color: #2a1a08 !important;
+}
+
+.light .chat-timestamp {
+  color: rgba(42, 26, 8, 0.35) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -548,6 +663,12 @@ body {
   border-color: rgba(212, 175, 55, 0.5);
   transform: translateX(3px);
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.12);
+}
+
+.light .chat-redirect-btn {
+  background: rgba(139, 100, 16, 0.12) !important;
+  border-color: rgba(139, 100, 16, 0.32) !important;
+  color: #6b4c0a !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -621,6 +742,30 @@ body {
   cursor: not-allowed;
 }
 
+/* Light mode chat input */
+.light .chat-input-wrap {
+  background: rgba(240, 225, 185, 0.65) !important;
+  border-color: rgba(160, 120, 50, 0.32) !important;
+  box-shadow: 0 4px 24px rgba(80, 50, 10, 0.12), inset 0 1px 0 rgba(220, 190, 100, 0.3) !important;
+}
+
+.light .chat-input-wrap:focus-within {
+  border-color: rgba(139, 100, 16, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(139, 100, 16, 0.08), 0 4px 24px rgba(80, 50, 10, 0.12) !important;
+}
+
+.light .chat-input-wrap textarea {
+  color: #2a1a08 !important;
+}
+
+.light .chat-input-wrap textarea::placeholder {
+  color: rgba(42, 26, 8, 0.35) !important;
+}
+
+.light .chat-input-bar-fade {
+  background: linear-gradient(to top, rgba(237, 227, 203, 0.98) 55%, transparent) !important;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    CHAT SIDEBAR
    ───────────────────────────────────────────────────────────────────────────── */
@@ -638,8 +783,8 @@ body {
 }
 
 .light .chat-sidebar {
-  background: rgba(240, 225, 185, 0.45);
-  border-right-color: rgba(160, 120, 50, 0.18);
+  background: rgba(240, 225, 185, 0.45) !important;
+  border-right-color: rgba(160, 120, 50, 0.18) !important;
 }
 
 .chat-new-btn {
@@ -702,6 +847,15 @@ body {
   border-color: rgba(212, 175, 55, 0.2);
 }
 
+.chat-history-item.active .chat-history-title {
+  color: var(--text-primary);
+}
+
+.light .chat-history-item.active {
+  background: rgba(139, 100, 16, 0.12) !important;
+  border-color: rgba(139, 100, 16, 0.28) !important;
+}
+
 .chat-history-title {
   font-family: var(--font-jost);
   font-size: 12px;
@@ -711,10 +865,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.45;
-}
-
-.chat-history-item.active .chat-history-title {
-  color: var(--text-primary);
 }
 
 .chat-history-date {
@@ -740,27 +890,13 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   CRISIS
+   CRISIS BANNER
    ───────────────────────────────────────────────────────────────────────────── */
 .crisis-banner {
   background: linear-gradient(135deg, #7f1d1d, #dc2626) !important;
   color: #fff !important;
   border: 2px solid #ff000040 !important;
   animation: crisisBorder 1.5s ease-in-out infinite;
-}
-
-@keyframes crisisBorder {
-
-  0%,
-  100% {
-    border-color: #dc262660;
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
-  }
-
-  50% {
-    border-color: #ff000080;
-    box-shadow: 0 0 50px rgba(255, 0, 0, 0.7);
-  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -853,27 +989,14 @@ input[type='range'].mood-slider::-webkit-slider-thumb:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   USER SELECT
-   ───────────────────────────────────────────────────────────────────────────── */
-* {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-}
-
-input,
-textarea {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  user-select: text;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
    AUTOFILL
    ───────────────────────────────────────────────────────────────────────────── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
+input:-webkit-autofill:focus,
+.lumina-input:-webkit-autofill,
+.lumina-input:-webkit-autofill:hover,
+.lumina-input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px rgba(10, 5, 1, 0.97) inset !important;
   -webkit-text-fill-color: #fef4e4 !important;
   caret-color: #fef4e4 !important;
@@ -882,7 +1005,10 @@ input:-webkit-autofill:focus {
 
 .light input:-webkit-autofill,
 .light input:-webkit-autofill:hover,
-.light input:-webkit-autofill:focus {
+.light input:-webkit-autofill:focus,
+.light .lumina-input:-webkit-autofill,
+.light .lumina-input:-webkit-autofill:hover,
+.light .lumina-input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px rgba(235, 225, 200, 0.98) inset !important;
   -webkit-text-fill-color: #2a1a08 !important;
   caret-color: #2a1a08 !important;
@@ -912,28 +1038,150 @@ input:-webkit-autofill:focus {
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
 }
 
-.lumina-input:-webkit-autofill,
-.lumina-input:-webkit-autofill:hover,
-.lumina-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px rgba(10, 5, 1, 0.97) inset !important;
-  -webkit-text-fill-color: #fef4e4 !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-.light .lumina-input:-webkit-autofill,
-.light .lumina-input:-webkit-autofill:hover,
-.light .lumina-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px rgba(235, 225, 200, 0.98) inset !important;
-  -webkit-text-fill-color: #2a1a08 !important;
+/* ─────────────────────────────────────────────────────────────────────────────
+   CONVERSATIONS EMPTY STATE
+   ───────────────────────────────────────────────────────────────────────────── */
+.conversations-empty-text {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 44px 24px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   SAFE-AREA / NOTCH
+   GOLD SHIMMER HEADINGS
    ───────────────────────────────────────────────────────────────────────────── */
-body {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
+
+/* Shared shimmer mixin pattern */
+.lumina-section-heading,
+.lumina-title-shimmer,
+.page-heading-gold,
+.lumina-page-title .gold {
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lumina-section-heading {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  background: linear-gradient(90deg,
+      var(--text-primary) 0%, #f0d060 28%, #d4af37 50%, #f9e07a 72%, var(--text-primary) 100%);
+  animation: textShimmer 5s linear infinite;
+}
+
+.lumina-title-shimmer {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 300;
+  background: linear-gradient(90deg,
+      var(--text-primary) 0%, #f0d060 25%, #d4af37 48%, #f9e07a 70%, var(--text-primary) 100%);
+  animation: textShimmer 4.5s linear infinite;
+}
+
+.light .lumina-section-heading,
+.light .lumina-title-shimmer {
+  background: linear-gradient(90deg,
+      #2a1a08 0%, #8b6410 28%, #a07820 50%, #6b4c0a 72%, #2a1a08 100%);
+  background-size: 220% auto;
+  animation: textShimmer 5s linear infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PAGE TITLE HELPERS
+   ───────────────────────────────────────────────────────────────────────────── */
+h1.page-title,
+.page-title {
+  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GOLD HEADING SYSTEM — .page-heading-wrap / .page-heading-gold
+   ───────────────────────────────────────────────────────────────────────────── */
+.page-heading-wrap {
+  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.page-heading-gold {
+  background: linear-gradient(90deg,
+      #b8860b 0%, #d4af37 25%, #f9e07a 50%, #d4af37 75%, #b8860b 100%);
+  animation: textShimmer 4s linear infinite;
+}
+
+.light .page-heading-gold {
+  background: linear-gradient(90deg,
+      #7a5008 0%, #a07020 28%, #c8961e 50%, #a07020 72%, #7a5008 100%);
+  animation: textShimmer 4s linear infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LUMINA PAGE TITLE — .lumina-page-title / .lumina-page-title .gold
+   ───────────────────────────────────────────────────────────────────────────── */
+.lumina-page-title {
+  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif !important;
+  font-weight: 400 !important;
+  font-style: italic !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.15 !important;
+  color: var(--text-primary) !important;
+}
+
+.lumina-page-title .gold {
+  background: linear-gradient(90deg,
+      #b8860b 0%, #d4af37 25%, #f9e07a 50%, #d4af37 75%, #b8860b 100%);
+  font-style: italic;
+  animation: textShimmer 4s linear infinite;
+}
+
+.light .lumina-page-title .gold {
+  background: linear-gradient(90deg,
+      #7a5008 0%, #a07020 25%, #c8961e 50%, #a07020 75%, #7a5008 100%);
+  animation: textShimmer 4s linear infinite;
+}
+
+/* Subtitle in Cormorant italic */
+.lumina-page-subtitle {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-style: italic !important;
+  font-weight: 300 !important;
+  color: var(--text-secondary) !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DOT GRID UTILITIES
+   ───────────────────────────────────────────────────────────────────────────── */
+.page-dot-grid-dark {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.page-dot-grid-light {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   JOURNAL TEXTAREA USER-SELECT OVERRIDE
+   ───────────────────────────────────────────────────────────────────────────── */
+textarea.journal-write-area,
+.journal-write-area textarea {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  pointer-events: all !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -995,205 +1243,4 @@ body {
     padding: 28px 22px !important;
     border-radius: 20px !important;
   }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   ADDITIONS TO globals.css - paste these at the end of the file
-   ───────────────────────────────────────────────────────────────────────────── */
-
-/* ── LIGHT THEME CHAT - complementary warm amber shades ── */
-.light .chat-bubble-lumina {
-  background: rgba(230, 210, 170, 0.55) !important;
-  border-color: rgba(160, 120, 50, 0.3) !important;
-  color: #2a1a08 !important;
-}
-
-.light .chat-bubble-user {
-  background: rgba(42, 26, 8, 0.1) !important;
-  border-color: rgba(130, 95, 30, 0.28) !important;
-  color: #2a1a08 !important;
-}
-
-.light .chat-sidebar {
-  background: rgba(240, 225, 185, 0.45) !important;
-  border-right-color: rgba(160, 120, 50, 0.18) !important;
-}
-
-.light .chat-history-item.active {
-  background: rgba(139, 100, 16, 0.12) !important;
-  border-color: rgba(139, 100, 16, 0.28) !important;
-}
-
-.light .chat-input-wrap {
-  background: rgba(240, 225, 190, 0.5) !important;
-  border-color: rgba(160, 120, 50, 0.3) !important;
-}
-
-.light .chat-redirect-btn {
-  background: rgba(139, 100, 16, 0.12) !important;
-  border-color: rgba(139, 100, 16, 0.32) !important;
-  color: #6b4c0a !important;
-}
-
-.light .chat-timestamp {
-  color: rgba(42, 26, 8, 0.35) !important;
-}
-
-/* Conversations appear here - use Baskerville with gold shimmer heading */
-.conversations-empty-text {
-  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.6;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 44px 24px;
-}
-
-/* ── GOLD SHIMMER HEADING - used across all sections ── */
-/* Same font as "Your conversations will appear here" text, with gold shimmer */
-.lumina-section-heading {
-  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  background: linear-gradient(90deg,
-      var(--text-primary) 0%,
-      #f0d060 28%,
-      #d4af37 50%,
-      #f9e07a 72%,
-      var(--text-primary) 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textShimmer 5s linear infinite;
-}
-
-/* Apply to page titles */
-h1.page-title,
-.page-title {
-  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
-  font-weight: 400;
-}
-
-/* Gold shimmer for Lumina heading specifically */
-.lumina-title-shimmer {
-  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
-  font-weight: 300;
-  background: linear-gradient(90deg,
-      var(--text-primary) 0%,
-      #f0d060 25%,
-      #d4af37 48%,
-      #f9e07a 70%,
-      var(--text-primary) 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textShimmer 4.5s linear infinite;
-}
-
-/* Light mode adjustments for shimmer */
-.light .lumina-section-heading,
-.light .lumina-title-shimmer {
-  background: linear-gradient(90deg,
-      #2a1a08 0%,
-      #8b6410 28%,
-      #a07820 50%,
-      #6b4c0a 72%,
-      #2a1a08 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textShimmer 5s linear infinite;
-}
-
-/* ── Spinner keyframe for BookScene loading ── */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ── textarea user-select override - critical for journal ── */
-textarea.journal-write-area,
-.journal-write-area textarea {
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  user-select: text !important;
-  cursor: text !important;
-  pointer-events: all !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   GOLD HEADING SYSTEM - Libre Baskerville italic with gold shimmer
-   Use .page-heading-inner for "The Inner" part, .page-heading-gold for shimmer word
-   ───────────────────────────────────────────────────────────────────────────── */
-.page-heading-wrap {
-  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif;
-  font-weight: 400;
-  font-style: italic;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  color: var(--text-primary);
-  letter-spacing: 0.01em;
-  line-height: 1.15;
-}
-
-.page-heading-gold {
-  background: linear-gradient(90deg,
-      #b8860b 0%, #d4af37 25%, #f9e07a 50%, #d4af37 75%, #b8860b 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textShimmer 4s linear infinite;
-}
-
-.light .page-heading-gold {
-  background: linear-gradient(90deg,
-      #7a5008 0%, #a07020 28%, #c8961e 50%, #a07020 72%, #7a5008 100%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textShimmer 4s linear infinite;
-}
-
-/* Remove ALL blue/teal from chat bubbles - warm amber only */
-.chat-bubble-lumina {
-  background: var(--bubble-lumina-bg) !important;
-  border: 1px solid var(--bubble-lumina-border) !important;
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border-radius: 4px 22px 22px 22px;
-  padding: 14px 22px;
-  font-family: var(--font-jost), sans-serif;
-  font-size: 14.5px;
-  font-weight: 400;
-  line-height: 1.72;
-  color: var(--text-primary);
-  letter-spacing: 0.012em;
-}
-
-/* Remove teal/blue from feature colors */
-:root {
-  --feature-teal: #c4913a;
-  --particle-b: #c9897a;
-}
-
-.light {
-  --feature-teal: #9a6a1a;
-  --particle-b: #a86050;
-}
-
-/* Dot grid page background utility */
-.page-dot-grid-dark {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.18) 1px, transparent 1px);
-  background-size: 18px 18px;
-}
-
-.page-dot-grid-light {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-  background-size: 18px 18px;
 }
