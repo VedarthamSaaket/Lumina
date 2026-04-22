@@ -17,7 +17,7 @@ interface JournalEntry {
     mood_score?: number
     tags?: string[]
     created_at: string
-    stickers?: Sticker[]
+    stickers?: (Sticker & { x: number; y: number; scale: number; stickerId: string })[]
 }
 
 export default function JournalPage() {
@@ -26,7 +26,6 @@ export default function JournalPage() {
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
-        // Respect reduced motion preference
         if (typeof window !== 'undefined') {
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             if (reduced) setStage('open')
@@ -42,16 +41,12 @@ export default function JournalPage() {
                 created_at: e.created_at ?? e.createdAt,
             }))
             setEntries(mapped)
-        } catch {
-            // not signed in or network error - silently fail
-        }
+        } catch { }
     }
 
-    const handleBookClick = () => {
-        setStage('open')
-    }
+    const handleBookClick = () => setStage('open')
 
-    const handleSave = async (content: string, mood: number, tags: string[], stickers: Sticker[]) => {
+    const handleSave = async (content: string, mood: number, tags: string[], stickers: any[]) => {
         setIsSaving(true)
         try {
             await Promise.all([
@@ -78,14 +73,8 @@ export default function JournalPage() {
     }
 
     return (
-        <main
-            style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }}
-            className="bg-journal"
-        >
-            <ParticleCanvas
-                colors={['#d4af37', '#c5a2f2', '#c9897a', '#b8860b']}
-                count={stage === 'open' ? 18 : 0}
-            />
+        <main style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }} className="bg-journal">
+            <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={stage === 'open' ? 18 : 0} />
 
             <AnimatePresence mode="wait">
                 {stage === 'scene' && (
@@ -94,8 +83,8 @@ export default function JournalPage() {
                         style={{ position: 'fixed', inset: 0, zIndex: 100 }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0, scale: 1.06 }}
-                        transition={{ duration: 0.4 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
                     >
                         <BookScene onBookClick={handleBookClick} />
                     </motion.div>
@@ -110,6 +99,33 @@ export default function JournalPage() {
                         transition={{ duration: 0.5 }}
                     >
                         <Navigation />
+
+                        {/* Page heading */}
+                        <div style={{
+                            position: 'absolute', top: '72px', left: '50%', transform: 'translateX(-50%)',
+                            zIndex: 60, textAlign: 'center', pointerEvents: 'none', whiteSpace: 'nowrap',
+                        }}>
+                            <h1 style={{
+                                fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+                                fontWeight: 400,
+                                fontStyle: 'italic',
+                                fontSize: 'clamp(1.5rem, 2.5vw, 2rem)',
+                                margin: 0,
+                                letterSpacing: '0.02em',
+                                color: 'rgba(254,244,228,0.92)',
+                            }}>
+                                The Inner{' '}
+                                <span style={{
+                                    background: 'linear-gradient(90deg, #b8860b 0%, #d4af37 30%, #f9e07a 55%, #d4af37 78%, #b8860b 100%)',
+                                    backgroundSize: '220% auto',
+                                    WebkitBackgroundClip: 'text',
+                                    backgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    animation: 'textShimmer 4s linear infinite',
+                                }}>Ledger</span>
+                            </h1>
+                        </div>
+
                         <OpenBook
                             entries={entries}
                             onSave={handleSave}

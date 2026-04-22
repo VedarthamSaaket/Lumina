@@ -1125,3 +1125,75 @@ textarea.journal-write-area,
   cursor: text !important;
   pointer-events: all !important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GOLD HEADING SYSTEM - Libre Baskerville italic with gold shimmer
+   Use .page-heading-inner for "The Inner" part, .page-heading-gold for shimmer word
+   ───────────────────────────────────────────────────────────────────────────── */
+.page-heading-wrap {
+  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.page-heading-gold {
+  background: linear-gradient(90deg,
+      #b8860b 0%, #d4af37 25%, #f9e07a 50%, #d4af37 75%, #b8860b 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 4s linear infinite;
+}
+
+.light .page-heading-gold {
+  background: linear-gradient(90deg,
+      #7a5008 0%, #a07020 28%, #c8961e 50%, #a07020 72%, #7a5008 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 4s linear infinite;
+}
+
+/* Remove ALL blue/teal from chat bubbles - warm amber only */
+.chat-bubble-lumina {
+  background: var(--bubble-lumina-bg) !important;
+  border: 1px solid var(--bubble-lumina-border) !important;
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border-radius: 4px 22px 22px 22px;
+  padding: 14px 22px;
+  font-family: var(--font-jost), sans-serif;
+  font-size: 14.5px;
+  font-weight: 400;
+  line-height: 1.72;
+  color: var(--text-primary);
+  letter-spacing: 0.012em;
+}
+
+/* Remove teal/blue from feature colors */
+:root {
+  --feature-teal: #c4913a;
+  --particle-b: #c9897a;
+}
+
+.light {
+  --feature-teal: #9a6a1a;
+  --particle-b: #a86050;
+}
+
+/* Dot grid page background utility */
+.page-dot-grid-dark {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.page-dot-grid-light {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
