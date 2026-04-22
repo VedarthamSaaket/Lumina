@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
 
@@ -118,23 +119,22 @@ ${cbtDone.length > 0 ? `\nInner work sessions: ${cbtDone.length}` : ''}
 ${moodCount > 0 ? `\nMood logs: ${moodCount}` : ''}
 ${journalCount > 0 ? `\nJournal entries: ${journalCount}` : ''}
  
-Write ONLY bullet points. No prose paragraphs whatsoever. Format:
+Write ONLY bullet points providing deep, targeted personal insights. Do NOT restate or list their scores, features used, or app functionalities. Use the data purely as background context to deduce their thinking patterns, emotional state, and personal strengths. Format:
  
-• [Specific observation about their emotional pattern based on actual scores]
-• [What their cognitive/memory performance suggests about how they think]
-• [A pattern you notice across their self-reflection results]  
-• [What their engagement level (mood logs, journal, CBT) says about them]
-• [One gentle, specific thing worth paying attention to]
-• [One honest strength the data reveals]
+• [Deep insight about their current emotional or mental state based on the data]
+• [Insight about their cognitive processing or reasoning style]
+• [A meaningful pattern linking their reflections and mood]
+• [One gentle, specific area they might want to nurture]
+• [One honest, profound strength you deduce about them]
  
 Rules:
-- Each bullet must be specific and reference actual data — no vague generalities
+- Focus entirely on insights and deductions, NEVER restate scores or app features
 - Start every line with •
 - Under 120 words total
 - No em dashes
 - No clinical labels
-- Speak as "you"
-- Warm but precise — like a very attentive friend who has been paying attention`
+- Speak directly to "you"
+- Warm, insightful, and profoundly observant — like a wise guide who understands them deeply`
 
   return await fetchSummary(prompt)
 }
@@ -448,9 +448,9 @@ export default function DashboardPage() {
         <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={14} />
         <Navigation />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-5 text-center">
-          <h2 className="font-display font-light text-4xl mb-3" style={{ color: 'var(--text-primary)' }}>
-            Your <span className="font-display italic" style={{ fontWeight: 300 }}>Profile</span>
-          </h2>
+          <div className="mb-3">
+            <GoldHeading prefix="Your" gold="Profile" size="2.25rem" />
+          </div>
           <p className="font-body text-base mb-8" style={{ color: 'var(--text-secondary)' }}>Sign in to see your history and personal insights.</p>
           <motion.button onClick={() => window.location.href = '/auth/signin'} whileHover={{ scale: 1.03 }}
             className="px-8 py-3 rounded-xl font-jost text-sm tracking-widest uppercase glass"
@@ -467,10 +467,7 @@ export default function DashboardPage() {
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <h1 className="font-display font-light mb-1"
-            style={{ fontSize: 'clamp(2rem,5vw,4rem)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Your <span className="font-display italic" style={{ fontWeight: 300 }}>Profile</span>
-          </h1>
+          <GoldHeading prefix="Your" gold="Profile" size="clamp(2rem,5vw,4rem)" />
           {user?.email && (
             <p className="font-jost text-xs tracking-wide" style={{ color: 'var(--text-muted)' }}>
               {user.email}

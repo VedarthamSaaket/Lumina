@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import { screeningAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import DarkVeil from '@/components/DarkVeil'
@@ -1005,10 +1006,7 @@ Rules:
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 
         <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <h1 className="font-display font-light mb-3"
-            style={{ fontSize: 'clamp(2.5rem,6vw,5rem)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Self <span className="font-display italic" style={{ fontWeight: 300 }}>Reflection</span>
-          </h1>
+          <GoldHeading prefix="Self" gold="Reflection" size="clamp(2.5rem,6vw,5rem)" />
           <p className="font-display italic text-lg" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
             Thoughtful tools for understanding yourself better.
           </p>

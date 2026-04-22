@@ -9,7 +9,7 @@ import json
 
 router = APIRouter(prefix="/api/cbt", tags=["cbt"])
 
-MODULE_IDS = ["distortion", "reframing", "activation", "esteem", "exposure", "habit"]
+MODULE_IDS = ["distortion", "reframing", "activation", "esteem", "exposure", "habit", "values", "worrytime"]
 
 
 class ProgressSave(BaseModel):
@@ -31,12 +31,11 @@ def save_progress(
     module_id: str,
     data: ProgressSave,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),   # ← auth required
+    user: User = Depends(get_current_user),
 ):
     if module_id not in MODULE_IDS:
         raise HTTPException(status_code=400, detail="Unknown module ID")
 
-    # Serialise responses safely
     responses_json = json.dumps(data.responses)
 
     existing = (

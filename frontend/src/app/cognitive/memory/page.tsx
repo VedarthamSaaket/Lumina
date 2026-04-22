@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
 
@@ -3169,9 +3170,7 @@ export default function MemoryPage() {
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 
         <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <h1 className="font-display font-light mb-3" style={{ fontSize: 'clamp(2.5rem,6vw,5rem)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Memory <span className="font-display italic" style={{ fontWeight: 300 }}>Games</span>
-          </h1>
+          <GoldHeading prefix="Memory" gold="Games" size="clamp(2.5rem,6vw,5rem)" />
           <p className="font-display italic text-lg" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Memory, reasoning, and fluid intelligence, all in one place.</p>
           <div className="mt-4 mx-auto max-w-lg text-xs font-jost tracking-wide px-4 py-2 rounded-full"
             style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>

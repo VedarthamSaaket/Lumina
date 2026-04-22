@@ -40,29 +40,67 @@ async function saveSummaryToDashboard(moduleTitle: string, summaryText: string) 
   } catch { /* silent */ }
 }
 
-type Opt = { label: string; sub: string }
+type StepType = 'text' | 'slider' | 'choice' | 'split'
+
 type Step = {
   q: string
   hint?: string
   placeholder?: string
-  type?: 'slider' | 'choice'
+  type?: StepType
   min?: number
   max?: number
   label?: string
-  options?: Opt[]
+  options?: { label: string; sub: string }[]
+  splitLeft?: string
+  splitRight?: string
+  splitPlaceholderLeft?: string
+  splitPlaceholderRight?: string
 }
+
 type Mod = {
   id: string
   icon: string
   title: string
   subtitle: string
-  use: string          // one-line purpose
+  use: string
   color: string
   intro: string
   steps: Step[]
 }
 
-// 8 modules (even number for grid)
+// ─── RESEARCH GROUNDING ───────────────────────────────────────────────────────
+// distortion: Beck's cognitive model (1979), Burns (1980) automatic thoughts
+//   Indirect elicitation avoids shame-shame loop; uses Socratic questioning
+//   to surface rather than confront distortions (Padesky 1993)
+//
+// reframing: Cognitive restructuring (Beck 1979); Seligman's explanatory style
+//   Belief scaling borrowed from thought records (Greenberger & Padesky 1995)
+//   Balanced thinking avoids toxic positivity (Leahy 2003)
+//
+// activation: Behavioural Activation (Lewinsohn 1974; Jacobson et al. 1996)
+//   Activity scheduling with graduated task assignment
+//   Self-monitoring + implementation intentions (Gollwitzer 1999)
+//
+// esteem: Fennell's (1997) low self-esteem model
+//   Compassionate mind training (Gilbert 2009)
+//   Positive data log technique
+//
+// exposure: Foa & Kozak (1986) emotional processing; inhibitory learning (Craske 2014)
+//   Fear hierarchy / SUDS scaling
+//   Behavioural experiment framing reduces anticipatory anxiety
+//
+// values: ACT values clarification (Hayes et al. 1999; Wilson & Murrell 2004)
+//   Committed action planning
+//   Cognitive defusion from "should" narratives
+//
+// worrytime: Borkovec et al. (1983) worry postponement; Leahy (2005)
+//   Controllability sorting (Craske & Barlow 2006)
+//   Stimulus control for anxiety reduction
+//
+// habit: Habit loop (Duhigg 2012); implementation intentions (Gollwitzer 1999)
+//   Habit stacking (Clear 2018 synthesising Fogg 2009 BJ tiny habits)
+//   Obstacle anticipation (MCII, Oettingen 2014)
+
 const MODULES: Mod[] = [
   {
     id: 'distortion',
@@ -70,36 +108,36 @@ const MODULES: Mod[] = [
     color: '#c9897a',
     title: 'Thought Patterns',
     subtitle: 'Notice what your mind tells you',
-    use: 'Catch negative thinking loops before they spiral',
-    intro: 'Our minds sometimes distort reality — making problems seem bigger or making us blame ourselves unfairly. This exercise helps you name the pattern so it loses its grip.',
+    use: 'Catch loops that pull you down before they spiral',
+    intro: 'Sometimes our minds run familiar scripts that feel true but might not be the whole picture. This exercise is about noticing, not fixing. You do not need to do anything with what comes up, just see it clearly.',
     steps: [
       {
-        q: 'Write the upsetting thought exactly as it sounded in your head.',
-        hint: 'Raw and unfiltered. No editing.',
-        placeholder: 'e.g. I completely ruined everything again',
+        q: 'Write down a thought that has been bothering you. Exactly as it sounds internally, not the polished version.',
+        hint: 'The rawer the better. What does the voice actually say?',
+        placeholder: 'e.g. I always end up messing things up',
       },
       {
-        q: 'Which pattern does this sound like?',
-        hint: 'Pick whatever feels closest.',
+        q: 'How does this thought tend to arrive? Pick what feels closest.',
+        hint: 'There is no right answer here.',
         type: 'choice',
         options: [
-          { label: 'All-or-nothing', sub: '"I always fail" or "this never works"' },
-          { label: 'Catastrophising', sub: '"This will ruin everything"' },
-          { label: 'Mind-reading', sub: '"They must think I\'m stupid"' },
-          { label: 'Emotional reasoning', sub: '"I feel worthless, so I must be"' },
-          { label: 'Self-blame', sub: '"This is all my fault"' },
-          { label: 'None of these fit', sub: '' },
+          { label: 'It shows up at night or when things are quiet', sub: 'Usually when there is space to think' },
+          { label: 'It arrives right after something goes wrong', sub: 'A trigger-and-response kind of pattern' },
+          { label: 'It is just always there, in the background', sub: 'More like a low hum than a sudden arrival' },
+          { label: 'It comes when I compare myself to others', sub: 'Social situations tend to bring it out' },
+          { label: 'It shows up when I am tired or depleted', sub: 'Harder to keep at bay when resources are low' },
+          { label: 'I am not sure when it arrives, it just does', sub: '' },
         ],
       },
       {
-        q: 'What evidence, even small, suggests this thought isn\'t completely true?',
-        hint: 'One moment, one person, one thing that went okay.',
-        placeholder: 'e.g. My friend texted me this morning',
+        q: 'If this thought is a story your mind is telling, what is the story really about underneath it?',
+        hint: 'Not whether it is true or false. Just what fear or need it might be pointing to.',
+        placeholder: 'e.g. It might be about needing to feel capable and safe',
       },
       {
-        q: 'What would you say to a close friend who felt this way?',
-        hint: 'We are always kinder to others than ourselves.',
-        placeholder: 'Write to them as if they sent you this thought',
+        q: 'What is one small thing that does not quite fit the story? Even a moment, even a tiny exception.',
+        hint: 'It does not have to disprove anything. Just something that coexists with the thought.',
+        placeholder: 'e.g. Last week my friend actually asked for my advice',
       },
     ],
   },
@@ -108,38 +146,38 @@ const MODULES: Mod[] = [
     icon: '◑',
     color: '#7a9e7e',
     title: 'Rewriting the Story',
-    subtitle: 'Find a kinder, more accurate version',
+    subtitle: 'Find a kinder and more accurate version',
     use: 'Shift stuck narratives without forcing false positivity',
-    intro: 'This is not about forcing positivity — it\'s about finding a version of the story that is honest AND a little gentler. Small shifts in how we frame things change how we feel.',
+    intro: 'This is not about talking yourself into feeling better. It is about checking whether the story you are carrying is fully accurate or whether it has been written under pressure. A story can be dark and still be missing something.',
     steps: [
       {
-        q: 'Write the thought that has been troubling you.',
-        hint: 'Exactly as it sounds internally.',
-        placeholder: 'e.g. I am a burden to everyone around me',
+        q: 'Write the thought or belief that has been taking up space lately.',
+        hint: 'As it actually sounds, not the softened version.',
+        placeholder: 'e.g. I am a burden to the people around me',
       },
       {
-        q: 'How strongly do you believe this right now?',
+        q: 'How much does this feel true right now, in your gut?',
         type: 'slider',
         min: 0,
         max: 10,
-        label: 'Belief strength (0 = barely, 10 = completely certain)',
+        label: 'How strongly it feels true (0 = barely, 10 = completely)',
       },
       {
-        q: 'List three real moments that challenge this thought.',
-        hint: 'Small counts. "Someone asked for my advice" is enough.',
+        q: 'Describe three real moments that sit alongside this belief without matching it.',
+        hint: 'Not proof it is wrong. Just things that coexist with it.',
         placeholder: '1.\n2.\n3.',
       },
       {
-        q: 'Write a balanced version — honest but kinder.',
-        hint: 'Not fake positivity. What would a fair witness say?',
-        placeholder: 'e.g. I\'m going through something hard, but people who care about me are still here',
+        q: 'Write a version of this belief that includes what you just noticed. Honest, not cheerful.',
+        hint: 'What would a fair and caring witness say about you right now?',
+        placeholder: 'e.g. I am going through something hard, and people who care about me have not left',
       },
       {
-        q: 'How strongly do you believe this new version?',
+        q: 'How much does the new version feel true, in your gut?',
         type: 'slider',
         min: 0,
         max: 10,
-        label: 'New belief strength',
+        label: 'How true the new version feels now',
       },
     ],
   },
@@ -148,29 +186,31 @@ const MODULES: Mod[] = [
     icon: '◒',
     color: '#b8a070',
     title: 'Getting Moving Again',
-    subtitle: 'One small action to break the stillness',
-    use: 'Interrupt low mood with tiny, manageable steps',
-    intro: 'Low mood makes us stop doing things we enjoy, which deepens the low mood. Even a 5-minute action can interrupt that cycle. We start embarrassingly small — that\'s the point.',
+    subtitle: 'One small action to interrupt the stillness',
+    use: 'Break out of low-energy loops with tiny, manageable steps',
+    intro: 'When everything feels heavy, we tend to stop doing the things that used to feel good, which makes the heaviness worse. This is a loop, not a character flaw. We break it with something embarrassingly small. That is the whole idea.',
     steps: [
       {
-        q: 'Name something you used to enjoy, even if it feels distant now.',
-        hint: 'Walking, cooking, calling someone, drawing — anything.',
-        placeholder: 'e.g. Going for evening walks',
+        q: 'Name something that used to bring you something, even a little. Joy, calm, connection, satisfaction, anything.',
+        hint: 'It does not need to sound impressive. Walking, cooking, drawing, calling someone.',
+        placeholder: 'e.g. Going for a walk in the evening',
       },
       {
-        q: 'What is the smallest possible version of that?',
-        hint: 'Five minutes. One block. Just putting on shoes.',
-        placeholder: 'e.g. Step outside for 3 minutes, no destination',
+        q: 'Right now, how much energy does even thinking about it take?',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        label: 'Energy cost (0 = effortless, 10 = nearly impossible today)',
       },
       {
-        q: 'When exactly will you try this?',
-        hint: 'Naming a time makes it 3x more likely to happen.',
-        placeholder: 'e.g. Tomorrow at 6pm, after I close my laptop',
+        q: 'What is a version of this that would cost almost nothing? Five minutes. One step. Just putting on shoes.',
+        hint: 'Make it so small it would feel silly to say no.',
+        placeholder: 'e.g. Step outside the front door for three minutes',
       },
       {
-        q: 'After doing it, come back and write what you noticed.',
-        hint: 'Even "it was hard and I barely enjoyed it" is valuable data.',
-        placeholder: 'Write what happened',
+        q: 'When specifically could this happen? A day, a rough time, an existing routine it could attach to.',
+        hint: 'A specific time makes it three times more likely to happen.',
+        placeholder: 'e.g. Tomorrow after I close my laptop, around 6pm',
       },
     ],
   },
@@ -179,29 +219,29 @@ const MODULES: Mod[] = [
     icon: '◓',
     color: '#d4af37',
     title: 'Finding Your Ground',
-    subtitle: 'Reconnect with your own worth',
-    use: 'Build a stable foundation when self-criticism is loud',
-    intro: 'This isn\'t about inflating your ego — it\'s about finding honest, solid ground. Something real to stand on when your inner critic is loudest.',
+    subtitle: 'Reconnect with something real in yourself',
+    use: 'Build something stable when your inner critic is loudest',
+    intro: 'This is not about building confidence or inflating your sense of self. It is about finding something honest to stand on when your inner critic has been very loud. Real ground, not a performance.',
     steps: [
       {
-        q: 'Think of someone who genuinely cares about you. What do they value in you?',
-        hint: 'See yourself through their eyes, not your own critical lens.',
-        placeholder: 'e.g. My sister would say I always show up when it matters',
+        q: 'Think of someone who genuinely knows you and cares about you. What do you think they actually value in you?',
+        hint: 'Try to see yourself through their eyes rather than your own, just for a moment.',
+        placeholder: 'e.g. My sister would probably say I show up when it matters, even when it is hard for me',
       },
       {
-        q: 'Describe a time you got through something difficult.',
-        hint: 'Surviving a hard week counts. So does a hard conversation.',
-        placeholder: 'e.g. When my relationship ended I still got up and went to work',
+        q: 'Describe something you got through that you did not think you could handle at the time.',
+        hint: 'It does not need to be dramatic. A hard week counts. A hard conversation counts.',
+        placeholder: 'e.g. When my relationship ended I still got up and went to work every day',
       },
       {
-        q: 'Name one thing, however small, that you bring to the people around you.',
-        hint: 'Listening, steadiness, humour, care — anything real.',
-        placeholder: 'e.g. I am a good listener',
+        q: 'Name one quality you have that genuinely helps the people around you, even in a small way.',
+        hint: 'Listening, steadiness, humour, honesty, reliability, care. Anything real.',
+        placeholder: 'e.g. I am a good listener, people tend to open up to me',
       },
       {
-        q: 'Complete this honestly: I deserve kindness because…',
-        hint: 'Try to mean it even partially.',
-        placeholder: 'I deserve kindness because…',
+        q: 'Finish this honestly: I deserve kindness because...',
+        hint: 'Try to mean it even a little. You do not need to fully believe it yet.',
+        placeholder: 'I deserve kindness because...',
       },
     ],
   },
@@ -210,31 +250,31 @@ const MODULES: Mod[] = [
     icon: '◔',
     color: '#c4913a',
     title: 'Facing What Scares You',
-    subtitle: 'Build courage one step at a time',
-    use: 'Reduce avoidance by approaching fears gradually',
-    intro: 'Anxiety grows when we avoid what scares us and shrinks when we face it gradually. This exercise builds a ladder — not jumping into the deep end, just one small step closer.',
+    subtitle: 'Build courage one small step at a time',
+    use: 'Gently reduce the power that avoidance has over your life',
+    intro: 'The more we avoid something that frightens us, the bigger it tends to grow in our minds. Facing it gradually, at a pace that feels manageable rather than comfortable, is how we reclaim ground. We do not start with the hard thing. We start somewhere.',
     steps: [
       {
-        q: 'What situation have you been avoiding because it feels anxiety-provoking?',
-        hint: 'Be specific: not "social situations" but "eating alone in a café".',
-        placeholder: 'e.g. Calling someone instead of texting',
+        q: 'What is something you have been steering around because it feels anxiety-provoking?',
+        hint: 'Be specific. Not "social situations" but "making a phone call instead of texting".',
+        placeholder: 'e.g. Walking into a room where I do not know anyone',
       },
       {
-        q: 'How anxious does the full version feel right now?',
+        q: 'How anxious does the full version of this feel right now?',
         type: 'slider',
         min: 0,
         max: 10,
-        label: 'Anxiety level (0 = calm, 10 = maximum)',
+        label: 'Anxiety level if you had to do the full version today (0 = calm, 10 = maximum)',
       },
       {
-        q: 'What is a version of this that feels like a 3 or 4 out of 10?',
-        hint: 'We start here. Manageable, not comfortable.',
-        placeholder: 'e.g. Going to an event and planning to stay just 20 minutes',
+        q: 'What would a version of this look and feel like that sits around a 3 or 4 out of 10?',
+        hint: 'Manageable, not comfortable. That is where we start.',
+        placeholder: 'e.g. Going to an event with a friend, staying 20 minutes, leaving whenever I need to',
       },
       {
-        q: 'After trying a step, write what actually happened.',
-        hint: 'Our anxious predictions are usually wrong. Or we survive them.',
-        placeholder: 'Write what happened and what you noticed',
+        q: 'What do you imagine will happen if you try the smaller version? Be honest about what your mind predicts.',
+        hint: 'Our anxious predictions are worth naming. They are usually far worse than reality.',
+        placeholder: 'e.g. I will freeze up and people will notice and think I am strange',
       },
     ],
   },
@@ -244,36 +284,36 @@ const MODULES: Mod[] = [
     color: '#9b7fd4',
     title: 'What Matters to You',
     subtitle: 'Clarify what you actually want to move toward',
-    use: 'Find direction when life feels unclear or empty',
-    intro: 'When life feels directionless it\'s often because we\'ve drifted from what actually matters. This isn\'t about the values you should have — it\'s about finding the ones that are genuinely yours.',
+    use: 'Find direction when life feels unclear or hollow',
+    intro: 'When things feel directionless, it is often because we have drifted from what actually matters to us, not what we are supposed to value, but what genuinely does. This is about finding that, quietly.',
     steps: [
       {
-        q: 'Which areas of life feel most important to you right now?',
-        hint: 'Not what should matter. What actually does.',
+        q: 'Which of these feels most alive right now, most like something you actually care about?',
+        hint: 'Not what should matter. What honestly does.',
         type: 'choice',
         options: [
-          { label: 'Relationships and belonging', sub: 'Family, friendship, intimacy' },
-          { label: 'Meaningful work', sub: 'Purpose, contribution, building something' },
-          { label: 'Health and energy', sub: 'Body, rest, taking care of yourself' },
-          { label: 'Growth and learning', sub: 'Becoming more, understanding yourself' },
-          { label: 'Freedom and autonomy', sub: 'Living on your own terms' },
-          { label: 'Creativity and expression', sub: 'Making things, aesthetic experience' },
+          { label: 'Being close to people I love', sub: 'Belonging, intimacy, real connection' },
+          { label: 'Building or creating something', sub: 'Work that means something, contribution' },
+          { label: 'Taking care of myself', sub: 'Rest, health, feeling present in my body' },
+          { label: 'Growing and understanding myself', sub: 'Becoming more, seeing things clearly' },
+          { label: 'Living on my own terms', sub: 'Freedom, authenticity, not performing' },
+          { label: 'Making things, expressing myself', sub: 'Creativity, beauty, aesthetic experience' },
         ],
       },
       {
-        q: 'Think of a moment you felt most alive, most yourself. What was happening?',
-        hint: 'Even a small moment works.',
-        placeholder: 'e.g. I was helping a friend work through something and felt fully present',
+        q: 'Think of a moment in the last year when you felt most like yourself. What was happening?',
+        hint: 'Any size of moment. What was present in it?',
+        placeholder: 'e.g. I was helping a friend untangle something difficult and I felt completely present',
       },
       {
-        q: 'Where is the biggest gap between what matters and how you spend your time?',
-        hint: 'Honest observation, not self-blame.',
-        placeholder: 'e.g. I care about creativity but spend most evenings scrolling',
+        q: 'Where do you notice the biggest gap between what you just said matters and how your days actually go?',
+        hint: 'Not a judgment. Just an honest look.',
+        placeholder: 'e.g. I care about connection but I have not reached out to anyone properly in weeks',
       },
       {
-        q: 'One small thing you could do this week that moves toward what matters.',
-        hint: 'Tiny counts. 10 minutes, one message, 5 minutes of something you love.',
-        placeholder: 'e.g. 15 minutes of drawing before bed on Thursday',
+        q: 'What is one small thing you could do this week that moves even slightly toward what matters?',
+        hint: 'Ten minutes counts. One message counts. One small thing you actually do beats a big plan you do not.',
+        placeholder: 'e.g. Message one person I have been meaning to reach out to',
       },
     ],
   },
@@ -282,29 +322,33 @@ const MODULES: Mod[] = [
     icon: '◙',
     color: '#7ab8c9',
     title: 'Containing the Worry',
-    subtitle: 'Give anxious thoughts a time and place',
-    use: 'Stop worry from leaking into everything all day',
-    intro: 'Worry tends to intrude constantly. One of the most effective CBT tools is giving it a container — a specific time slot — so it stops hijacking the rest of your day. This is not suppression. It\'s scheduling.',
+    subtitle: 'Give anxious thoughts a specific time and place',
+    use: 'Stop worry from bleeding into everything all day',
+    intro: 'Worry has a way of arriving uninvited and refusing to leave. One of the most effective approaches is giving it a container, a specific window where it gets your full attention, so the rest of the day can breathe. This is not about suppressing it. It is about scheduling it.',
     steps: [
       {
-        q: 'Write out what is worrying you most. No editing.',
-        hint: 'Get it all out.',
-        placeholder: 'e.g. I\'m worried I made the wrong career decision and can\'t undo it',
+        q: 'Write out whatever has been worrying you most. No editing, just get it on the page.',
+        hint: 'Everything you have been carrying around.',
+        placeholder: 'e.g. I keep wondering if I made the wrong choice with my career and whether there is a way back',
       },
       {
-        q: 'Sort what you wrote: what can you actually act on vs. what is outside your control?',
-        hint: 'Two columns in your mind.',
-        placeholder: 'Things I can act on:\n\nThings outside my control:',
+        q: 'Looking at what you wrote, sort it into two sides.',
+        hint: 'Left: things you could actually do something about. Right: things outside your control for now.',
+        type: 'split',
+        splitLeft: 'Things I can act on',
+        splitRight: 'Things outside my control right now',
+        splitPlaceholderLeft: 'e.g. Research alternative paths, talk to someone in that field...',
+        splitPlaceholderRight: 'e.g. The economy, other people\'s decisions, how things went in the past...',
       },
       {
-        q: 'For what you can act on: what is the smallest concrete next step?',
-        hint: 'One action, not a plan.',
-        placeholder: 'e.g. Send one email, write one sentence of the thing I\'ve been avoiding',
+        q: 'For what you can act on: what is the single smallest concrete next step?',
+        hint: 'One action. Not a plan. The smallest thing that counts as moving.',
+        placeholder: 'e.g. Send one email, write one paragraph, make one phone call',
       },
       {
-        q: 'Set your worry window: pick a specific 15-minute slot for worry today or tomorrow.',
-        hint: 'Outside that window, redirect: "Not now — that\'s for my worry time."',
-        placeholder: 'My worry window is: e.g. Tomorrow at 5:30pm for 15 minutes',
+        q: 'Choose a specific 15-minute window today or tomorrow that becomes your designated worry time.',
+        hint: 'When worry shows up outside that window, you can tell it: not now, I have time set aside for you.',
+        placeholder: 'e.g. Tomorrow at 5:30pm I will sit with this for exactly 15 minutes',
       },
     ],
   },
@@ -314,91 +358,92 @@ const MODULES: Mod[] = [
     color: '#8b7355',
     title: 'Building Something Good',
     subtitle: 'Plant one small wellbeing habit',
-    use: 'Create lasting change through tiny consistent actions',
-    intro: 'Small consistent actions compound into meaningful change. We are not building a new identity overnight — just planting one seed and making it as easy as possible to water.',
+    use: 'Create lasting change through consistent tiny actions',
+    intro: 'The research on habit formation is clear: small and consistent outperforms big and intense every time. We are not building a new identity overnight. We are planting one seed and making it as easy as possible to water it.',
     steps: [
       {
-        q: 'What is one small habit you would like to build for your wellbeing?',
-        hint: '"Exercise more" is too big. "Stretch for 5 minutes after waking" is perfect.',
-        placeholder: 'e.g. Write three things I\'m grateful for before bed',
+        q: 'What is one small habit you would like to build for yourself?',
+        hint: '"Exercise more" is too vague. "Stretch for five minutes after I wake up" is just right.',
+        placeholder: 'e.g. Write three things I am grateful for before I go to sleep',
       },
       {
-        q: 'What existing routine could you attach this new habit to?',
-        hint: 'This is habit stacking — it makes new habits stick far better.',
-        placeholder: 'e.g. Right after I make my morning tea',
+        q: 'What already existing part of your routine could this attach to?',
+        hint: 'Attaching a new habit to an existing one makes it dramatically more likely to stick.',
+        placeholder: 'e.g. Right after I make my morning tea, before I look at my phone',
       },
       {
-        q: 'What might get in the way?',
-        hint: 'Planning for obstacles makes you significantly more likely to follow through.',
-        placeholder: 'e.g. I\'ll probably forget after a few days',
+        q: 'What is most likely to get in the way?',
+        hint: 'Naming the obstacle now means you are not surprised when it shows up.',
+        placeholder: 'e.g. I will probably forget after a couple of days when the novelty wears off',
       },
       {
         q: 'How will you make it easier or remind yourself?',
-        hint: 'A phone alarm, a sticky note, telling someone you trust.',
-        placeholder: 'e.g. I\'ll put the journal next to my lamp tonight',
+        hint: 'A phone reminder, a sticky note, placing something visible, telling someone you trust.',
+        placeholder: 'e.g. I will put my journal on my pillow tonight so it is there when I get into bed',
       },
     ],
   },
 ]
 
-// Summary prompts per module — structured for bullet-point output
 const MODULE_SUMMARY_PROMPTS: Record<string, string> = {
-  distortion: `The person just completed a Thought Patterns CBT exercise. Write a SHORT reflection as bullet points ONLY — no paragraphs, no prose. Format:
-• What pattern they were caught in (use a vivid memorable name like "all-or-nothing lens" or "fault magnet")
-• What the exercise revealed about their thinking
-• One concrete suggestion they can use next time the pattern appears
-Under 80 words total. Warm, non-clinical. Direct address as "you".`,
+  distortion: `Someone just worked through an exercise about noticing their thought patterns. Write bullet points ONLY, no prose. Format:
+• What thinking pattern seems most active for them (use an evocative, non-clinical description like "the everything-or-nothing lens" or "the blame-first habit")
+• One specific thing the exercise revealed
+• One grounded, practical suggestion for next time this pattern shows up
+Under 80 words. Warm and direct. Speak as "you". No em dashes.`,
 
-  reframing: `The person completed a Rewriting the Story exercise. Write as bullet points ONLY:
-• What belief they started with and how strong it was
-• What shift happened (or didn't) in their belief strength
-• One actionable next step
-Under 80 words. Warm tone. No prose paragraphs.`,
+  reframing: `Someone completed a story-rewriting exercise. Write bullet points ONLY:
+• What they started with and how strongly it registered
+• What shifted (or started to) through the process
+• One small, honest next step
+Under 80 words. Warm, no clinical terms. Speak as "you". No em dashes.`,
 
-  activation: `The person completed a Behavioural Activation exercise. Write as bullet points ONLY:
-• What they are reconnecting with
-• The small step they planned
-• Why this matters (briefly, warmly)
-Under 70 words. Speak as "you".`,
+  activation: `Someone planned a small reactivation step. Write bullet points ONLY:
+• What they are reconnecting with and why it matters
+• The specific small action they chose
+• Why starting small is the right move here
+Under 70 words. Warm. Speak as "you". No em dashes.`,
 
-  esteem: `The person completed a self-esteem grounding exercise. Write as bullet points ONLY:
-• What they uncovered about how others see them
-• One honest strength they named
-• A reminder about their relationship with self-criticism
-Under 70 words. Warm, grounded tone.`,
+  esteem: `Someone explored their sense of self-worth. Write bullet points ONLY:
+• One real thing they uncovered about how others see them
+• One strength they named for themselves
+• A gentle note about their relationship with their inner critic
+Under 70 words. Grounded, warm. Speak as "you". No em dashes.`,
 
-  exposure: `The person completed an exposure ladder exercise. Write as bullet points ONLY:
-• What they identified as the thing they've been avoiding
+  exposure: `Someone mapped out a gradual approach to something they have been avoiding. Write bullet points ONLY:
+• What they identified as the thing they have been steering around
 • Their first manageable step
-• What facing it (even slightly) does for anxiety over time
-Under 70 words.`,
+• What facing things gradually does for anxiety over time
+Under 70 words. Encouraging but not cheerful. No em dashes.`,
 
-  values: `The person completed a values clarification exercise. Write as bullet points ONLY:
-• The core value area they identified as most important
-• The gap they noticed between values and current life
-• The one small action they planned
-Under 75 words.`,
+  values: `Someone worked through a values clarification exercise. Write bullet points ONLY:
+• The core thing they identified as most important right now
+• The gap they noticed between that and their actual days
+• The small action they planned
+Under 75 words. Direct and warm. No em dashes.`,
 
-  worrytime: `The person completed a worry containment exercise. Write as bullet points ONLY:
-• What the worry was about
-• What was actionable vs. what they are learning to release
-• Their worry window and what it gives them
-Under 75 words.`,
+  worrytime: `Someone worked through a worry-containing exercise. Write bullet points ONLY:
+• What the worry was circling around
+• What they sorted as actionable versus what to release
+• The worry window they set and what it gives them
+Under 75 words. No em dashes. Speak as "you".`,
 
-  habit: `The person completed a habit-building exercise. Write as bullet points ONLY:
-• The habit they chose and why it serves their wellbeing
-• How they plan to anchor it (habit stacking)
-• The main obstacle and their plan around it
-Under 70 words.`,
+  habit: `Someone planned a small wellbeing habit. Write bullet points ONLY:
+• The habit they chose and what it serves
+• How they anchored it to an existing routine
+• The obstacle they named and their plan around it
+Under 70 words. No em dashes. Speak as "you".`,
 }
 
-export default function CBTPage() {
+export default function InnerWorkPage() {
   const [active, setActive] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [started, setStarted] = useState(false)
   const [resps, setResps] = useState<Record<string, any[]>>({})
   const [slider, setSlider] = useState(5)
   const [choices, setChoices] = useState<string[]>([])
+  const [splitLeft, setSplitLeft] = useState('')
+  const [splitRight, setSplitRight] = useState('')
   const [saving, setSaving] = useState(false)
   const [completedMod, setCompletedMod] = useState<Mod | null>(null)
   const [completionSummary, setCompletionSummary] = useState<string>('')
@@ -425,6 +470,7 @@ export default function CBTPage() {
   const open = (id: string) => {
     const m = MODULES.find(x => x.id === id)!
     setActive(id); setStep(0); setStarted(false); setChoices([]); setSlider(5)
+    setSplitLeft(''); setSplitRight('')
     setResps(p => ({ ...p, [id]: Array(m.steps.length).fill('') }))
     setCompletedMod(null); setCompletionSummary('')
   }
@@ -435,12 +481,13 @@ export default function CBTPage() {
     if (!cur) return false
     if (cur.type === 'slider') return true
     if (cur.type === 'choice') return choices.length > 0
+    if (cur.type === 'split') return splitLeft.trim().length > 0 || splitRight.trim().length > 0
     return txt.trim().length > 0
   }
 
   const generateCompletionSummary = async (modId: string, modTitle: string, responses: any[]) => {
     setSummaryLoading(true)
-    const promptNote = MODULE_SUMMARY_PROMPTS[modId] || `The person completed a CBT inner work exercise called ${modTitle}. Write bullet points ONLY (3-4 bullets). Under 80 words. Warm, direct.`
+    const promptNote = MODULE_SUMMARY_PROMPTS[modId] || `Someone completed an inner work exercise called ${modTitle}. Write bullet points only, 3 bullets, under 80 words, warm, speak as "you".`
     const responseSummary = responses
       .map((r, i) => `Step ${i + 1}: ${typeof r === 'string' ? r : JSON.stringify(r)}`)
       .filter(r => r.length > 10)
@@ -451,9 +498,9 @@ export default function CBTPage() {
 Person's responses:
 ${responseSummary}
 
-Additional rules:
-- Start each line with •
-- No prose paragraphs whatsoever
+Rules:
+- Start each line with a bullet point character
+- No prose paragraphs
 - No em dashes
 - No clinical jargon
 - Under 80 words total`
@@ -474,14 +521,16 @@ Additional rules:
     let v: any = txt
     if (cur.type === 'slider') v = slider
     else if (cur.type === 'choice') v = choices.join(', ') || 'No selection'
+    else if (cur.type === 'split') v = `Left: ${splitLeft} | Right: ${splitRight}`
     const updated = Object.assign([...(resps[active] ?? Array(mod.steps.length).fill(''))], { [step]: v })
-    setResps(p => ({ ...p, [active]: updated })); setChoices([]); setSlider(5)
+    setResps(p => ({ ...p, [active]: updated }))
+    setChoices([]); setSlider(5); setSplitLeft(''); setSplitRight('')
     if (step < mod.steps.length - 1) { setStep(s => s + 1); return }
 
     setSaving(true)
     try {
       await cbtAPI.saveProgress(active, { responses: updated })
-      toast.success('Exercise complete.')
+      toast.success('Saved.')
       setCompletedMod(mod)
       setActive(null)
       setStarted(false)
@@ -491,7 +540,7 @@ Additional rules:
     } finally { setSaving(false) }
   }
 
-  // ── COMPLETION SCREEN ──
+  // ── COMPLETION SCREEN ────────────────────────────────────────────────────────
   if (completedMod) {
     return (
       <main className="bg-cbt min-h-screen relative overflow-hidden">
@@ -511,13 +560,13 @@ Additional rules:
                 {completedMod.title}
               </h2>
               <p style={{ fontFamily: 'var(--font-jost)', fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: completedMod.color, opacity: 0.7 }}>
-                Exercise complete
+                Session complete
               </p>
             </div>
 
             <div className="rounded-xl p-5 mb-6" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
               <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>
-                Your Reflection
+                What this session revealed
               </p>
               {summaryLoading ? (
                 <div className="flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
@@ -592,13 +641,13 @@ Additional rules:
             }}>Work</span>
           </h1>
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '1.15rem', color: 'var(--text-secondary)' }}>
-            Guided CBT exercises for real change. Use when you need it.
+            Guided exercises for real change. Use when you need it.
           </p>
         </motion.div>
 
         <AnimatePresence mode="wait">
 
-          {/* GRID — 2 columns, 8 cards */}
+          {/* GRID */}
           {!active && (
             <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -650,7 +699,7 @@ Additional rules:
             <motion.div key="intro" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
               <button onClick={() => setActive(null)}
                 className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 transition-opacity"
-                style={{ color: 'var(--text-primary)' }}>← Back</button>
+                style={{ color: 'var(--text-primary)' }}>Back</button>
 
               <div className="glass-strong rounded-2xl p-7" style={{ border: `1px solid ${mod.color}28` }}>
                 <div className="flex items-center gap-4 mb-5">
@@ -725,7 +774,7 @@ Additional rules:
                 )}
 
                 {/* Text input */}
-                {(!cur.type || cur.type === 'text' as any) && (
+                {(!cur.type || cur.type === 'text') && (
                   <textarea rows={4} value={txt}
                     onChange={e => { setTxt(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px' }}
                     className="w-full p-4 rounded-xl resize-none font-body text-base focus:outline-none"
@@ -789,6 +838,40 @@ Additional rules:
                         </button>
                       )
                     })}
+                  </div>
+                )}
+
+                {/* Split input */}
+                {cur.type === 'split' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: mod.color, opacity: 0.8 }}>
+                        {cur.splitLeft}
+                      </p>
+                      <textarea rows={5} value={splitLeft}
+                        onChange={e => setSplitLeft(e.target.value)}
+                        placeholder={cur.splitPlaceholderLeft || 'Things I can act on...'}
+                        className="w-full p-4 rounded-xl resize-none font-body text-sm focus:outline-none"
+                        style={{
+                          background: `${mod.color}08`,
+                          border: `1px solid ${mod.color}22`,
+                          color: 'var(--text-primary)', lineHeight: '1.6',
+                        }} />
+                    </div>
+                    <div>
+                      <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--text-muted)' }}>
+                        {cur.splitRight}
+                      </p>
+                      <textarea rows={5} value={splitRight}
+                        onChange={e => setSplitRight(e.target.value)}
+                        placeholder={cur.splitPlaceholderRight || 'Things outside my control...'}
+                        className="w-full p-4 rounded-xl resize-none font-body text-sm focus:outline-none"
+                        style={{
+                          background: 'var(--bg-glass)',
+                          border: '1px solid var(--border-subtle)',
+                          color: 'var(--text-primary)', lineHeight: '1.6',
+                        }} />
+                    </div>
                   </div>
                 )}
 
