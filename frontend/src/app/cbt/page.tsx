@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import { cbtAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -32,7 +33,7 @@ async function saveSummaryToDashboard(moduleTitle: string, summaryText: string) 
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       credentials: 'include',
       body: JSON.stringify({
-        title: `Inner Work · ${moduleTitle}`,
+        title: `Inner Work . ${moduleTitle}`,
         content: summaryText,
         source: 'cbt',
       }),
@@ -68,39 +69,7 @@ type Mod = {
   steps: Step[]
 }
 
-// ─── RESEARCH GROUNDING ───────────────────────────────────────────────────────
-// distortion: Beck's cognitive model (1979), Burns (1980) automatic thoughts
-//   Indirect elicitation avoids shame-shame loop; uses Socratic questioning
-//   to surface rather than confront distortions (Padesky 1993)
-//
-// reframing: Cognitive restructuring (Beck 1979); Seligman's explanatory style
-//   Belief scaling borrowed from thought records (Greenberger & Padesky 1995)
-//   Balanced thinking avoids toxic positivity (Leahy 2003)
-//
-// activation: Behavioural Activation (Lewinsohn 1974; Jacobson et al. 1996)
-//   Activity scheduling with graduated task assignment
-//   Self-monitoring + implementation intentions (Gollwitzer 1999)
-//
-// esteem: Fennell's (1997) low self-esteem model
-//   Compassionate mind training (Gilbert 2009)
-//   Positive data log technique
-//
-// exposure: Foa & Kozak (1986) emotional processing; inhibitory learning (Craske 2014)
-//   Fear hierarchy / SUDS scaling
-//   Behavioural experiment framing reduces anticipatory anxiety
-//
-// values: ACT values clarification (Hayes et al. 1999; Wilson & Murrell 2004)
-//   Committed action planning
-//   Cognitive defusion from "should" narratives
-//
-// worrytime: Borkovec et al. (1983) worry postponement; Leahy (2005)
-//   Controllability sorting (Craske & Barlow 2006)
-//   Stimulus control for anxiety reduction
-//
-// habit: Habit loop (Duhigg 2012); implementation intentions (Gollwitzer 1999)
-//   Habit stacking (Clear 2018 synthesising Fogg 2009 BJ tiny habits)
-//   Obstacle anticipation (MCII, Oettingen 2014)
-
+// ─── Modules ───────────────────────────────────────────────────────────────
 const MODULES: Mod[] = [
   {
     id: 'distortion',
@@ -543,7 +512,7 @@ Rules:
   // ── COMPLETION SCREEN ────────────────────────────────────────────────────────
   if (completedMod) {
     return (
-      <main className="bg-cbt min-h-screen relative overflow-hidden">
+      <main className="bg-screening min-h-screen relative overflow-hidden">
         <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
         <Navigation />
         <div className="relative z-10 pt-24 pb-20 px-5 max-w-2xl mx-auto">
@@ -621,25 +590,13 @@ Rules:
   }
 
   return (
-    <main className="bg-cbt min-h-screen relative overflow-hidden">
+    <main className="bg-screening min-h-screen relative overflow-hidden">
       <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 
         <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-12">
-          <h1 style={{
-            fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
-            fontWeight: 400, fontStyle: 'italic',
-            fontSize: 'clamp(2.8rem, 6vw, 5rem)',
-            color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '10px',
-          }}>
-            Inner{' '}
-            <span style={{
-              background: 'linear-gradient(90deg, #b8860b 0%, #d4af37 30%, #f9e07a 55%, #d4af37 78%, #b8860b 100%)',
-              backgroundSize: '220% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', animation: 'textShimmer 4s linear infinite',
-            }}>Work</span>
-          </h1>
+          <GoldHeading prefix="Inner" gold="Work" />
           <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '1.15rem', color: 'var(--text-secondary)' }}>
             Guided exercises for real change. Use when you need it.
           </p>
@@ -685,7 +642,7 @@ Rules:
                   <div className="mt-3 h-px" style={{ background: `linear-gradient(90deg,${m.color}40,transparent)` }} />
                   <div className="mt-2.5 flex items-center gap-1.5">
                     <span className="font-jost text-xs tracking-widest uppercase" style={{ color: m.color, opacity: 0.65 }}>
-                      {m.steps.length} steps · Begin
+                      {m.steps.length} steps . Begin
                     </span>
                     <span style={{ color: m.color, opacity: 0.5, fontSize: '10px' }}>→</span>
                   </div>
@@ -727,8 +684,8 @@ Rules:
                 </div>
 
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mb-6 text-xs font-jost" style={{ color: 'var(--text-muted)' }}>
-                  <span>{mod.steps.length} steps</span><span>·</span>
-                  <span>Take your time</span><span>·</span>
+                  <span>{mod.steps.length} steps</span><span>.</span>
+                  <span>Take your time</span><span>.</span>
                   <span>Saved privately</span>
                 </div>
 

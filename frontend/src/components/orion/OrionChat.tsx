@@ -25,7 +25,7 @@ const StreamCursor = () => (
     <motion.span
         animate={{ opacity: [1, 0, 1] }}
         transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
-        style={{ display: 'inline-block', marginLeft: '2px', color: '#5B9BD5' }}
+        style={{ display: 'inline-block', marginLeft: '2px', color: '#C4923A' }}
     >▍</motion.span>
 )
 
@@ -47,26 +47,29 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
     const { theme } = useThemeStore()
     const isDark = theme === 'dark'
 
-    const color = '#5B9BD5'
+    // ── ORION ACCENT — a warm terracotta-amber complement ────────────────
+    // Dark mode: Orion uses deep indigo-charcoal (complement to the warm chocolate dark UI)
+    // Light mode: Orion uses soft sage-stone (complement to the blush/cream light UI)
+    const accentColor = isDark ? '#C4923A' : '#7A8C6E'   // amber / sage
+    const accentGlow = isDark ? 'rgba(196,146,58,0.22)' : 'rgba(122,140,110,0.20)'
 
-    // Dark: deep indigo-navy complement to the dark parent theme
-    // Light: soft sky-lavender complement to the warm cream parent theme
+    // Panel backgrounds
     const panelBg = isDark
-        ? 'linear-gradient(160deg, rgba(6,8,22,0.98) 0%, rgba(10,14,32,0.98) 60%, rgba(8,10,26,0.98) 100%)'
-        : 'linear-gradient(160deg, rgba(232,240,254,0.98) 0%, rgba(220,234,252,0.98) 60%, rgba(210,228,250,0.98) 100%)'
+        ? 'linear-gradient(160deg, rgba(10,7,3,0.98) 0%, rgba(18,11,5,0.98) 60%, rgba(12,8,3,0.98) 100%)'
+        : 'linear-gradient(160deg, rgba(242,236,220,0.98) 0%, rgba(235,226,205,0.98) 60%, rgba(228,218,196,0.98) 100%)'
     const headerBg = isDark
-        ? 'rgba(8,10,26,0.99)'
-        : 'rgba(218,232,252,0.99)'
+        ? 'rgba(14,9,4,0.99)'
+        : 'rgba(234,224,202,0.99)'
     const inputBg = isDark
-        ? 'rgba(12,16,36,0.95)'
-        : 'rgba(228,238,255,0.95)'
-    const borderColor = isDark ? `${color}22` : `${color}28`
-    const textPrimary = isDark ? 'rgba(210,228,255,0.93)' : 'rgba(18,38,80,0.92)'
-    const textMuted = isDark ? 'rgba(130,165,215,0.50)' : 'rgba(50,80,130,0.50)'
-    const userBubbleBg = isDark ? `${color}16` : `${color}12`
-    const userBubbleBorder = isDark ? `${color}30` : `${color}22`
-    const assistantBubbleBg = isDark ? 'rgba(14,20,48,0.72)' : 'rgba(205,222,250,0.65)'
-    const assistantBubbleBorder = isDark ? `${color}10` : `${color}18`
+        ? 'rgba(20,13,6,0.95)'
+        : 'rgba(245,238,220,0.95)'
+    const borderColor = isDark ? 'rgba(196,146,58,0.18)' : 'rgba(122,140,110,0.22)'
+    const textPrimary = isDark ? 'rgba(245,232,206,0.93)' : 'rgba(36,24,8,0.90)'
+    const textMuted = isDark ? 'rgba(180,148,90,0.50)' : 'rgba(80,88,60,0.50)'
+    const userBubbleBg = isDark ? 'rgba(196,146,58,0.12)' : 'rgba(122,140,110,0.10)'
+    const userBubbleBorder = isDark ? 'rgba(196,146,58,0.25)' : 'rgba(122,140,110,0.22)'
+    const assistantBubbleBg = isDark ? 'rgba(28,18,8,0.68)' : 'rgba(225,214,190,0.65)'
+    const assistantBubbleBorder = isDark ? 'rgba(196,146,58,0.10)' : 'rgba(122,140,110,0.14)'
 
     const [msgs, setMsgs] = useState<Msg[]>([{
         id: '0',
@@ -197,8 +200,8 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         background: panelBg,
                         border: `1px solid ${borderColor}`,
                         boxShadow: isDark
-                            ? `0 24px 64px rgba(0,0,0,0.50), 0 0 0 1px ${color}08`
-                            : `0 24px 64px rgba(20,50,100,0.14), 0 0 0 1px ${color}08`,
+                            ? `0 24px 64px rgba(0,0,0,0.60), 0 0 0 1px rgba(196,146,58,0.06)`
+                            : `0 24px 64px rgba(40,28,12,0.16), 0 0 0 1px rgba(122,140,110,0.06)`,
                     }}
                 >
                     {/* Header */}
@@ -212,19 +215,23 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{
                                 width: '32px', height: '32px', borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${color}28, ${color}0a)`,
-                                border: `1.5px solid ${color}40`,
+                                background: isDark
+                                    ? 'linear-gradient(135deg, rgba(92,42,14,0.8), rgba(40,18,6,0.8))'
+                                    : 'linear-gradient(135deg, rgba(180,200,162,0.8), rgba(140,160,120,0.6))',
+                                border: `1.5px solid ${isDark ? 'rgba(196,146,58,0.45)' : 'rgba(122,140,110,0.45)'}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '13px', color,
-                                boxShadow: `0 0 12px ${color}28`,
+                                fontSize: '13px', color: accentColor,
+                                boxShadow: `0 0 12px ${accentGlow}`,
                             }}>✦</div>
                             <div>
-                                <p style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', letterSpacing: '0.14em', color, margin: 0 }}>
-                                    ORION
-                                </p>
-                                <p style={{ fontFamily: 'var(--font-jost)', fontSize: '10px', color: textMuted, margin: 0 }}>
-                                    Brain training companion
-                                </p>
+                                <p style={{
+                                    fontFamily: "'Cinzel', serif", fontSize: '11px',
+                                    letterSpacing: '0.14em', color: accentColor, margin: 0,
+                                }}>ORION</p>
+                                <p style={{
+                                    fontFamily: "'Jost', sans-serif", fontSize: '10px',
+                                    color: textMuted, margin: 0,
+                                }}>Brain training companion</p>
                             </div>
                         </div>
                         <button onClick={onClose} style={{
@@ -241,38 +248,38 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                     <div style={{
                         flex: 1, overflowY: 'auto', padding: '14px',
                         scrollbarWidth: 'thin',
-                        scrollbarColor: isDark ? `${color}18 transparent` : `${color}20 transparent`,
+                        scrollbarColor: `${isDark ? 'rgba(196,146,58,0.18)' : 'rgba(122,140,110,0.18)'} transparent`,
                     }}>
                         {msgs.length === 1 && (
                             <div style={{ marginBottom: '14px' }}>
                                 <div style={{
                                     padding: '10px 12px',
-                                    background: isDark ? `${color}08` : `${color}06`,
-                                    border: `1px solid ${color}15`,
+                                    background: isDark ? 'rgba(196,146,58,0.06)' : 'rgba(122,140,110,0.06)',
+                                    border: `1px solid ${isDark ? 'rgba(196,146,58,0.14)' : 'rgba(122,140,110,0.14)'}`,
                                     borderRadius: '12px', marginBottom: '10px',
                                 }}>
-                                    <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: `${color}80`, textTransform: 'uppercase', marginBottom: '8px' }}>
-                                        Quick questions
-                                    </p>
+                                    <p style={{
+                                        fontFamily: "'Jost', sans-serif", fontSize: '9px',
+                                        letterSpacing: '0.1em', color: textMuted,
+                                        textTransform: 'uppercase', marginBottom: '8px',
+                                    }}>Quick questions</p>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                         {QUICK_PROMPTS.map(q => (
                                             <button key={q} onClick={() => send(q)}
                                                 style={{
                                                     padding: '5px 10px', borderRadius: '20px', cursor: 'pointer',
-                                                    fontFamily: 'var(--font-jost)', fontSize: '11px',
-                                                    background: isDark ? `${color}0a` : `${color}08`,
-                                                    border: `1px solid ${color}22`,
-                                                    color: `${color}cc`, transition: 'all 0.15s',
+                                                    fontFamily: "'Jost', sans-serif", fontSize: '11px',
+                                                    background: isDark ? 'rgba(196,146,58,0.07)' : 'rgba(122,140,110,0.07)',
+                                                    border: `1px solid ${isDark ? 'rgba(196,146,58,0.20)' : 'rgba(122,140,110,0.20)'}`,
+                                                    color: `${accentColor}cc`, transition: 'all 0.15s',
                                                 }}
                                                 onMouseEnter={e => {
-                                                    e.currentTarget.style.background = `${color}1a`
-                                                    e.currentTarget.style.borderColor = `${color}45`
-                                                    e.currentTarget.style.color = color
+                                                    e.currentTarget.style.background = isDark ? 'rgba(196,146,58,0.15)' : 'rgba(122,140,110,0.15)'
+                                                    e.currentTarget.style.color = accentColor
                                                 }}
                                                 onMouseLeave={e => {
-                                                    e.currentTarget.style.background = isDark ? `${color}0a` : `${color}08`
-                                                    e.currentTarget.style.borderColor = `${color}22`
-                                                    e.currentTarget.style.color = `${color}cc`
+                                                    e.currentTarget.style.background = isDark ? 'rgba(196,146,58,0.07)' : 'rgba(122,140,110,0.07)'
+                                                    e.currentTarget.style.color = `${accentColor}cc`
                                                 }}
                                             >{q}</button>
                                         ))}
@@ -296,10 +303,10 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                     <div style={{
                                         width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
                                         marginRight: '8px', marginTop: '2px',
-                                        background: isDark ? 'rgba(10,15,38,1)' : 'rgba(198,218,252,1)',
-                                        border: `1px solid ${color}35`,
+                                        background: isDark ? 'rgba(28,18,8,1)' : 'rgba(210,202,180,1)',
+                                        border: `1px solid ${isDark ? 'rgba(196,146,58,0.32)' : 'rgba(122,140,110,0.32)'}`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '9px', color,
+                                        fontSize: '9px', color: accentColor,
                                     }}>✦</div>
                                 )}
                                 <div style={{
@@ -308,7 +315,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                     borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                                     background: msg.role === 'user' ? userBubbleBg : assistantBubbleBg,
                                     border: `1px solid ${msg.role === 'user' ? userBubbleBorder : assistantBubbleBorder}`,
-                                    fontFamily: 'var(--font-jost)', fontSize: '13px',
+                                    fontFamily: "'Jost', sans-serif", fontSize: '13px',
                                     lineHeight: '1.65', color: textPrimary,
                                     whiteSpace: 'pre-wrap',
                                 }}>
@@ -317,7 +324,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                         <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '2px 0' }}>
                                             {[0, 1, 2].map(i => (
                                                 <motion.div key={i}
-                                                    style={{ width: '5px', height: '5px', borderRadius: '50%', background: color }}
+                                                    style={{ width: '5px', height: '5px', borderRadius: '50%', background: accentColor }}
                                                     animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
                                                     transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.16 }}
                                                 />
@@ -340,8 +347,8 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                     }}>
                         <div style={{
                             display: 'flex', alignItems: 'flex-end', gap: '8px',
-                            background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(200,220,255,0.35)',
-                            border: `1px solid ${color}18`,
+                            background: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(180,170,148,0.18)',
+                            border: `1px solid ${isDark ? 'rgba(196,146,58,0.14)' : 'rgba(122,140,110,0.18)'}`,
                             borderRadius: '14px',
                             padding: '8px 10px 8px 14px',
                         }}>
@@ -356,16 +363,17 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                 placeholder="Ask Orion about memory, thinking, or brain training..."
                                 style={{
                                     flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                    resize: 'none', fontFamily: 'var(--font-jost)', fontSize: '12px',
+                                    resize: 'none', fontFamily: "'Jost', sans-serif", fontSize: '12px',
                                     color: textPrimary, lineHeight: '1.5', maxHeight: '100px',
                                 }}
                             />
                             <button onClick={() => send()} disabled={!input.trim() || loading}
                                 style={{
                                     flexShrink: 0, padding: '6px 14px', borderRadius: '10px', cursor: 'pointer',
-                                    fontFamily: 'var(--font-jost)', fontSize: '10px', fontWeight: 600,
+                                    fontFamily: "'Jost', sans-serif", fontSize: '10px', fontWeight: 600,
                                     letterSpacing: '0.14em', textTransform: 'uppercase',
-                                    background: `${color}20`, border: `1px solid ${color}35`,
+                                    background: isDark ? 'rgba(196,146,58,0.16)' : 'rgba(122,140,110,0.14)',
+                                    border: `1px solid ${isDark ? 'rgba(196,146,58,0.32)' : 'rgba(122,140,110,0.30)'}`,
                                     color: textPrimary,
                                     opacity: !input.trim() || loading ? 0.35 : 1,
                                     transition: 'all 0.2s',
@@ -374,10 +382,10 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         </div>
                         <p style={{
                             textAlign: 'center', marginTop: '6px',
-                            fontFamily: 'var(--font-jost)', fontSize: '9px',
+                            fontFamily: "'Jost', sans-serif", fontSize: '9px',
                             color: textMuted, letterSpacing: '0.08em',
                         }}>
-                            Orion focuses on thinking and memory, Lumina handles feelings
+                            Orion handles thinking and memory, Lumina handles feelings
                         </p>
                     </div>
                 </motion.div>

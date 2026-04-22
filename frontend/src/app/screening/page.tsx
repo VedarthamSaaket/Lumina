@@ -40,10 +40,6 @@ async function saveSummaryToDashboard(testName: string, scoreLabel: string, summ
 }
 
 const RSES_REVERSED = new Set([2, 4, 7, 8, 9])
-
-// ─── SOCIALLY SAFE ANSWER DETECTION ───────────────────────────────────────────
-// Maps [testKey][questionIndex] → the "safe-sounding" answer index that might
-// be under-reported. When user picks it on a flagged question, we show a gentle nudge.
 const SAFE_ANSWER_FLAGS: Record<string, Record<number, { safeIdx: number; nudge: string }>> = {
   MOOD: {
     5: { safeIdx: 0, nudge: "Most of us are harder on ourselves than we'd admit to others. Even occasional self-blame counts here." },

@@ -7,7 +7,10 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
 import OrionButton from '@/components/orion/OrionButton'
 import '@/components/DarkVeil.css'
-
+import OrionLiveObserver, { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
+import OrionDebrief from '@/components/orion/OrionDebrief'
+import OrionChatPanel from '@/components/orion/OrionChatPanel'
+import OrionRightPanel from '@/components/orion/OrionRightPanel'
 function OrionBanner() {
   return (
     <motion.div
@@ -3175,11 +3178,20 @@ export default function MemoryPage() {
   const [puzzleSelected, setPuzzleSelected] = useState<PuzzleGameId | null>(null)
   const [puzzleRounds, setPuzzleRounds] = useState<BaseRound[]>([])
 
-  const selectGame = (id: GameId) => { setSelected(id); setPhase('intro') }
+  const selectGame = (id: GameId) => { 
+    setSelected(id); 
+    setActiveGameType(id);
+    sessionStartRef.current = Date.now();
+    setPhase('intro') 
+  }
   const startGame = () => setPhase('playing')
   const retake = () => setPhase('intro')
   const back = () => { setSelected(null); setPhase('selector'); setRounds([]) }
   const game = selected ? (GAMES as any)[selected] : null
+
+  const [orionRightContent, setOrionRightContent] = useState<string | null>(null)
+  const [activeGameType, setActiveGameType] = useState<string | null>(null)
+  const sessionStartRef = useRef<number>(Date.now())
 
   const quitMemoryGame = (r: AnyRound[]) => {
     if (r.length > 0) { setRounds(r); setPhase('result') }
@@ -3265,7 +3277,12 @@ export default function MemoryPage() {
                     <motion.button key={g.id}
                       initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
                       whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => { setPuzzleSelected(g.id); setPhase('puzzle-intro') }}
+                      onClick={() => { 
+                        setPuzzleSelected(g.id); 
+                        setActiveGameType(g.id);
+                        sessionStartRef.current = Date.now();
+                        setPhase('puzzle-intro') 
+                      }}
                       className="glass rounded-xl p-5 w-full text-left flex items-center gap-5"
                       style={{ border: `1px solid ${g.color}28` }}>
                       <div className="w-14 h-14 rounded-full flex items-center justify-center font-display text-2xl flex-shrink-0"
@@ -3346,8 +3363,23 @@ export default function MemoryPage() {
           )}
 
           {phase === 'result' && selected && (
-            <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ResultScreen gameId={selected} rounds={rounds} onRetake={retake} onBack={back} />
+            <motion.div key="result">
+              <OrionDebrief
+                gameId={selected}
+                gameTitle={GAMES[selected]?.title || selected}
+                rounds={rounds}
+                stats={{
+                  'Rounds played': rounds.length,
+                  'Accuracy': rounds.length ? `${Math.round((rounds.filter(r => r.correct).length / rounds.length) * 100)}%` : '0%',
+                  'Max level': Math.max(...rounds.map(r => r.level || 0), 0),
+                  'Correct answers': rounds.filter(r => r.correct).length
+                }}
+                sessionStartMs={sessionStartRef.current}
+                onBack={back}
+                onRetake={retake}
+                color={GAMES[selected]?.color || GOLD}
+                icon={GAMES[selected]?.icon || '◉'}
+              />
             </motion.div>
           )}
 
@@ -3407,6 +3439,41 @@ export default function MemoryPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Orion live observer - shows notifications during games */}
+      {(phase === 'playing' || phase === 'puzzle-playing') && activeGameType && (
+        <OrionLiveObserver
+          gameType={activeGameType}
+        />
+      )}
+
+      {/* Orion chat panel - shown on left side when not playing */}
+      {phase === 'selector' && (
+        <div style={{
+          position: 'fixed', left: '16px', bottom: '16px',
+          width: '320px', height: '420px', zIndex: 100,
+        }}>
+          <OrionChatPanel
+            isMemoryPage
+            gameType={activeGameType || undefined}
+            onRequestRightPanel={(type) => setOrionRightContent(type)}
+          />
+        </div>
+      )}
+
+      {/* Orion right panel */}
+      {orionRightContent && (
+        <div style={{
+          position: 'fixed', right: '16px', bottom: '16px',
+          width: '320px', height: '420px', zIndex: 100,
+        }}>
+          <OrionRightPanel
+            contentType={orionRightContent}
+            gameType={activeGameType || undefined}
+            onClose={() => setOrionRightContent(null)}
+          />
+        </div>
+      )}
     </main>
   )
 }

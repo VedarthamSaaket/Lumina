@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import type { RiskLevel } from '@/types'
 import { CrisisBanner } from '@/components/crisis/CrisisBanner'
 import DarkVeil from '@/components/DarkVeil'
@@ -45,7 +46,7 @@ interface Msg {
 }
 interface Convo { id: string; title: string; updated_at: string }
 
-// ── Build personalised welcome message using stored user info ──
+// ── Build personalised welcome message ──
 function buildWelcome(name?: string | null): Msg {
   const greeting = name ? `Hey ${name}.` : "Hey."
   return {
@@ -471,7 +472,7 @@ export default function ChatPage() {
             fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.14em',
             textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center'
           }}>
-            Private · Local · Encrypted
+            Private . Local . Encrypted
           </div>
         </div>
 
@@ -486,15 +487,12 @@ export default function ChatPage() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55 }}
                 style={{ textAlign: 'center', marginBottom: '44px', paddingTop: '4px' }}>
-                <h1 className="font-display" style={{
-                  fontWeight: 300, fontSize: '48px', letterSpacing: '-0.02em',
-                  color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1,
-                }}>Lumina</h1>
+                <GoldHeading prefix="The" gold="Lumina" />
                 <p style={{
                   fontFamily: 'var(--font-jost)', fontSize: '10px', letterSpacing: '0.24em',
                   textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0
                 }}>
-                  {userName ? `Welcome back, ${userName}` : 'Private & Local'} · Not a substitute for therapy
+                  {userName ? `Welcome back, ${userName}` : 'Private & Local'} . Not a substitute for therapy
                 </p>
               </motion.div>
 

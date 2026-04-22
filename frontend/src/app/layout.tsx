@@ -6,7 +6,7 @@ import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
   title: 'Lumina: AI Psychological Guidance',
-  description: 'Structured emotional guidance, CBT tools, and compassionate AI support.',
+  description: 'Structured emotional guidance and compassionate AI support.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

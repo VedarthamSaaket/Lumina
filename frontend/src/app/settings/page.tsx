@@ -75,7 +75,7 @@ const TONE_OPTIONS = [
     {
         id: 'clinical',
         label: 'Structured',
-        desc: 'CBT-framed, methodical. More like a tool than a friend.',
+        desc: 'Methodical and structured. More like a tool than a friend.',
         icon: '◎',
         color: '#5b9bd5',
     },
@@ -560,7 +560,7 @@ export default function SettingsPage() {
                                         <ContextRow label="Self-Reflection Results" desc="Your check scores anxiety, mood, personality"
                                             on={settings.use_screening_context} color="#7a9e7e"
                                             onToggle={() => update({ use_screening_context: !settings.use_screening_context })} />
-                                        <ContextRow label="Inner Work Sessions" desc="Which CBT modules you've completed"
+                                        <ContextRow label="Inner Work Sessions" desc="Which exercises you've completed"
                                             on={settings.use_cbt_context} color="#7a9e7e"
                                             onToggle={() => update({ use_cbt_context: !settings.use_cbt_context })} />
                                         <ContextRow label="Memory & Cognitive Games" desc="Your game performance and patterns"

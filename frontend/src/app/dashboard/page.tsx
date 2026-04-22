@@ -471,7 +471,7 @@ export default function DashboardPage() {
           {user?.email && (
             <p className="font-jost text-xs tracking-wide" style={{ color: 'var(--text-muted)' }}>
               {user.email}
-              {user.created_at && <span style={{ opacity: 0.5 }}> · member since {formatDate(user.created_at)}</span>}
+              {user.created_at && <span style={{ opacity: 0.5 }}> . member since {formatDate(user.created_at)}</span>}
             </p>
           )}
         </motion.div>
