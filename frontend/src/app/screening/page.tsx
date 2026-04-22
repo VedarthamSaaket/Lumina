@@ -776,7 +776,7 @@ const CATEGORIES = {
     subtitle: 'Who you are and how you connect',
     color: '#c9897a',
     icon: '◈',
-    keys: ['BIGFIVE', 'ATTACHMENT', 'EQ', 'STRESS'] as QType[],
+    keys: ['BIGFIVE', 'ATTACHMENT', 'EQ', 'STRESS', 'SD3', 'RIASEC', 'EQSQ', 'NVAS'] as QType[],
   },
   career: {
     label: 'Career and Work',

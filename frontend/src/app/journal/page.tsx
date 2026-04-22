@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
-import BookScene from '@/components/journal/BookScene'
+import dynamic from 'next/dynamic'
 import OpenBook from '@/components/journal/OpenBook'
 import { journalAPI, moodAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
+
+const BookScene3D = dynamic(() => import('@/components/journal/BookScene3D'), { ssr: false })
 
 type Stage = 'scene' | 'open'
 
@@ -86,7 +88,7 @@ export default function JournalPage() {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <BookScene onBookClick={handleBookClick} />
+                        <BookScene3D onBookClick={handleBookClick} />
                     </motion.div>
                 )}
 
@@ -100,7 +102,6 @@ export default function JournalPage() {
                     >
                         <Navigation />
 
-                        {/* Heading - prominent, consistent with other pages */}
                         <div style={{
                             position: 'absolute',
                             top: '68px',
