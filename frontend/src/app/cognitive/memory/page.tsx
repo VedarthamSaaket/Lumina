@@ -5,7 +5,47 @@ import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
+import OrionButton from '@/components/orion/OrionButton'
 import '@/components/DarkVeil.css'
+
+function OrionBanner() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="rounded-xl p-4 mb-6 flex items-center gap-3"
+      style={{
+        background: 'rgba(91,155,213,0.06)',
+        border: '1px solid rgba(91,155,213,0.18)',
+      }}
+    >
+      <div style={{
+        width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+        background: 'rgba(91,155,213,0.12)',
+        border: '1px solid rgba(91,155,213,0.28)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '12px', color: '#5B9BD5',
+      }}>
+        ✦
+      </div>
+      <div style={{ flex: 1 }}>
+        <p style={{
+          fontFamily: 'var(--font-jost)', fontSize: '11px', letterSpacing: '0.08em',
+          color: '#5B9BD5', marginBottom: '2px',
+        }}>
+          Orion is here
+        </p>
+        <p style={{
+          fontFamily: 'var(--font-jost)', fontSize: '12px',
+          color: 'rgba(254,244,228,0.45)', lineHeight: '1.5',
+        }}>
+          After your games, tap the Orion button (bottom right) to discuss your results, get coaching, and understand the science behind your scores.
+        </p>
+      </div>
+    </motion.div>
+  )
+}
 
 type GameId = 'digit' | 'letter' | 'math' | 'color' | 'spatial' | 'spatial_reverse' | 'word' | 'matrix' | 'oddoneout' | 'series' | 'analogy' | 'paperfold'
 type GamePhase = 'selector' | 'intro' | 'playing' | 'result' | 'puzzle-intro' | 'puzzle-playing' | 'puzzle-result'
@@ -37,9 +77,9 @@ function getToken() {
 function isSameShape(s1: any, s2: any) {
   if (!s1 || !s2) return false
   return s1.type === s2.type &&
-         s1.fill === s2.fill &&
-         (s1.rotate || 0) === (s2.rotate || 0) &&
-         (s1.color === s2.color)
+    s1.fill === s2.fill &&
+    (s1.rotate || 0) === (s2.rotate || 0) &&
+    (s1.color === s2.color)
 }
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
@@ -2336,7 +2376,7 @@ function generateSeries(level: number, roundInLevel: number): SeriesPuzzle {
 
   const rules = [tier1, tier2, tier3, tier4]
   const envRuleIdx = di < 5 ? 0 : di < 12 ? 1 : di < 22 ? 2 : 3
-  
+
   for (let attempt = 0; attempt < 15; attempt++) {
     const res = rules[envRuleIdx]()
     if (res.answerIdx !== -1) {

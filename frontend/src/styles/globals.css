@@ -865,9 +865,6 @@ textarea {
   background: linear-gradient(to top, rgba(237, 227, 203, 0.98) 55%, transparent) !important;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   CHAT SIDEBAR
-   ───────────────────────────────────────────────────────────────────────────── */
 .chat-sidebar {
   width: 300px;
   height: 100%;
@@ -881,9 +878,10 @@ textarea {
   flex-shrink: 0;
 }
 
+/* FIXED: changed from yellowish rgba to a neutral warm slate */
 .light .chat-sidebar {
-  background: rgba(232, 218, 185, 0.52) !important;
-  border-right-color: rgba(155, 115, 48, 0.20) !important;
+  background: rgba(215, 210, 200, 0.38) !important;
+  border-right-color: rgba(120, 110, 95, 0.15) !important;
 }
 
 .chat-new-btn {
@@ -908,6 +906,19 @@ textarea {
   background: rgba(212, 175, 55, 0.16);
   border-color: rgba(212, 175, 55, 0.32);
   color: var(--text-primary);
+}
+
+/* FIXED: light mode sidebar button — cooler, less yellow */
+.light .chat-new-btn {
+  background: rgba(100, 90, 70, 0.07) !important;
+  border-color: rgba(100, 90, 70, 0.18) !important;
+  color: rgba(42, 26, 8, 0.65) !important;
+}
+
+.light .chat-new-btn:hover {
+  background: rgba(100, 90, 70, 0.14) !important;
+  border-color: rgba(100, 90, 70, 0.30) !important;
+  color: rgba(42, 26, 8, 0.88) !important;
 }
 
 .chat-history-section {
@@ -949,9 +960,15 @@ textarea {
   color: var(--text-primary);
 }
 
+/* FIXED: light mode active chat item — neutral stone instead of yellow */
 .light .chat-history-item.active {
-  background: rgba(139, 100, 16, 0.12) !important;
-  border-color: rgba(139, 100, 16, 0.28) !important;
+  background: rgba(100, 88, 72, 0.12) !important;
+  border-color: rgba(100, 88, 72, 0.24) !important;
+}
+
+.light .chat-history-item:hover {
+  background: rgba(100, 88, 72, 0.07) !important;
+  border-color: rgba(100, 88, 72, 0.14) !important;
 }
 
 .chat-history-title {
