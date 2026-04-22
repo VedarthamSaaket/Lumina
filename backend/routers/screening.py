@@ -10,16 +10,17 @@ import json
 router = APIRouter(prefix="/api/screening", tags=["screening"])
 
 # ─── Scoring config ───────────────────────────────────────────────────────────
-# Each entry: (max_score, label)
-# Tests with reversed items are handled in calc_score below.
-
 REVERSED_ITEMS: dict[str, set] = {
     "RSES":      {2, 4, 7, 8, 9},
-    "SELFWORTH": {2, 4, 7, 8, 9},  # same structure as RSES
+    "SELFWORTH": {2, 4, 7, 8, 9},
+    # SD3 has some reverse-scored items (marked in questions with "(Reverse scored)")
+    # We handle SD3 reversed here: items 7 (hate being centre), 12 (embarrassed by compliments),
+    # 19 (same laws for everyone), 27 (never take big risks)
+    "SD3": {7, 12, 19, 27},
 }
 
 SEVERITY_MAP: dict[str, list[tuple[int, str]]] = {
-    # ── Legacy names (kept so old saved data still scores correctly) ──────────
+    # ── Legacy names ─────────────────────────────────────────────────────────
     "PHQ9": [
         (4,  "Minimal"),
         (9,  "Mild"),
@@ -75,11 +76,38 @@ SEVERITY_MAP: dict[str, list[tuple[int, str]]] = {
         (27, "Emotionally aware"),
         (40, "Highly emotionally intelligent"),
     ],
-
     "STRESS": [
         (15, "Still finding your footing"),
         (27, "Developing resilience"),
         (40, "Resourceful under pressure"),
+    ],
+
+    # ── NEW: Dark Triad (SD3) ─────────────────────────────────────────────────
+    "SD3": [
+        (35, "Low dark triad traits"),
+        (60, "Moderate range"),
+        (81, "Elevated traits present"),
+    ],
+
+    # ── NEW: Holland RIASEC ───────────────────────────────────────────────────
+    "RIASEC": [
+        (30, "Focused vocational type"),
+        (55, "Blended profile"),
+        (72, "Broad vocational interests"),
+    ],
+
+    # ── NEW: Empathising-Systemising ──────────────────────────────────────────
+    "EQSQ": [
+        (22, "Systemising dominant"),
+        (42, "Balanced E-S profile"),
+        (60, "Empathising dominant"),
+    ],
+
+    # ── NEW: Nonverbal Sensitivity ────────────────────────────────────────────
+    "NVAS": [
+        (18, "Less nonverbally attuned"),
+        (28, "Moderately sensitive"),
+        (36, "Highly nonverbally attuned"),
     ],
 
     # ── Career ────────────────────────────────────────────────────────────────
@@ -149,7 +177,6 @@ def submit_screening(
     score    = calc_score(data.type, data.answers)
     severity = get_severity(score, data.type)
 
-    # Store per-question context alongside each answer index
     structured = [
         {
             "index":   i,
@@ -187,7 +214,6 @@ def screening_history(
         .order_by(ScreeningResult.completed_at.desc())
         .all()
     )
-    # Return plain dicts so FastAPI serialises cleanly without needing a schema
     return [
         {
             "id":           r.id,

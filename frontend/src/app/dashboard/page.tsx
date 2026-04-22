@@ -89,6 +89,7 @@ async function apiFetch<T>(url: string): Promise<T | null> {
   } catch { return null }
 }
 
+
 async function generateProfileSummary(
   screening: ScreeningRow[], memory: MemoryRow[], cbt: CBTModule[],
   moodCount: number, journalCount: number,
@@ -108,27 +109,33 @@ async function generateProfileSummary(
   }).join('\n')
 
   const cbtDone = cbt.filter(m => m.completed)
-  const prompt = `You are a warm, thoughtful psychological guide writing a personal profile reflection for someone based on everything they have engaged with.
-
-Here is what they have completed:
+  const prompt = `You are a warm, specific psychological guide writing a personal profile reflection.
+ 
+Data about this person:
 ${screeningLines ? `Self-reflection checks:\n${screeningLines}` : ''}
-${memoryLines ? `\nCognitive memory games:\n${memoryLines}` : ''}
-${cbtDone.length > 0 ? `\nInner work sessions completed: ${cbtDone.length}` : ''}
-${moodCount > 0 ? `\nMood logs recorded: ${moodCount}` : ''}
-${journalCount > 0 ? `\nJournal entries written: ${journalCount}` : ''}
-
-Write a 3-paragraph personal profile reflection:
-Paragraph 1: A warm, honest portrait of this person based on what their results suggest as a whole. Not a list of scores but a narrative of who they seem to be right now.
-Paragraph 2: What their combined engagement suggests about how they move through the world and manage their inner life.
-Paragraph 3: One or two gentle observations about what might be worth paying attention to, framed with curiosity. End on a note of agency.
-
+${memoryLines ? `\nCognitive games:\n${memoryLines}` : ''}
+${cbtDone.length > 0 ? `\nInner work sessions: ${cbtDone.length}` : ''}
+${moodCount > 0 ? `\nMood logs: ${moodCount}` : ''}
+${journalCount > 0 ? `\nJournal entries: ${journalCount}` : ''}
+ 
+Write ONLY bullet points. No prose paragraphs whatsoever. Format:
+ 
+• [Specific observation about their emotional pattern based on actual scores]
+• [What their cognitive/memory performance suggests about how they think]
+• [A pattern you notice across their self-reflection results]  
+• [What their engagement level (mood logs, journal, CBT) says about them]
+• [One gentle, specific thing worth paying attention to]
+• [One honest strength the data reveals]
+ 
 Rules:
-- No em dashes anywhere
-- No clinical labels or diagnostic language
-- Speak directly to them as "you"
-- Warm, slightly literary tone
-- Under 280 words
-- No section headers, no bullet points, no bold text`
+- Each bullet must be specific and reference actual data — no vague generalities
+- Start every line with •
+- Under 120 words total
+- No em dashes
+- No clinical labels
+- Speak as "you"
+- Warm but precise — like a very attentive friend who has been paying attention`
+
   return await fetchSummary(prompt)
 }
 
@@ -529,6 +536,7 @@ export default function DashboardPage() {
                 </motion.div>
               )}
 
+
               {(screening.length > 0 || memory.length > 0) && (
                 <Card>
                   <SectionLabel>Profile Reflection</SectionLabel>
@@ -539,7 +547,16 @@ export default function DashboardPage() {
                       <span className="font-body text-sm">Writing your profile reflection...</span>
                     </div>
                   ) : profileSummary ? (
-                    <p className="font-body text-sm leading-relaxed whitespace-pre-line pt-1" style={{ color: 'var(--text-primary)' }}>{profileSummary}</p>
+                    <div className="space-y-2 pt-1">
+                      {profileSummary.split('\n').filter(l => l.trim()).map((line, i) => (
+                        <div key={i} className="flex items-start gap-2.5">
+                          <span style={{ color: '#d4af37', flexShrink: 0, fontSize: '10px', marginTop: '5px' }}>●</span>
+                          <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-primary)', margin: 0 }}>
+                            {line.replace(/^[•\-●]\s*/, '')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
                 </Card>
               )}
@@ -652,8 +669,8 @@ export default function DashboardPage() {
                     {summaries.filter(s => s.source === 'screening').map(s => (
                       <Card key={s.id} color="#d4af37">
                         <div className="flex items-center justify-between mb-2">
-                           <p className="font-gothic text-sm" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
-                           <p className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(s.created_at)}</p>
+                          <p className="font-gothic text-sm" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
+                          <p className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(s.created_at)}</p>
                         </div>
                         <p className="font-body text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>{s.content}</p>
                       </Card>
@@ -788,18 +805,34 @@ export default function DashboardPage() {
 
           {/* INNER WORK */}
           {activeTab === 'cbt' && (
+
             <motion.div key="cbt" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
               {summaries.filter(s => s.source === 'cbt').length > 0 && (
-                <div className="mb-4">
-                  <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Insights</p>
+                <div>
+                  <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>
+                    Exercise Insights
+                  </p>
                   <div className="space-y-3">
                     {summaries.filter(s => s.source === 'cbt').map(s => (
                       <Card key={s.id} color="#b8a070">
-                        <div className="flex items-center justify-between mb-2">
-                           <p className="font-gothic text-sm" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
-                           <p className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(s.created_at)}</p>
+                        <div className="flex items-center justify-between mb-3">
+                          <p style={{
+                            fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+                            fontWeight: 400, fontStyle: 'italic',
+                            fontSize: '0.95rem', color: 'var(--text-primary)',
+                          }}>{s.title}</p>
+                          <p className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(s.created_at)}</p>
                         </div>
-                        <p className="font-body text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>{s.content}</p>
+                        <div className="space-y-1.5">
+                          {s.content.split('\n').filter(l => l.trim()).map((line, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span style={{ color: '#b8a070', flexShrink: 0, fontSize: '10px', marginTop: '4px' }}>●</span>
+                              <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                                {line.replace(/^[•\-●]\s*/, '')}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -810,7 +843,7 @@ export default function DashboardPage() {
                 <div className="py-12 text-center">
                   <p className="font-body text-sm mb-6 leading-relaxed"
                     style={{ color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '28rem', margin: '0 auto 1.5rem' }}>
-                    This is a quiet space for exploring patterns in how you think and feel. There is no curriculum to finish, no score to chase. Just small exercises when you feel ready for them.
+                    Eight guided exercises, each targeting a specific mental pattern. Use when you need it — there's no curriculum to finish.
                   </p>
                   <motion.button onClick={() => window.location.href = '/cbt'} whileHover={{ scale: 1.03 }}
                     className="px-6 py-3 rounded-xl font-jost text-sm tracking-widest uppercase glass"
@@ -822,10 +855,10 @@ export default function DashboardPage() {
                 <>
                   <div className="rounded-xl p-6" style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)' }}>
                     <p className="font-body text-sm leading-relaxed mb-4" style={{ color: 'var(--text-primary)', fontStyle: 'italic' }}>
-                      {cbtCompleted === 1 ? "You have taken a first step inward. That is not a small thing."
-                        : cbtCompleted <= 3 ? "You have been showing up for yourself. Each session is a small act of care."
-                          : cbtCompleted <= 5 ? "There is a quiet consistency here. You keep coming back to this work."
-                            : "You have spent real time with yourself in here. That says something."}
+                      {cbtCompleted === 1 ? "You've taken a first step inward. That's not a small thing."
+                        : cbtCompleted <= 3 ? "You've been showing up for yourself. Each session is a small act of care."
+                          : cbtCompleted <= 5 ? "There's a quiet consistency here. You keep coming back to this work."
+                            : "You've spent real time with yourself in here. That says something."}
                     </p>
                     <div className="flex items-center justify-between">
                       <p className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>
