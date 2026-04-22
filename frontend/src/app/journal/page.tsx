@@ -100,19 +100,26 @@ export default function JournalPage() {
                     >
                         <Navigation />
 
-                        {/* Page heading */}
+                        {/* Heading - prominent, consistent with other pages */}
                         <div style={{
-                            position: 'absolute', top: '72px', left: '50%', transform: 'translateX(-50%)',
-                            zIndex: 60, textAlign: 'center', pointerEvents: 'none', whiteSpace: 'nowrap',
+                            position: 'absolute',
+                            top: '68px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 60,
+                            textAlign: 'center',
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap',
                         }}>
                             <h1 style={{
                                 fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
                                 fontWeight: 400,
                                 fontStyle: 'italic',
-                                fontSize: 'clamp(1.5rem, 2.5vw, 2rem)',
+                                fontSize: 'clamp(1.4rem, 2.2vw, 1.9rem)',
                                 margin: 0,
                                 letterSpacing: '0.02em',
                                 color: 'rgba(254,244,228,0.92)',
+                                lineHeight: 1.2,
                             }}>
                                 The Inner{' '}
                                 <span style={{
