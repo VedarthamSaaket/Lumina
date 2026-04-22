@@ -33,11 +33,11 @@ const CAPABILITIES = [
 ]
 
 const RESEARCH_HIGHLIGHTS = [
-    { ref: 'Baddeley & Hitch (1974)', finding: 'Multicomponent working memory — phonological loop + visuospatial sketchpad + central executive' },
-    { ref: 'Cattell (1963)', finding: 'Fluid vs crystallized intelligence — Gf can be trained, the basis for all puzzle games here' },
-    { ref: 'Craik & Lockhart (1972)', finding: 'Levels of processing — deeper encoding dramatically improves recall' },
-    { ref: 'Draganski et al. (2004)', finding: 'Structural brain plasticity from training — grey matter changes are measurable after weeks' },
-    { ref: 'Roediger & Karpicke (2006)', finding: 'Testing effect — retrieval practice beats passive re-reading for long-term retention' },
+    { ref: 'Baddeley & Hitch (1974)', finding: 'Multicomponent working memory phonological loop + visuospatial sketchpad + central executive' },
+    { ref: 'Cattell (1963)', finding: 'Fluid vs crystallized intelligence Gf can be trained, the basis for all puzzle games here' },
+    { ref: 'Craik & Lockhart (1972)', finding: 'Levels of processing deeper encoding dramatically improves recall' },
+    { ref: 'Draganski et al. (2004)', finding: 'Structural brain plasticity from training grey matter changes are measurable after weeks' },
+    { ref: 'Roediger & Karpicke (2006)', finding: 'Testing effect retrieval practice beats passive re-reading for long-term retention' },
     { ref: 'Miyake et al. (2000)', finding: 'Executive functions (updating, shifting, inhibition) are separable but correlated' },
 ]
 
@@ -107,7 +107,7 @@ export default function OrionPage() {
                         maxWidth: '520px', margin: '0 auto 8px',
                     }}>
                         Orion and Lumina are close mates. While Lumina focuses on your emotional wellbeing,
-                        Orion is your dedicated brain training expert — backed by 30+ peer-reviewed papers in
+                        Orion is your dedicated brain training expert backed by 30+ peer-reviewed papers in
                         cognitive neuroscience, memory science, and fluid intelligence research.
                     </p>
 
@@ -219,9 +219,9 @@ export default function OrionPage() {
                         fontFamily: 'var(--font-jost)', fontSize: '12px',
                         color: textSecondary, lineHeight: '1.65', margin: 0,
                     }}>
-                        Orion handles everything cognitive — memory, reasoning, aptitude, brain training.
-                        Lumina handles everything emotional — wellbeing, journaling, CBT, inner work.
-                        They're designed to complement each other. If Orion can't help with something, he'll send you to Lumina — and vice versa.
+                        Orion handles everything cognitive memory, reasoning, aptitude, brain training.
+                        Lumina handles everything emotional wellbeing, journaling, CBT, inner work.
+                        They're designed to complement each other. If Orion can't help with something, he'll send you to Lumina and vice versa.
                     </p>
                 </motion.div>
             </div>

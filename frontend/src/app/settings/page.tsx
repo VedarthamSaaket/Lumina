@@ -194,7 +194,7 @@ export default function SettingsPage() {
     const [confirmClear, setConfirmClear] = useState(false)
     const [clearingChat, setClearingChat] = useState(false)
 
-    // Load settings — localStorage first for instant load, then backend
+    // Load settings localStorage first for instant load, then backend
     useEffect(() => {
         const loadSettings = async () => {
             const local = localStorage.getItem('lumina_settings')
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                     setSettings(merged)
                     localStorage.setItem('lumina_settings', JSON.stringify(merged))
                 }
-            } catch { /* offline — use local */ }
+            } catch { /* offline use local */ }
             setLoading(false)
         }
         loadSettings()
@@ -231,7 +231,7 @@ export default function SettingsPage() {
                 },
             })
         } catch {
-            toast.error('Saved locally — will sync when online')
+            toast.error('Saved locally will sync when online')
         } finally {
             setSaving(false)
         }
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                                                     style={{ border: '1px solid rgba(212,175,55,0.22)' }}
                                                 />
                                                 <p className="font-body text-xs mt-1.5 italic" style={{ color: 'var(--text-muted)' }}>
-                                                    Overrides your account name in chat — just for how Lumina addresses you.
+                                                    Overrides your account name in chat just for how Lumina addresses you.
                                                 </p>
                                             </div>
                                             <div>
@@ -409,7 +409,7 @@ export default function SettingsPage() {
                                     <SectionCard color="#d4af37">
                                         <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#d4af37' }}>About Me</p>
                                         <p className="font-body text-sm italic mb-3" style={{ color: 'var(--text-muted)' }}>
-                                            Anything you want Lumina to carry into every conversation — your situation, what you're working through, what matters to you.
+                                            Anything you want Lumina to carry into every conversation your situation, what you're working through, what matters to you.
                                         </p>
                                         <textarea
                                             value={settings.about_me}
@@ -557,7 +557,7 @@ export default function SettingsPage() {
                                         <ContextRow label="Mood Logs" desc="Your recent mood scores and patterns"
                                             on={settings.use_mood_context} color="#7a9e7e"
                                             onToggle={() => update({ use_mood_context: !settings.use_mood_context })} />
-                                        <ContextRow label="Self-Reflection Results" desc="Your check scores — anxiety, mood, personality"
+                                        <ContextRow label="Self-Reflection Results" desc="Your check scores anxiety, mood, personality"
                                             on={settings.use_screening_context} color="#7a9e7e"
                                             onToggle={() => update({ use_screening_context: !settings.use_screening_context })} />
                                         <ContextRow label="Inner Work Sessions" desc="Which CBT modules you've completed"
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                                             onToggle={() => update({ use_journal_context: !settings.use_journal_context })} />
                                         <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(122,158,126,0.08)', border: '1px solid rgba(122,158,126,0.18)' }}>
                                             <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                                                Lumina uses your data only to speak more personally to you — it is never shared or stored outside this app.
+                                                Lumina uses your data only to speak more personally to you it is never shared or stored outside this app.
                                             </p>
                                         </div>
                                     </SectionCard>
@@ -585,7 +585,7 @@ export default function SettingsPage() {
                                     <SectionCard color="#c4913a">
                                         <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#c4913a' }}>Crisis Detection Sensitivity</p>
                                         <p className="font-body text-sm italic mb-5" style={{ color: 'var(--text-muted)' }}>
-                                            How quickly should Lumina notice signs of distress and offer support? Adjust if the default interrupts too often — or not enough.
+                                            How quickly should Lumina notice signs of distress and offer support? Adjust if the default interrupts too often or not enough.
                                         </p>
                                         <div className="space-y-3">
                                             {CRISIS_OPTIONS.map(opt => {
@@ -700,7 +700,7 @@ export default function SettingsPage() {
 
                         </AnimatePresence>
 
-                        {/* Save button — not shown on privacy tab (actions are immediate) */}
+                        {/* Save button not shown on privacy tab (actions are immediate) */}
                         {activeSection !== 'privacy' && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                                 className="mt-6 flex justify-end">

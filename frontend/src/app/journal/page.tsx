@@ -237,7 +237,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 </div>
             )}
 
-            {/* HEADING — centered on the full page, rises upward */}
+            {/* HEADING centered on the full page, rises upward */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <motion.div

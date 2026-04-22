@@ -86,7 +86,7 @@ const Qs = {
     desc: 'This measure is about self-awareness, not judgment. Most people score somewhere on all three dimensions. Honest answers reveal patterns worth knowing about yourself.',
     options: ['Strongly disagree', 'Somewhat disagree', 'Somewhat agree', 'Strongly agree'],
     questions: [
-      'It\'s not wise to tell your secrets — you never know who might use them against you.',
+      'It\'s not wise to tell your secrets you never know who might use them against you.',
       'I like to use clever manipulation to get what I want.',
       'Whatever it takes, you must get the important people on your side.',
       'Avoid direct conflict with others because they may be useful in the future.',
@@ -122,7 +122,7 @@ const Qs = {
     ],
     note: 'Based on the Short Dark Triad (SD3) by Jones & Paulhus (2014). Measures Machiavellianism, Narcissism, and Psychopathy. Self-awareness tool, not a clinical assessment.',
     traits: Array(27).fill('dark triad dimension'),
-    intro: 'This reveals shadow personality patterns that most people have to some degree — useful for honest self-awareness rather than judgment.',
+    intro: 'This reveals shadow personality patterns that most people have to some degree useful for honest self-awareness rather than judgment.',
   },
 
   RIASEC: {
@@ -144,7 +144,7 @@ const Qs = {
       'Figuring out why things work the way they do excites me.',
       'I prefer to understand something deeply before acting.',
       // Artistic
-      'Creative expression — writing, music, visual art — is important to me.',
+      'Creative expression writing, music, visual art is important to me.',
       'I thrive in unstructured environments that allow for originality.',
       'I am drawn to roles that involve imagination and aesthetics.',
       'I would rather improvise than follow a detailed script.',
@@ -179,7 +179,7 @@ const Qs = {
       'leadership drive', 'persuasion', 'ambiguity tolerance', 'entrepreneurial',
       'systems preference', 'order and structure', 'detail orientation', 'procedural follow-through',
     ],
-    intro: 'This maps which of the six vocational personality types — Realistic, Investigative, Artistic, Social, Enterprising, Conventional — best describes you.',
+    intro: 'This maps which of the six vocational personality types Realistic, Investigative, Artistic, Social, Enterprising, Conventional best describes you.',
   },
 
   EQSQ: {
@@ -203,7 +203,7 @@ const Qs = {
       'I notice when group dynamics shift even when nothing is said aloud.',
       // Systemising
       'If something breaks, I want to understand exactly what went wrong.',
-      'I am drawn to systems — whether machines, organisations, or natural processes.',
+      'I am drawn to systems whether machines, organisations, or natural processes.',
       'I enjoy sorting, categorising, or organising things into logical structures.',
       'I like to understand the rules or underlying principles of whatever I\'m doing.',
       'I notice patterns in data, language, or behaviour that others miss.',
@@ -235,7 +235,7 @@ const Qs = {
     full: 'How you read people without words',
     color: '#c4913a',
     category: 'personality',
-    desc: 'Think about how you actually experience social situations. This isn\'t about being a "people person" — it\'s about how attuned you are to the unspoken layer of communication.',
+    desc: 'Think about how you actually experience social situations. This isn\'t about being a "people person" it\'s about how attuned you are to the unspoken layer of communication.',
     options: ['Rarely or never', 'Sometimes', 'Often', 'Almost always'],
     questions: [
       'I notice small changes in someone\'s facial expression even mid-conversation.',
@@ -249,7 +249,7 @@ const Qs = {
       'I sense when someone wants to end a conversation before they say so.',
       'I can read the energy of a group setting quickly when I enter a room.',
       'I notice if someone is tense, even if they\'re speaking calmly.',
-      'Subtle signals — a pause, a look away, a shift in posture — register clearly for me.',
+      'Subtle signals a pause, a look away, a shift in posture register clearly for me.',
     ],
     contextHints: Array(12).fill(''),
     scoring: [
@@ -263,7 +263,7 @@ const Qs = {
       'body language priority', 'vocal incongruence', 'mirroring tendency', 'eye contact awareness',
       'conversation exit sensing', 'group energy reading', 'calm-mask detection', 'subtle signal registration',
     ],
-    intro: 'This measures how attuned you are to the nonverbal, unspoken layer of human communication — body language, tone, and micro-expressions.',
+    intro: 'This measures how attuned you are to the nonverbal, unspoken layer of human communication body language, tone, and micro-expressions.',
   },
 
   MOOD: {

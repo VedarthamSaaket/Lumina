@@ -134,7 +134,7 @@ Rules:
 - No em dashes
 - No clinical labels
 - Speak directly to "you"
-- Warm, insightful, and profoundly observant — like a wise guide who understands them deeply`
+- Warm, insightful, and profoundly observant like a wise guide who understands them deeply`
 
   return await fetchSummary(prompt)
 }
@@ -840,7 +840,7 @@ export default function DashboardPage() {
                 <div className="py-12 text-center">
                   <p className="font-body text-sm mb-6 leading-relaxed"
                     style={{ color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '28rem', margin: '0 auto 1.5rem' }}>
-                    Eight guided exercises, each targeting a specific mental pattern. Use when you need it — there's no curriculum to finish.
+                    Eight guided exercises, each targeting a specific mental pattern. Use when you need it, there's no curriculum to finish.
                   </p>
                   <motion.button onClick={() => window.location.href = '/cbt'} whileHover={{ scale: 1.03 }}
                     className="px-6 py-3 rounded-xl font-jost text-sm tracking-widest uppercase glass"
