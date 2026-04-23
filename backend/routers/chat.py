@@ -20,6 +20,37 @@ import json, re
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
+@router.get("/context")
+def get_chat_context(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the context Lumina would inject into a chat session (for the memory viewer in settings)."""
+    user_settings = _get_user_settings(current_user.id, db)
+    context = _get_user_context(current_user.id, db, user_settings)
+    settings_prompt = _build_settings_prompt(user_settings)
+
+    # Also include insight summaries
+    from models.database import InsightSummary
+    summaries = (
+        db.query(InsightSummary)
+        .filter(InsightSummary.user_id == current_user.id, InsightSummary.source.notin_(["orion_memory", "orion_debrief"]))
+        .order_by(desc(InsightSummary.created_at))
+        .limit(10)
+        .all()
+    )
+    insights = [{"title": s.title, "content": s.content[:200], "source": s.source, "created_at": s.created_at.isoformat() if s.created_at else None} for s in summaries]
+
+    return {
+        "settings_prompt": settings_prompt.strip() if settings_prompt else "",
+        "user_context": context.strip() if context else "",
+        "insights": insights,
+        "name": user_settings.get("preferred_name", ""),
+        "tone": user_settings.get("ai_tone", "warm"),
+        "focus_areas": user_settings.get("focus_areas", []),
+    }
+
+
 class MessageRequest(BaseModel):
     content: str
     history: list[dict] = []

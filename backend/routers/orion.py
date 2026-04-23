@@ -388,13 +388,9 @@ async def orion_stream(
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": data.content})
 
-    from groq import Groq
-    from config import settings
-    client = Groq(api_key=settings.GROQ_API_KEY)
-
     async def generate():
         try:
-            stream = client.chat.completions.create(
+            stream = _groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=messages,
                 max_tokens=900,
@@ -428,7 +424,9 @@ async def orion_message(
 
     cognitive_context = _get_cognitive_context(current_user.id, db)
     user_memory = _get_orion_user_memory(current_user.id, db)
-    system_prompt = ORION_SYSTEM_PROMPT + cognitive_context + user_memory
+    orion_settings = _get_orion_settings(current_user.id, db)
+    settings_prompt = _build_orion_settings_prompt(orion_settings)
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + cognitive_context + user_memory
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
