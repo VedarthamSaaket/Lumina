@@ -334,7 +334,7 @@ function Ticker() {
   return (
     <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '10px 0', position: 'relative', zIndex: 5 }}>
       {/* Ticker background: cream grainient */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 90% 55% at 20% 10%, #6b3510 0%, transparent 50%), radial-gradient(ellipse 70% 60% at 85% 85%, #4b2308 0%, transparent 55%), #1c1410' }}>
         <Grainient
           color1="#c4a882" color2="#ede0c4" color3="#5c3d28"
           timeSpeed={0.06} warpStrength={0.3} grainAmount={0.065}
@@ -358,10 +358,10 @@ function Ticker() {
 
 function Hero() {
   return (
-    <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 52px 72px', overflow: 'hidden' }}>
+    <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 52px 72px', overflow: 'hidden', background: 'radial-gradient(ellipse 90% 55% at 20% 10%, #6b3510 0%, transparent 50%), radial-gradient(ellipse 70% 60% at 85% 85%, #4b2308 0%, transparent 55%), #1c1410' }}>
 
       {/* LAYER 1: Gradient mesh — radial bloom, warm amber-gold from top-center, cool blue-grey bottom-left, deep dark vignette bottom-right */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 90% 55% at 20% 10%, #6b3510 0%, transparent 50%), radial-gradient(ellipse 70% 60% at 85% 85%, #4b2308 0%, transparent 55%), #1c1410' }}>
         <Grainient
           color1="#c4a882"
           color2="#f0dfc0"
@@ -484,7 +484,7 @@ function Hero() {
 
 function Philosophy() {
   return (
-    <section id="features" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
+    <section id="features" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center', background: '#ede0c4' }}>
 
       {/* LAYER 1: Gradient mesh — very gentle directional warm gradient, slightly darker at edges */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
@@ -579,8 +579,7 @@ function Philosophy() {
 
 function FeaturesGrid() {
   return (
-    <section style={{ position: 'relative', color: T.cream, padding: '120px 52px', overflow: 'hidden' }} id="orion">
-
+    <section style={{ position: 'relative', color: T.cream, padding: '120px 52px', overflow: 'hidden', background: '#0d0a06' }} id="orion">
       {/* ── SPLIT BACKGROUND: TWO INDEPENDENT PANELS ── */}
 
       {/* LEFT PANEL: pure deep black */}
@@ -593,7 +592,7 @@ function FeaturesGrid() {
         clipPath: 'inset(0 0 0 0)',
       }}>
         {/* Left gradient mesh: pure deep black with very subtle warm undertone */}
-        <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, background: '#0a0806' }}>
           <Grainient
             color1="#1a1208"
             color2="#0a0806"
@@ -642,7 +641,7 @@ function FeaturesGrid() {
         clipPath: 'inset(0 0 0 0)',
       }}>
         {/* Right gradient mesh: warm brownish-amber bloom from top-right corner */}
-        <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 60% at 90% 15%, #3a2810 0%, #1c1409 60%)' }}>
           <Grainient
             color1="#3a2810"
             color2="#1c1409"
@@ -686,10 +685,11 @@ function FeaturesGrid() {
         </div>
       </div>
 
+
       {/* Subtle dividing seam between left and right panels */}
       <div style={{
         position: 'absolute', top: 0, bottom: 0, left: '55%',
-        width: 1, background: 'rgba(250,243,232,0.04)', zIndex: 1,
+        width: 1, background: 'transparent', zIndex: 1,
       }} />
 
       {/* Dot grid texture */}
@@ -731,10 +731,9 @@ function FeaturesGrid() {
 
 function OrionSection() {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh' }}>
-
+    <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', background: '#1a1408' }}>
       {/* LAYER 1: Gradient mesh — deep dark olive-brown, warm amber bloom from top-right */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 60% 50% at 85% 10%, #3a2a10 0%, #1a1408 60%)' }}>
         <Grainient
           color1="#c4a060"
           color2="#3a2a1e"
@@ -1004,10 +1003,9 @@ function Diagnostics() {
 
 function InnerWork() {
   return (
-    <section id="inner-work" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
-
+    <section id="inner-work" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center', background: '#ede5d4' }}>
       {/* LAYER 1: Gradient mesh — very gentle directional warm gradient, slightly darker at edges */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 40% 40%, #d4c9a8 0%, #ede5d4 70%)' }}>
         <Grainient
           color1="#d4c9a8"
           color2="#b8a882"
@@ -1098,7 +1096,7 @@ function InnerWork() {
               </div>
             ))}
           </div>
-          <div style={{ height: 180, position: 'relative', overflow: 'hidden', boxShadow: `5px 5px 0 ${T.umber}`, border: `1px solid rgba(28,20,16,0.12)` }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 30% 30%, #c4a882 0%, #ede0c4 70%)' }}>
             <Grainient color1="#c4a882" color2="#f0dfc0" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} style={{ width: '100%', height: '100%' }} />
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
               <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 28, color: T.ink, letterSpacing: '-0.01em' }}>The Inner Ledger</div>
@@ -1118,10 +1116,9 @@ function InnerWork() {
 
 function Privacy() {
   return (
-    <section id="privacy" style={{ position: 'relative', overflow: 'hidden', minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
-
+    <section id="privacy" style={{ position: 'relative', overflow: 'hidden', minHeight: '90vh', display: 'flex', alignItems: 'center', background: '#080604' }}>
       {/* LAYER 1: Gradient mesh — pure black, warm radial glow from corner */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 50% 40% at 85% 10%, #241a13 0%, #080604 60%)' }}>
         <Grainient
           color1="#241a13"
           color2="#3a2a1e"
@@ -1230,10 +1227,9 @@ function Privacy() {
 
 function CTA() {
   return (
-    <section id="begin" style={{ position: 'relative', overflow: 'hidden', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-
+    <section id="begin" style={{ position: 'relative', overflow: 'hidden', minHeight: '80vh', display: 'flex', flexDirection: 'column', background: '#2d2318' }}>
       {/* LAYER 1: Gradient mesh — muted warm taupe-brown */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 30%, #4a3d2e 0%, #2d2318 70%)' }}>
         <Grainient
           color1="#c4a882"
           color2="#6a5440"
