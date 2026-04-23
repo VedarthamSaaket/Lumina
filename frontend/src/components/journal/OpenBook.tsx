@@ -55,54 +55,22 @@ const WRITING_FONTS = [
     { id: 'lora', label: 'Lora', family: "'Lora', serif", style: 'italic' },
 ]
 
-// Font weight/style options instead of size
+// Each style now also carries a `isBlock` flag so the textarea knows
+// whether to auto-revert to default after a newline.
 const FONT_STYLES = [
-    { id: 'title', label: 'Title', weight: '700', style: 'normal', size: '22px', lh: '32px' },
-    { id: 'heading', label: 'Heading', weight: '600', style: 'normal', size: '18px', lh: '28px' },
-    { id: 'subheading', label: 'Sub', weight: '500', style: 'normal', size: '15px', lh: '24px' },
-    { id: 'bold', label: 'Bold', weight: '700', style: 'normal', size: '14px', lh: '22px' },
-    { id: 'regular', label: 'Regular', weight: '400', style: 'normal', size: '14px', lh: '24px' },
-    { id: 'italic', label: 'Italic', weight: '400', style: 'italic', size: '14px', lh: '24px' },
-    { id: 'light', label: 'Light', weight: '300', style: 'italic', size: '14px', lh: '24px' },
-    { id: 'small', label: 'Caption', weight: '400', style: 'normal', size: '11px', lh: '18px' },
+    { id: 'title', label: 'Title', weight: '700', style: 'normal', size: '22px', lh: '32px', isBlock: true },
+    { id: 'heading', label: 'Heading', weight: '600', style: 'normal', size: '18px', lh: '28px', isBlock: true },
+    { id: 'subheading', label: 'Sub', weight: '500', style: 'normal', size: '15px', lh: '24px', isBlock: true },
+    { id: 'bold', label: 'Bold', weight: '700', style: 'normal', size: '14px', lh: '22px', isBlock: false },
+    { id: 'regular', label: 'Regular', weight: '400', style: 'normal', size: '14px', lh: '24px', isBlock: false },
+    { id: 'italic', label: 'Italic', weight: '400', style: 'italic', size: '14px', lh: '24px', isBlock: false },
+    { id: 'light', label: 'Light', weight: '300', style: 'italic', size: '14px', lh: '24px', isBlock: false },
+    { id: 'small', label: 'Caption', weight: '400', style: 'normal', size: '11px', lh: '18px', isBlock: false },
 ]
 
-// Sticker pack names - folders are named "pack 1", "pack 2", etc. up to "pack 23"
-const PACK_NAMES: Record<string, string> = {
-    'pack 1': 'Animals',
-    'pack 2': 'Art',
-    'pack 3': 'Astrology',
-    'pack 4': 'Books',
-    'pack 5': 'Botanical',
-    'pack 6': 'Café',
-    'pack 7': 'Cats',
-    'pack 8': 'Celestial',
-    'pack 9': 'Cottagecore',
-    'pack 10': 'Academia',
-    'pack 11': 'Dreams',
-    'pack 12': 'Emotions',
-    'pack 13': 'Fantasy',
-    'pack 14': 'Floral',
-    'pack 15': 'Food',
-    'pack 16': 'Gothic',
-    'pack 17': 'Hearts',
-    'pack 18': 'Kawaii',
-    'pack 19': 'Mindful',
-    'pack 20': 'Music',
-    'pack 21': 'Nature',
-    'pack 22': 'Stars',
-    'pack 23': 'Vintage',
-}
+const DEFAULT_FONT_STYLE_ID = 'regular'
 
-const PACK_COLORS: string[] = [
-    '#7a9e7e', '#9b7fd4', '#8b7355', '#c4913a', '#7a9e7e',
-    '#8b7355', '#c9897a', '#9b7fd4', '#7a9e7e', '#8b7355',
-    '#9b7fd4', '#d4af37', '#9b7fd4', '#c9897a', '#c4913a',
-    '#8b7355', '#c9897a', '#c9897a', '#9b7fd4', '#d4af37',
-    '#7a9e7e', '#d4af37', '#8b7355',
-]
-
-// Book paper
+// Paper colors
 const PAPER_BG = '#f5ead0'
 const PAPER_TEXT = 'rgba(35,20,5,0.88)'
 const PAPER_MUTED = 'rgba(100,70,30,0.5)'
@@ -111,11 +79,85 @@ const PAPER_DOT = 'rgba(0,0,0,0.12)'
 
 type ToolSection = 'font' | 'style' | 'stickers' | null
 
+// Toolbar palette — adapts to theme
+function useToolbarPalette() {
+    const [isDark, setIsDark] = useState(true)
+    useEffect(() => {
+        const check = () => setIsDark(!document.documentElement.classList.contains('light'))
+        check()
+        const obs = new MutationObserver(check)
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+        return () => obs.disconnect()
+    }, [])
+    return isDark
+}
+
 export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBookProps) {
+    const isDark = useToolbarPalette()
+
+    // Toolbar palette — light theme gets warm parchment tones to complement the book
+    const TB = isDark ? {
+        bg: 'rgba(8,4,0,0.88)',
+        border: 'rgba(212,175,55,0.14)',
+        iconBorder: 'rgba(212,175,55,0.08)',
+        activeItemBg: 'rgba(212,175,55,0.18)',
+        activeItemBorder: 'rgba(212,175,55,0.38)',
+        activeItemColor: 'rgba(212,175,55,0.95)',
+        inactiveItemColor: 'rgba(212,175,55,0.42)',
+        panelBtnActiveBg: 'rgba(212,175,55,0.14)',
+        panelBtnActiveBorder: 'rgba(212,175,55,0.35)',
+        panelBtnActiveColor: 'rgba(254,244,228,0.9)',
+        panelBtnInactiveColor: 'rgba(254,244,228,0.45)',
+        headerColor: 'rgba(212,175,55,0.55)',
+        closeBtnBg: 'rgba(212,175,55,0.08)',
+        closeBtnBorder: 'rgba(212,175,55,0.18)',
+        closeBtnColor: 'rgba(212,175,55,0.5)',
+        labelColor: 'rgba(212,175,55,0.38)',
+        emptyColor: 'rgba(212,175,55,0.5)',
+        emptyLabel: 'rgba(212,175,55,0.4)',
+        scrollColor: 'rgba(212,175,55,0.18)',
+    } : {
+        bg: 'rgba(230,210,175,0.97)',
+        border: 'rgba(140,95,30,0.18)',
+        iconBorder: 'rgba(140,95,30,0.10)',
+        activeItemBg: 'rgba(139,100,16,0.15)',
+        activeItemBorder: 'rgba(139,100,16,0.38)',
+        activeItemColor: 'rgba(60,35,5,0.95)',
+        inactiveItemColor: 'rgba(60,35,5,0.40)',
+        panelBtnActiveBg: 'rgba(139,100,16,0.12)',
+        panelBtnActiveBorder: 'rgba(139,100,16,0.35)',
+        panelBtnActiveColor: 'rgba(35,18,3,0.9)',
+        panelBtnInactiveColor: 'rgba(35,18,3,0.42)',
+        headerColor: 'rgba(100,65,12,0.65)',
+        closeBtnBg: 'rgba(139,100,16,0.08)',
+        closeBtnBorder: 'rgba(139,100,16,0.20)',
+        closeBtnColor: 'rgba(100,65,12,0.55)',
+        labelColor: 'rgba(100,65,12,0.42)',
+        emptyColor: 'rgba(139,100,16,0.55)',
+        emptyLabel: 'rgba(100,65,12,0.45)',
+        scrollColor: 'rgba(139,100,16,0.18)',
+    }
+
+    // Nav button palette
+    const NB = isDark ? {
+        enabledBg: 'rgba(212,175,55,0.12)',
+        enabledBorder: 'rgba(212,175,55,0.32)',
+        enabledColor: 'rgba(212,175,55,0.85)',
+        disabledBg: 'rgba(212,175,55,0.04)',
+        disabledBorder: 'rgba(212,175,55,0.12)',
+        disabledColor: 'rgba(212,175,55,0.22)',
+    } : {
+        enabledBg: 'rgba(139,100,16,0.14)',
+        enabledBorder: 'rgba(139,100,16,0.38)',
+        enabledColor: 'rgba(70,45,8,0.88)',
+        disabledBg: 'rgba(139,100,16,0.05)',
+        disabledBorder: 'rgba(139,100,16,0.14)',
+        disabledColor: 'rgba(70,45,8,0.25)',
+    }
+
     const [currentPage, setCurrentPage] = useState(0)
     const [flipDirection, setFlipDirection] = useState<'forward' | 'backward'>('forward')
     const [isAnimating, setIsAnimating] = useState(false)
-    // Toolbar open by default
     const [activeSection, setActiveSection] = useState<ToolSection>('font')
 
     const [content, setContent] = useState('')
@@ -125,9 +167,13 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
     const [activeStickerId, setActiveStickerId] = useState<string | null>(null)
 
     const [writingFontId, setWritingFontId] = useState('garamond')
-    const [fontStyleId, setFontStyleId] = useState('regular')
+    // The "active" style for the textarea — reverts to default after block-level newline
+    const [fontStyleId, setFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
+    // The style selected in the panel (persists for user preference display)
+    const [panelFontStyleId, setPanelFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
 
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const prevContentRef = useRef('')
 
     const writingFont = WRITING_FONTS.find(f => f.id === writingFontId) || WRITING_FONTS[0]
     const fontStyle = FONT_STYLES.find(f => f.id === fontStyleId) || FONT_STYLES[4]
@@ -136,28 +182,33 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
     const isWritePage = currentPage === 0
     const totalEntries = entries.length
 
-    const leftEntry = currentPage > 1 ? entries[currentPage - 2] : null
-    const rightEntry = !isWritePage ? entries[currentPage - 1] : null
+    // Fix: correct page mapping
+    // page 0 = write page (left=index, right=write)
+    // page 1 = entries[0] on right, left blank
+    // page 2 = entries[0] on left, entries[1] on right
+    const leftEntry = currentPage >= 2 ? entries[currentPage - 2] : null
+    const rightEntry = currentPage >= 1 ? entries[currentPage - 1] : null
 
+    // Fix: swap direction — goForward increments, goBackward decrements
     const goForward = useCallback(() => {
         if (isAnimating || currentPage >= totalEntries) return
         setFlipDirection('forward')
         setIsAnimating(true)
-        setTimeout(() => { setCurrentPage(p => p + 1); setIsAnimating(false) }, 400)
+        setTimeout(() => { setCurrentPage(p => p + 1); setIsAnimating(false) }, 500)
     }, [isAnimating, currentPage, totalEntries])
 
     const goBackward = useCallback(() => {
         if (isAnimating || currentPage <= 0) return
         setFlipDirection('backward')
         setIsAnimating(true)
-        setTimeout(() => { setCurrentPage(p => p - 1); setIsAnimating(false) }, 400)
+        setTimeout(() => { setCurrentPage(p => p - 1); setIsAnimating(false) }, 500)
     }, [isAnimating, currentPage])
 
     const goToWritePage = useCallback(() => {
         if (isAnimating || currentPage === 0) return
         setFlipDirection('backward')
         setIsAnimating(true)
-        setTimeout(() => { setCurrentPage(0); setIsAnimating(false) }, 400)
+        setTimeout(() => { setCurrentPage(0); setIsAnimating(false) }, 500)
     }, [isAnimating, currentPage])
 
     const handleSave = async () => {
@@ -167,6 +218,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
         setSelectedTags([])
         setPageStickers([])
         setMood(5)
+        prevContentRef.current = ''
         if (textareaRef.current) textareaRef.current.value = ''
     }
 
@@ -193,7 +245,38 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
         setActiveSection(prev => prev === s ? null : s)
     }
 
+    // Handle style panel selection — if block-level style, it stays active until newline
+    const handleStyleSelect = (styleId: string) => {
+        setFontStyleId(styleId)
+        setPanelFontStyleId(styleId)
+        textareaRef.current?.focus()
+    }
+
+    // Detect newline to revert block styles back to default (iPhone Notes behavior)
+    const handleContentChange = (val: string) => {
+        const prev = prevContentRef.current
+        const isNewline = val.length > prev.length && val[val.length - 1] === '\n'
+        if (isNewline) {
+            const currentStyleDef = FONT_STYLES.find(f => f.id === fontStyleId)
+            if (currentStyleDef?.isBlock) {
+                setFontStyleId(DEFAULT_FONT_STYLE_ID)
+            }
+        }
+        prevContentRef.current = val
+        setContent(val)
+    }
+
     const TOOLBAR_WIDTH = 280
+
+    // Page flip variants
+    const flipVariantsLeft = {
+        forward: { rotateY: [-8, 0], opacity: [0.7, 1] },
+        backward: { rotateY: [8, 0], opacity: [0.7, 1] },
+    }
+    const flipVariantsRight = {
+        forward: { rotateY: [8, 0], opacity: [0.7, 1] },
+        backward: { rotateY: [-8, 0], opacity: [0.7, 1] },
+    }
 
     return (
         <div style={{
@@ -213,19 +296,42 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
             >← Close</button>
 
-            {/* Main layout: nav strip | book (shifts left) | toolbar */}
+            {/* Main layout */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', alignItems: 'stretch' }}>
 
                 {/* LEFT NAV STRIP */}
                 <div style={{
-                    width: '64px', flexShrink: 0,
+                    width: '72px', flexShrink: 0,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
-                    gap: '12px', paddingBottom: '20px',
+                    gap: '14px', paddingBottom: '20px',
+                    zIndex: 20,
                 }}>
-                    <NavButton onClick={goBackward} disabled={currentPage <= 0 || isAnimating} label="←" title="Previous page" />
-                    <NavButton onClick={goToWritePage} disabled={currentPage === 0 || isAnimating} label="✦" title="New entry" small />
-                    <NavButton onClick={goForward} disabled={currentPage >= totalEntries || isAnimating} label="→" title="Next page" />
+                    {/* ← Previous (go backward) */}
+                    <NavButton
+                        onClick={goBackward}
+                        disabled={currentPage <= 0 || isAnimating}
+                        label="←"
+                        title="Previous page"
+                        nb={NB}
+                    />
+                    {/* ✦ New entry */}
+                    <NavButton
+                        onClick={goToWritePage}
+                        disabled={currentPage === 0 || isAnimating}
+                        label="✦"
+                        title="New entry"
+                        small
+                        nb={NB}
+                    />
+                    {/* → Next (go forward) */}
+                    <NavButton
+                        onClick={goForward}
+                        disabled={currentPage >= totalEntries || isAnimating}
+                        label="→"
+                        title="Next page"
+                        nb={NB}
+                    />
                     <div style={{
                         marginTop: '8px', textAlign: 'center',
                         fontFamily: 'var(--font-cinzel)', fontSize: '8px',
@@ -235,7 +341,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                     </div>
                 </div>
 
-                {/* BOOK — shifts left when toolbar open, maintaining full size */}
+                {/* BOOK */}
                 <motion.div
                     animate={{ x: activeSection ? -40 : 0 }}
                     transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
@@ -262,9 +368,9 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                             {/* LEFT PAGE */}
                             <motion.div
                                 key={`left-${currentPage}`}
-                                initial={{ rotateY: flipDirection === 'forward' ? -8 : 8, opacity: 0.7 }}
-                                animate={{ rotateY: 0, opacity: 1 }}
-                                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                                initial={false}
+                                animate={flipVariantsLeft[flipDirection]}
+                                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                                 style={{
                                     flex: 1, position: 'relative', overflow: 'hidden',
                                     borderRadius: '2px 0 0 2px',
@@ -281,7 +387,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                                 if (isAnimating) return
                                                 setFlipDirection('forward')
                                                 setIsAnimating(true)
-                                                setTimeout(() => { setCurrentPage(idx + 1); setIsAnimating(false) }, 400)
+                                                setTimeout(() => { setCurrentPage(idx + 1); setIsAnimating(false) }, 500)
                                             }} />
                                     ) : leftEntry ? (
                                         <EntryContent entry={leftEntry} writingFont={writingFont} fontStyle={fontStyle} pageNum={currentPage - 1} />
@@ -292,9 +398,9 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                             {/* RIGHT PAGE */}
                             <motion.div
                                 key={`right-${currentPage}`}
-                                initial={{ rotateY: flipDirection === 'forward' ? 8 : -8, opacity: 0.7 }}
-                                animate={{ rotateY: 0, opacity: 1 }}
-                                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                                initial={false}
+                                animate={flipVariantsRight[flipDirection]}
+                                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                                 style={{
                                     flex: 1, position: 'relative', overflow: 'hidden',
                                     borderRadius: '0 5px 5px 0',
@@ -303,6 +409,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                     backgroundSize: '18px 18px',
                                     transformOrigin: 'left center',
                                 }}
+                                data-page="right"
                             >
                                 {isWritePage && pageStickers.map(s => (
                                     <DraggableSticker key={s.stickerId} sticker={s}
@@ -318,7 +425,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                 <div style={{ padding: '22px 36px 16px 24px', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', position: 'relative', zIndex: 10 }}>
                                     {isWritePage ? (
                                         <WritePage
-                                            content={content} setContent={setContent}
+                                            content={content} setContent={handleContentChange}
                                             mood={mood} moodInfo={moodInfo}
                                             selectedTags={selectedTags} toggleTag={toggleTag}
                                             writingFont={writingFont} fontStyle={fontStyle}
@@ -334,21 +441,22 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                     </div>
                 </motion.div>
 
-                {/* RIGHT TOOLBAR — always present, sections toggle */}
+                {/* RIGHT TOOLBAR */}
                 <div style={{
                     width: `${TOOLBAR_WIDTH}px`, flexShrink: 0,
                     display: 'flex', flexDirection: 'row', overflow: 'hidden',
-                    borderLeft: '1px solid rgba(212,175,55,0.14)',
-                    background: 'rgba(8,4,0,0.78)',
+                    borderLeft: `1px solid ${TB.border}`,
+                    background: TB.bg,
                     backdropFilter: 'blur(40px)',
+                    transition: 'background 0.3s',
                 }}>
-                    {/* Icon strip */}
+                    {/* Icon strip — only font, style, stickers */}
                     <div style={{
                         width: '52px', flexShrink: 0,
                         display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: '4px',
                         padding: '20px 6px 10px',
-                        borderRight: '1px solid rgba(212,175,55,0.08)',
+                        borderRight: `1px solid ${TB.iconBorder}`,
                     }}>
                         {[
                             { id: 'font' as ToolSection, icon: 'Aa', title: 'Font' },
@@ -361,25 +469,15 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                     width: '40px', height: '40px', display: 'flex', flexDirection: 'column',
                                     alignItems: 'center', justifyContent: 'center', gap: '2px',
                                     borderRadius: '10px', cursor: 'pointer',
-                                    background: activeSection === tool.id ? 'rgba(212,175,55,0.18)' : 'transparent',
-                                    border: activeSection === tool.id ? '1px solid rgba(212,175,55,0.38)' : '1px solid transparent',
-                                    color: activeSection === tool.id ? 'rgba(212,175,55,0.95)' : 'rgba(212,175,55,0.42)',
+                                    background: activeSection === tool.id ? TB.activeItemBg : 'transparent',
+                                    border: activeSection === tool.id ? `1px solid ${TB.activeItemBorder}` : '1px solid transparent',
+                                    color: activeSection === tool.id ? TB.activeItemColor : TB.inactiveItemColor,
                                     transition: 'all 0.15s',
                                 }}>
                                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-jost)', fontWeight: 600 }}>{tool.icon}</span>
                                 <span style={{ fontSize: '7px', fontFamily: 'var(--font-jost)', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.7 }}>{tool.title}</span>
                             </motion.button>
                         ))}
-
-                        {/* Mood indicator button (not a section, just shows current mood) */}
-                        <div style={{
-                            width: '40px', height: '40px', display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', justifyContent: 'center', gap: '2px', borderRadius: '10px',
-                            border: '1px solid transparent', marginTop: '4px',
-                        }}>
-                            <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: moodInfo.color, boxShadow: `0 0 8px ${moodInfo.color}80` }} />
-                            <span style={{ fontSize: '7px', fontFamily: 'var(--font-jost)', letterSpacing: '0.06em', textTransform: 'uppercase', color: moodInfo.color, opacity: 0.8 }}>{mood}</span>
-                        </div>
                     </div>
 
                     {/* Expanded panel */}
@@ -390,8 +488,8 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Typeface" onClose={() => setActiveSection(null)} />
-                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
+                                    <PanelHeader title="Typeface" onClose={() => setActiveSection(null)} tb={TB} />
+                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '4px' }}>
                                             {WRITING_FONTS.map(f => (
                                                 <button key={f.id} onClick={() => setWritingFontId(f.id)}
@@ -399,9 +497,9 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                                         textAlign: 'left', padding: '8px 10px', borderRadius: '8px',
                                                         fontFamily: f.family, fontStyle: f.style as any, fontSize: '14px',
                                                         cursor: 'pointer',
-                                                        background: writingFontId === f.id ? 'rgba(212,175,55,0.14)' : 'transparent',
-                                                        border: writingFontId === f.id ? '1px solid rgba(212,175,55,0.35)' : '1px solid transparent',
-                                                        color: writingFontId === f.id ? 'rgba(254,244,228,0.9)' : 'rgba(254,244,228,0.45)',
+                                                        background: writingFontId === f.id ? TB.panelBtnActiveBg : 'transparent',
+                                                        border: writingFontId === f.id ? `1px solid ${TB.panelBtnActiveBorder}` : '1px solid transparent',
+                                                        color: writingFontId === f.id ? TB.panelBtnActiveColor : TB.panelBtnInactiveColor,
                                                         transition: 'all 0.12s',
                                                     }}>
                                                     {f.label}
@@ -416,17 +514,21 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Text Style" onClose={() => setActiveSection(null)} />
-                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '6px' }}>
+                                    <PanelHeader title="Text Style" onClose={() => setActiveSection(null)} tb={TB} />
+                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
+                                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: TB.labelColor, textTransform: 'uppercase', marginBottom: '6px' }}>
+                                            Applies to next typed paragraph
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
                                             {FONT_STYLES.map(fs => (
-                                                <button key={fs.id} onClick={() => setFontStyleId(fs.id)}
+                                                <button key={fs.id} onClick={() => handleStyleSelect(fs.id)}
                                                     style={{
                                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                                         padding: '9px 10px', borderRadius: '8px', cursor: 'pointer',
-                                                        background: fontStyleId === fs.id ? 'rgba(212,175,55,0.14)' : 'transparent',
-                                                        border: fontStyleId === fs.id ? '1px solid rgba(212,175,55,0.35)' : '1px solid transparent',
-                                                        color: fontStyleId === fs.id ? 'rgba(212,175,55,0.95)' : 'rgba(254,244,228,0.45)',
+                                                        background: panelFontStyleId === fs.id ? TB.panelBtnActiveBg : 'transparent',
+                                                        border: panelFontStyleId === fs.id ? `1px solid ${TB.panelBtnActiveBorder}` : '1px solid transparent',
+                                                        color: panelFontStyleId === fs.id ? TB.activeItemColor : TB.panelBtnInactiveColor,
+                                                        transition: 'all 0.12s',
                                                     }}>
                                                     <span style={{
                                                         fontFamily: writingFont.family,
@@ -434,11 +536,15 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                                         fontSize: Math.min(parseInt(fs.size), 16) + 'px', lineHeight: 1,
                                                     }}>{fs.label}</span>
                                                     <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', opacity: 0.4 }}>
-                                                        {fs.weight === '700' ? 'Bold' : fs.weight === '300' ? 'Light' : 'Normal'} {fs.style === 'italic' ? '/ Italic' : ''}
+                                                        {fs.weight === '700' ? 'Bold' : fs.weight === '300' ? 'Light' : 'Normal'}{fs.style === 'italic' ? ' / Italic' : ''}
+                                                        {fs.isBlock ? ' ¶' : ''}
                                                     </span>
                                                 </button>
                                             ))}
                                         </div>
+                                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '8px', color: TB.labelColor, marginTop: '8px', lineHeight: 1.5 }}>
+                                            ¶ Block styles revert to Regular after a new line
+                                        </p>
                                     </div>
                                 </motion.div>
                             )}
@@ -447,7 +553,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Stickers" onClose={() => setActiveSection(null)} />
+                                    <PanelHeader title="Stickers" onClose={() => setActiveSection(null)} tb={TB} />
                                     <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                         <JournalStickers onSelect={handleStickerDrop} onClose={() => setActiveSection(null)} />
                                     </div>
@@ -457,8 +563,8 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                 <motion.div key="empty-panel"
                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: 0.3 }}>
-                                    <span style={{ fontSize: '20px', color: 'rgba(212,175,55,0.5)' }}>✦</span>
-                                    <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.4)' }}>Tools</span>
+                                    <span style={{ fontSize: '20px', color: TB.emptyColor }}>✦</span>
+                                    <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: TB.emptyLabel }}>Tools</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -466,7 +572,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                 </div>
             </div>
 
-            {/* MOOD SLIDER — below the book */}
+            {/* MOOD SLIDER */}
             {isWritePage && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -494,17 +600,17 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
     )
 }
 
-function PanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
+function PanelHeader({ title, onClose, tb }: { title: string; onClose: () => void; tb: any }) {
     return (
         <div style={{
-            padding: '12px 14px 8px', borderBottom: '1px solid rgba(212,175,55,0.1)',
+            padding: '12px 14px 8px', borderBottom: `1px solid ${tb.border}`,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
         }}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '9px', letterSpacing: '0.18em', color: 'rgba(212,175,55,0.55)', textTransform: 'uppercase' }}>{title}</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '9px', letterSpacing: '0.18em', color: tb.headerColor, textTransform: 'uppercase' }}>{title}</span>
             <button onClick={onClose} style={{
-                background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.18)',
+                background: tb.closeBtnBg, border: `1px solid ${tb.closeBtnBorder}`,
                 borderRadius: '6px', cursor: 'pointer', width: '20px', height: '20px',
-                color: 'rgba(212,175,55,0.5)', fontSize: '9px',
+                color: tb.closeBtnColor, fontSize: '9px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>✕</button>
         </div>
@@ -568,7 +674,6 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
 }) {
     return (
         <>
-            {/* Date line */}
             <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
                 <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
                     {format(new Date(), 'EEEE, MMMM d yyyy')}
@@ -576,7 +681,6 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                 </div>
             </div>
 
-            {/* Tags */}
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px', flexShrink: 0 }}>
                 {['Anxious', 'Calm', 'Hopeful', 'Tired', 'Grateful', 'Overwhelmed', 'Content', 'Melancholy', 'Excited', 'Conflicted', 'Tender', 'Resolved'].map(t => {
                     const selected = selectedTags.includes(t)
@@ -593,7 +697,6 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                 })}
             </div>
 
-            {/* Textarea */}
             <textarea ref={textareaRef} value={content} onChange={e => setContent(e.target.value)}
                 placeholder="Begin writing here…"
                 style={{
@@ -610,7 +713,6 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                     zIndex: 20, position: 'relative',
                 }} />
 
-            {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '7px', borderTop: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED, letterSpacing: '0.1em' }}>
                     {content.length > 0 ? `${content.split(/\s+/).filter(Boolean).length} words` : 'empty page'}
@@ -655,10 +757,15 @@ function EntryContent({ entry, writingFont, fontStyle, pageNum }: {
                     </div>
                 )}
             </div>
+            {/* Entry content uses the font family only — NOT the currently-selected style
+                so that switching style in the toolbar doesn't reformat old entries */}
             <div style={{
-                fontFamily: writingFont.family, fontStyle: fontStyle.style as any,
-                fontWeight: fontStyle.weight as any, fontSize: fontStyle.size,
-                lineHeight: fontStyle.lh, color: PAPER_TEXT, overflow: 'auto', flex: 1,
+                fontFamily: writingFont.family,
+                fontStyle: 'normal',
+                fontWeight: '400',
+                fontSize: '14px',
+                lineHeight: '24px',
+                color: PAPER_TEXT, overflow: 'auto', flex: 1,
                 WebkitUserSelect: 'text' as any, userSelect: 'text' as any,
             }}>{entry.content}</div>
             <div style={{ position: 'absolute', bottom: '14px', right: '20px', fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED }}>{pageNum}</div>
@@ -674,19 +781,23 @@ function BlankPage() {
     )
 }
 
-function NavButton({ onClick, disabled, label, title, small }: { onClick: () => void; disabled: boolean; label: string; title: string; small?: boolean }) {
+function NavButton({ onClick, disabled, label, title, small, nb }: {
+    onClick: () => void; disabled: boolean; label: string; title: string; small?: boolean; nb: any
+}) {
     return (
         <motion.button type="button" onClick={onClick} disabled={disabled} title={title}
-            whileHover={{ scale: disabled ? 1 : 1.08 }} whileTap={{ scale: disabled ? 1 : 0.92 }}
+            whileHover={{ scale: disabled ? 1 : 1.10 }} whileTap={{ scale: disabled ? 1 : 0.90 }}
             style={{
-                width: small ? '36px' : '44px', height: small ? '36px' : '44px', borderRadius: '50%',
+                width: small ? '36px' : '46px', height: small ? '36px' : '46px', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-cinzel)', fontSize: small ? '12px' : '18px',
+                fontFamily: 'var(--font-cinzel)', fontSize: small ? '12px' : '20px',
                 cursor: disabled ? 'default' : 'pointer',
-                background: disabled ? 'rgba(212,175,55,0.04)' : 'rgba(212,175,55,0.1)',
-                border: disabled ? '1px solid rgba(212,175,55,0.1)' : '1px solid rgba(212,175,55,0.28)',
-                color: disabled ? 'rgba(212,175,55,0.2)' : 'rgba(212,175,55,0.8)',
-                transition: 'all 0.18s', userSelect: 'none',
+                background: disabled ? nb.disabledBg : nb.enabledBg,
+                border: disabled ? `1.5px solid ${nb.disabledBorder}` : `1.5px solid ${nb.enabledBorder}`,
+                color: disabled ? nb.disabledColor : nb.enabledColor,
+                transition: 'all 0.18s',
+                userSelect: 'none',
+                boxShadow: disabled ? 'none' : '0 2px 8px rgba(0,0,0,0.18)',
             }}>{label}</motion.button>
     )
 }
@@ -704,7 +815,7 @@ function DraggableSticker({ sticker, isActive, onActivate, onDeactivate, onRemov
         dragStart.current = { mx: e.clientX, my: e.clientY, sx: sticker.x, sy: sticker.y }
         const handleMove = (ev: PointerEvent) => {
             if (!dragStart.current || !ref.current) return
-            const parent = ref.current.closest('[data-page]') as HTMLElement
+            const parent = ref.current.closest('[data-page="right"]') as HTMLElement
             if (!parent) return
             const rect = parent.getBoundingClientRect()
             const dx = ((ev.clientX - dragStart.current.mx) / rect.width) * 100
