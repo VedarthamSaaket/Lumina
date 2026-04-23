@@ -1,725 +1,1034 @@
 'use client'
-// src/app/page.tsx
-// SPECIAL PAGE — no theme switching. Combines dark + light aesthetics.
-// Background palette: milk, chocolate, latte, espresso, coffee decoction.
-// Uses Grainient for immersive section backgrounds.
 
-import Link from 'next/link'
-import { motion, useScroll, useTransform, useInView } from 'framer-motion'
-import { useRef } from 'react'
-import Grainient from '@/components/ui/Grainient'
+import { useEffect, useRef, useState } from 'react'
+import { Renderer, Program, Mesh, Triangle } from 'ogl'
 
-// ── Grainient color palettes ─────────────────────────────────────────────
-// Hero: espresso + dark roast warmth
-const HERO_GRAIN = { color1: '#3B1A08', color2: '#7C3A10', color3: '#1A0A03' }
-// Mid-section: latte milk foam
-const LATTE_GRAIN = { color1: '#F5DEB3', color2: '#C4923A', color3: '#8B5E2C' }
-// Features: coffee decoction deep amber
-const DECOCTION_GRAIN = { color1: '#5C2A0E', color2: '#2C0F04', color3: '#8B4513' }
-// Closing: milk + cream
-const MILK_GRAIN = { color1: '#FFF8F0', color2: '#E8C99A', color3: '#C4923A' }
+// ─── GRAINIENT ───────────────────────────────────────────────────────────────
 
-// ── Motion variants ───────────────────────────────────────────────────────
-const fadeUp = {
-  hidden: { opacity: 0, y: 48 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] } },
-}
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.11, delayChildren: 0.2 } },
+const hexToRgb = (hex: string): number[] => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!result) return [1, 1, 1]
+  return [
+    parseInt(result[1], 16) / 255,
+    parseInt(result[2], 16) / 255,
+    parseInt(result[3], 16) / 255,
+  ]
 }
 
-// ── InView wrapper ───────────────────────────────────────────────────────
-function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.85, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  )
+const vertex = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}`
+
+const fragment = `#version 300 es
+precision highp float;
+uniform vec2 iResolution;
+uniform float iTime;
+uniform float uTimeSpeed;
+uniform float uColorBalance;
+uniform float uWarpStrength;
+uniform float uWarpFrequency;
+uniform float uWarpSpeed;
+uniform float uWarpAmplitude;
+uniform float uBlendAngle;
+uniform float uBlendSoftness;
+uniform float uRotationAmount;
+uniform float uNoiseScale;
+uniform float uGrainAmount;
+uniform float uGrainScale;
+uniform float uGrainAnimated;
+uniform float uContrast;
+uniform float uGamma;
+uniform float uSaturation;
+uniform vec2 uCenterOffset;
+uniform float uZoom;
+uniform vec3 uColor1;
+uniform vec3 uColor2;
+uniform vec3 uColor3;
+out vec4 fragColor;
+#define S(a,b,t) smoothstep(a,b,t)
+mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);}
+vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);float n=mix(mix(dot(-1.0+2.0*hash(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(-1.0+2.0*hash(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),mix(dot(-1.0+2.0*hash(i+vec2(0.0,1.0)),f-vec2(0.0,1.0)),dot(-1.0+2.0*hash(i+vec2(1.0,1.0)),f-vec2(1.0,1.0)),u.x),u.y);return 0.5+0.5*n;}
+void mainImage(out vec4 o, vec2 C){
+  float t=iTime*uTimeSpeed;
+  vec2 uv=C/iResolution.xy;
+  float ratio=iResolution.x/iResolution.y;
+  vec2 tuv=uv-0.5+uCenterOffset;
+  tuv/=max(uZoom,0.001);
+  float degree=noise(vec2(t*0.1,tuv.x*tuv.y)*uNoiseScale);
+  tuv.y*=1.0/ratio;
+  tuv*=Rot(radians((degree-0.5)*uRotationAmount+180.0));
+  tuv.y*=ratio;
+  float frequency=uWarpFrequency;
+  float ws=max(uWarpStrength,0.001);
+  float amplitude=uWarpAmplitude/ws;
+  float warpTime=t*uWarpSpeed;
+  tuv.x+=sin(tuv.y*frequency+warpTime)/amplitude;
+  tuv.y+=sin(tuv.x*(frequency*1.5)+warpTime)/(amplitude*0.5);
+  vec3 colLav=uColor1;
+  vec3 colOrg=uColor2;
+  vec3 colDark=uColor3;
+  float b=uColorBalance;
+  float s=max(uBlendSoftness,0.0);
+  mat2 blendRot=Rot(radians(uBlendAngle));
+  float blendX=(tuv*blendRot).x;
+  float edge0=-0.3-b-s;
+  float edge1=0.2-b+s;
+  float v0=0.5-b+s;
+  float v1=-0.3-b-s;
+  vec3 layer1=mix(colDark,colOrg,S(edge0,edge1,blendX));
+  vec3 layer2=mix(colOrg,colLav,S(edge0,edge1,blendX));
+  vec3 col=mix(layer1,layer2,S(v0,v1,tuv.y));
+  vec2 grainUv=uv*max(uGrainScale,0.001);
+  if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);}
+  float grain=fract(sin(dot(grainUv,vec2(12.9898,78.233)))*43758.5453);
+  col+=(grain-0.5)*uGrainAmount;
+  col=(col-0.5)*uContrast+0.5;
+  float luma=dot(col,vec3(0.2126,0.7152,0.0722));
+  col=mix(vec3(luma),col,uSaturation);
+  col=pow(max(col,0.0),vec3(1.0/max(uGamma,0.001)));
+  col=clamp(col,0.0,1.0);
+  o=vec4(col,1.0);
+}
+void main(){
+  vec4 o=vec4(0.0);
+  mainImage(o,gl_FragCoord.xy);
+  fragColor=o;
+}`
+
+interface GrainientProps {
+  timeSpeed?: number
+  colorBalance?: number
+  warpStrength?: number
+  warpFrequency?: number
+  warpSpeed?: number
+  warpAmplitude?: number
+  blendAngle?: number
+  blendSoftness?: number
+  rotationAmount?: number
+  noiseScale?: number
+  grainAmount?: number
+  grainScale?: number
+  grainAnimated?: boolean
+  contrast?: number
+  gamma?: number
+  saturation?: number
+  centerX?: number
+  centerY?: number
+  zoom?: number
+  color1?: string
+  color2?: string
+  color3?: string
+  className?: string
+  style?: React.CSSProperties
 }
 
-const FEATURES = [
-  {
-    icon: '✦',
-    title: 'Lumina',
-    subtitle: 'AI Companion',
-    href: '/chat',
-    desc: 'A compassionate, private AI conversation that feels like talking to a brilliant friend who actually listens.',
-    accent: '#D4AF37',
-    bg: 'rgba(212,175,55,0.06)',
-    border: 'rgba(212,175,55,0.20)',
-  },
-  {
-    icon: '◈',
-    title: 'Inner Ledger',
-    subtitle: 'Journal',
-    href: '/journal',
-    desc: 'A sanctuary for the examined life. Beautiful journaling with mood tracking and a 3D book that opens just for you.',
-    accent: '#C4923A',
-    bg: 'rgba(196,146,58,0.07)',
-    border: 'rgba(196,146,58,0.22)',
-  },
-  {
-    icon: '❋',
-    title: 'Inner Work',
-    subtitle: 'Inner Work',
-    href: '/cbt',
-    desc: 'Eight guided exercises grounded in decades of cognitive research. Each one is a small act of care for yourself.',
-    accent: '#C9897A',
-    bg: 'rgba(201,137,122,0.07)',
-    border: 'rgba(201,137,122,0.22)',
-  },
-  {
-    icon: '◎',
-    title: 'Reflect',
-    subtitle: 'Self-checks',
-    href: '/screening',
-    desc: 'Thirteen research-validated checks across wellbeing, personality, and career — with warm, personal reflections.',
-    accent: '#7A9E7E',
-    bg: 'rgba(122,158,126,0.07)',
-    border: 'rgba(122,158,126,0.22)',
-  },
-  {
-    icon: '◉',
-    title: 'Memory Games',
-    subtitle: 'Cognitive Training',
-    href: '/cognitive/memory',
-    desc: 'Twelve games targeting working memory, pattern recognition, and fluid intelligence. Rooted in 50+ research papers.',
-    accent: '#5B9BD5',
-    bg: 'rgba(91,155,213,0.07)',
-    border: 'rgba(91,155,213,0.22)',
-  },
-  {
-    icon: '✦',
-    title: 'Orion',
-    subtitle: 'Brain Companion',
-    href: '/orion',
-    desc: 'Your cognitive training companion. Orion watches your sessions and gives you specific coaching drawn from neuroscience.',
-    accent: '#9B7FD4',
-    bg: 'rgba(155,127,212,0.07)',
-    border: 'rgba(155,127,212,0.22)',
-  },
-]
+function Grainient({
+  timeSpeed = 0.18,
+  colorBalance = 0.05,
+  warpStrength = 1.2,
+  warpFrequency = 4.0,
+  warpSpeed = 1.4,
+  warpAmplitude = 60.0,
+  blendAngle = 25.0,
+  blendSoftness = 0.08,
+  rotationAmount = 420.0,
+  noiseScale = 2.2,
+  grainAmount = 0.055,
+  grainScale = 2.5,
+  grainAnimated = true,
+  contrast = 1.35,
+  gamma = 1.05,
+  saturation = 0.85,
+  centerX = 0.0,
+  centerY = 0.0,
+  zoom = 0.88,
+  color1 = '#c4a882',
+  color2 = '#f5e6c8',
+  color3 = '#7a5c38',
+  className = '',
+  style = {},
+}: GrainientProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
 
-const STATS = [
-  { n: '12', label: 'Memory Games' },
-  { n: '13', label: 'Self-Reflections' },
-  { n: '8', label: 'Inner Work' },
-  { n: '50+', label: 'Research Works' },
-]
-
-// Coffee bar divider
-function CoffeeDivider({ flip = false }: { flip?: boolean }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '20px',
-      justifyContent: 'center',
-      transform: flip ? 'scaleX(-1)' : undefined,
-    }}>
-      <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to right, transparent, rgba(196,146,58,0.5))' }} />
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(196,146,58,0.6)', display: 'inline-block' }} />
-        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'rgba(212,175,55,0.8)', display: 'inline-block' }} />
-        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(196,146,58,0.6)', display: 'inline-block' }} />
-      </div>
-      <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to left, transparent, rgba(196,146,58,0.5))' }} />
-    </div>
-  )
-}
-
-export default function HomePage() {
-  const containerRef = useRef(null)
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] })
-  const parallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '18%'])
+  useEffect(() => {
+    if (!containerRef.current) return
+    const renderer = new Renderer({ webgl: 2, alpha: true, antialias: false, dpr: Math.min(window.devicePixelRatio || 1, 2) })
+    const gl = renderer.gl
+    const canvas = gl.canvas as HTMLCanvasElement
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    canvas.style.display = 'block'
+    const container = containerRef.current
+    container.appendChild(canvas)
+    const geometry = new Triangle(gl)
+    const program = new Program(gl, {
+      vertex, fragment,
+      uniforms: {
+        iTime: { value: 0 },
+        iResolution: { value: new Float32Array([1, 1]) },
+        uTimeSpeed: { value: timeSpeed },
+        uColorBalance: { value: colorBalance },
+        uWarpStrength: { value: warpStrength },
+        uWarpFrequency: { value: warpFrequency },
+        uWarpSpeed: { value: warpSpeed },
+        uWarpAmplitude: { value: warpAmplitude },
+        uBlendAngle: { value: blendAngle },
+        uBlendSoftness: { value: blendSoftness },
+        uRotationAmount: { value: rotationAmount },
+        uNoiseScale: { value: noiseScale },
+        uGrainAmount: { value: grainAmount },
+        uGrainScale: { value: grainScale },
+        uGrainAnimated: { value: grainAnimated ? 1.0 : 0.0 },
+        uContrast: { value: contrast },
+        uGamma: { value: gamma },
+        uSaturation: { value: saturation },
+        uCenterOffset: { value: new Float32Array([centerX, centerY]) },
+        uZoom: { value: zoom },
+        uColor1: { value: new Float32Array(hexToRgb(color1)) },
+        uColor2: { value: new Float32Array(hexToRgb(color2)) },
+        uColor3: { value: new Float32Array(hexToRgb(color3)) },
+      },
+    })
+    const mesh = new Mesh(gl, { geometry, program })
+    const setSize = () => {
+      const rect = container.getBoundingClientRect()
+      const w = Math.max(1, Math.floor(rect.width))
+      const h = Math.max(1, Math.floor(rect.height))
+      renderer.setSize(w, h)
+      const res = program.uniforms.iResolution.value as Float32Array
+      res[0] = gl.drawingBufferWidth
+      res[1] = gl.drawingBufferHeight
+      renderer.render({ scene: mesh })
+    }
+    const ro = new ResizeObserver(setSize)
+    ro.observe(container)
+    setSize()
+    let raf = 0
+    const t0 = performance.now()
+    const loop = (t: number) => {
+      program.uniforms.iTime.value = (t - t0) * 0.001
+      renderer.render({ scene: mesh })
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      try { container.removeChild(canvas) } catch { }
+    }
+  }, [])
 
   return (
     <div
       ref={containerRef}
-      style={{
-        minHeight: '100vh',
-        background: '#0D0703',
-        color: '#F5ECD7',
-        overflowX: 'hidden',
-        position: 'relative',
-      }}
-    >
-      {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Grainient — espresso dark */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <Grainient
-            color1={HERO_GRAIN.color1}
-            color2={HERO_GRAIN.color2}
-            color3={HERO_GRAIN.color3}
-            timeSpeed={0.18}
-            colorBalance={-0.1}
-            warpStrength={1.2}
-            warpFrequency={4.0}
-            warpSpeed={1.5}
-            warpAmplitude={60.0}
-            blendAngle={12}
-            blendSoftness={0.08}
-            rotationAmount={380}
-            noiseScale={2.2}
-            grainAmount={0.12}
-            grainScale={1.8}
-            grainAnimated={false}
-            contrast={1.6}
-            gamma={0.95}
-            saturation={1.1}
-            centerX={0.05}
-            centerY={-0.05}
-            zoom={0.88}
-          />
+      className={className}
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', ...style }}
+    />
+  )
+}
+
+// ─── TOKENS ──────────────────────────────────────────────────────────────────
+
+const T = {
+  ink: '#1c1410',
+  inkMid: '#241a13',
+  bark: '#3a2a1e',
+  umber: '#5c3d28',
+  gold: '#c4a060',
+  parchment: '#c4a882',
+  cream: '#f5e6c8',
+  cream2: '#ede0c4',
+  creamDark: '#d4c9a8',
+  chalk: '#faf3e8',
+  serif: "'Playfair Display', serif",
+  script: "'Cormorant Garamond', serif",
+  sans: "'DM Sans', sans-serif",
+  mono: "'IBM Plex Mono', monospace",
+  inkLine: 'rgba(250,243,232,0.06)',
+  creamLine: 'rgba(28,20,16,0.09)',
+}
+
+// ─── GOLD SHIMMER HEADING ─────────────────────────────────────────────────────
+
+function GoldWord({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{
+      background: 'linear-gradient(90deg, #b8860b 0%, #c4a060 22%, #f0d080 50%, #c4a060 78%, #b8860b 100%)',
+      backgroundSize: '220% auto',
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      animation: 'textShimmer 5s linear infinite',
+      display: 'inline',
+    }}>{children}</span>
+  )
+}
+
+// ─── SECTION RULE ─────────────────────────────────────────────────────────────
+
+function SectionRule({ label, num, light = false }: { label: string; num: string; light?: boolean }) {
+  const c = light
+    ? { txt: 'rgba(28,20,16,0.35)', line: 'rgba(28,20,16,0.1)', n: 'rgba(28,20,16,0.22)' }
+    : { txt: 'rgba(250,243,232,0.28)', line: 'rgba(250,243,232,0.07)', n: 'rgba(250,243,232,0.2)' }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 56 }}>
+      <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.28em', textTransform: 'uppercase', color: c.txt, paddingRight: 20, flexShrink: 0 }}>{label}</span>
+      <span style={{ flex: 1, height: 1, background: c.line }} />
+      <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 20, color: c.n, paddingLeft: 20, flexShrink: 0 }}>{num}</span>
+    </div>
+  )
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+
+function Nav() {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 800,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      padding: '28px 52px',
+      background: scrolled ? 'rgba(28,20,16,0.92)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(10px)' : 'none',
+      borderBottom: scrolled ? `1px solid ${T.inkLine}` : '1px solid transparent',
+      transition: 'background 0.4s, border-color 0.4s',
+    }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+          <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 22, letterSpacing: '-0.01em', color: T.cream, lineHeight: 1 }}>Lumina</div>
+          <div style={{ fontFamily: T.mono, fontSize: 7, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, opacity: 0.7 }}>+ Orion</div>
         </div>
+        <div style={{ fontFamily: T.mono, fontSize: 7, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.28)', marginTop: 3 }}>Cognitive Wellness Sanctuary</div>
+      </div>
+      <ul style={{ listStyle: 'none', display: 'flex', gap: 32, alignItems: 'center', margin: 0, padding: 0 }}>
+        {['Features', 'Orion', 'Inner Work', 'Privacy', 'Begin'].map(item => (
+          <li key={item}>
+            <a href={`#${item.toLowerCase().replace(' ', '-')}`} style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.32)', textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = T.cream)}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(250,243,232,0.32)')}
+            >{item}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
 
-        {/* Overlay gradient — milk poured into espresso */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(160deg, rgba(13,7,3,0.72) 0%, rgba(28,12,5,0.50) 40%, rgba(13,7,3,0.78) 100%)',
-        }} />
+// ─── TICKER ───────────────────────────────────────────────────────────────────
 
-        {/* Top navigation */}
-        <nav style={{
-          position: 'relative', zIndex: 10, padding: '28px 48px 0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '34px', height: '34px', borderRadius: '50%',
-              background: 'radial-gradient(circle at 38% 35%, #FFE484, #D4AF37, #8B6010)',
-              boxShadow: '0 0 18px rgba(212,175,55,0.55)',
-            }} />
-            <span style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic', fontWeight: 400, fontSize: '22px',
-              color: 'rgba(254,244,228,0.92)', letterSpacing: '0.28em',
-            }}>LUMINA</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Link href="/auth/signin" style={{ textDecoration: 'none' }}>
-              <motion.button
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                style={{
-                  padding: '9px 22px', borderRadius: '24px', cursor: 'pointer',
-                  fontFamily: "'Jost', sans-serif", fontSize: '11px',
-                  fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  background: 'rgba(212,175,55,0.09)',
-                  border: '1px solid rgba(212,175,55,0.28)',
-                  color: 'rgba(254,244,228,0.75)',
-                  transition: 'all 0.2s',
-                }}
-              >Sign In</motion.button>
-            </Link>
-            <Link href="/auth/signup" style={{ textDecoration: 'none' }}>
-              <motion.button
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                style={{
-                  padding: '9px 22px', borderRadius: '24px', cursor: 'pointer',
-                  fontFamily: "'Jost', sans-serif", fontSize: '11px',
-                  fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  background: 'linear-gradient(135deg, rgba(196,146,58,0.35), rgba(212,175,55,0.22))',
-                  border: '1px solid rgba(212,175,55,0.48)',
-                  color: '#F5DEB3',
-                  boxShadow: '0 0 24px rgba(212,175,55,0.15)',
-                  transition: 'all 0.22s',
-                }}
-              >Begin</motion.button>
-            </Link>
-          </div>
-        </nav>
+function Ticker() {
+  const items = ['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger', 'Orion Engine', 'Local AI', 'Zero Data Leakage', 'The Mirror', 'Thinking Companion', 'Cognitive Threading', 'Crisis Safe', 'Mood Tracking']
+  const doubled = [...items, ...items]
+  return (
+    <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '10px 0', background: T.parchment, borderTop: `1px solid rgba(28,20,16,0.12)`, borderBottom: `1px solid rgba(28,20,16,0.12)` }}>
+      <div style={{ display: 'inline-block', animation: 'tick 40s linear infinite', fontFamily: T.mono, fontSize: 8.5, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.52)' }}>
+        {doubled.map((t, i) => (
+          <span key={i} style={{ padding: '0 32px' }}>{t}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
-        {/* Hero content */}
-        <div style={{
-          flex: 1, position: 'relative', zIndex: 10,
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', textAlign: 'center',
-          padding: '80px 32px 120px',
-        }}>
-          <motion.div
-            initial="hidden" animate="show" variants={stagger}
-            style={{ maxWidth: '820px' }}
-          >
-            {/* Eyebrow */}
-            <motion.div variants={fadeUp} style={{ marginBottom: '28px' }}>
-              <span style={{
-                fontFamily: "'Jost', sans-serif", fontSize: '10px',
-                letterSpacing: '0.42em', textTransform: 'uppercase',
-                color: 'rgba(212,175,55,0.65)',
-                background: 'rgba(212,175,55,0.07)',
-                border: '1px solid rgba(212,175,55,0.18)',
-                padding: '7px 20px', borderRadius: '30px',
-                display: 'inline-block',
-              }}>
-                AI-Assisted Psychological Guidance
-              </span>
-            </motion.div>
+// ─── HERO ─────────────────────────────────────────────────────────────────────
 
-            {/* Title */}
-            <motion.h1 variants={fadeUp} style={{
-              fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
-              fontWeight: 400, fontStyle: 'italic',
-              fontSize: 'clamp(4.5rem, 13vw, 10rem)',
-              lineHeight: 0.92, letterSpacing: '-0.025em',
-              margin: '0 0 20px',
-              background: 'linear-gradient(180deg, #F5DEB3 0%, #D4AF37 40%, #8B6010 100%)',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 0 60px rgba(212,175,55,0.3))',
-            }}>Lumina</motion.h1>
+function Hero() {
+  return (
+    <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 52px 72px', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#c4a882"
+          color2="#f0dfc0"
+          color3="#3a2a1e"
+          timeSpeed={0.14}
+          warpStrength={0.9}
+          warpFrequency={3.5}
+          warpSpeed={1.2}
+          grainAmount={0.07}
+          contrast={1.4}
+          saturation={0.78}
+          zoom={0.85}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(28,20,16,0.05) 0%, rgba(28,20,16,0.58) 100%)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+        {[22, 44, 66].map(pct => <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${pct}%`, height: 1, background: 'rgba(250,243,232,0.04)' }} />)}
+        {[33, 66].map(pct => <div key={pct} style={{ position: 'absolute', top: 0, bottom: 0, left: `${pct}%`, width: 1, background: 'rgba(250,243,232,0.04)' }} />)}
+      </div>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -52%)', fontFamily: T.serif, fontWeight: 900, fontStyle: 'italic', fontSize: 'clamp(200px, 30vw, 400px)', lineHeight: 1, color: 'rgba(250,243,232,0.025)', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 1, userSelect: 'none' }}>
+        Lumina
+      </div>
+      <div style={{ position: 'absolute', right: 144, top: '40%', transform: 'translateY(-50%)', textAlign: 'right', fontFamily: T.mono, fontSize: 8.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.2)', lineHeight: 1.9, zIndex: 2 }}>
+        Lumina<br />Cognitive Sanctuary<br />Protocol I
+      </div>
+      <div style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%) rotate(90deg)', transformOrigin: 'center center', fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.14)', whiteSpace: 'nowrap', zIndex: 2 }}>
+        Self Reflection · Inner Work · Memory Games · Inner Ledger · Orion · Local AI
+      </div>
 
-            {/* Subtitle */}
-            <motion.p variants={fadeUp} style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic', fontWeight: 300,
-              fontSize: 'clamp(1.1rem, 2.5vw, 1.55rem)',
-              color: 'rgba(245,222,179,0.70)',
-              lineHeight: 1.65, margin: '0 0 48px',
-              maxWidth: '620px', marginLeft: 'auto', marginRight: 'auto',
-            }}>
-              Where the light of awareness meets the architecture of the mind.
-              A private sanctuary for the examined life.
-            </motion.p>
-
-            {/* CTA */}
-            <motion.div variants={fadeUp} style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/auth/signup" style={{ textDecoration: 'none' }}>
-                <motion.button
-                  whileHover={{ scale: 1.04, boxShadow: '0 0 40px rgba(212,175,55,0.28)' }}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    padding: '16px 40px', borderRadius: '40px', cursor: 'pointer',
-                    fontFamily: "'Jost', sans-serif", fontSize: '12px',
-                    fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
-                    background: 'linear-gradient(135deg, #5C2A0E, #8B4513)',
-                    border: '1px solid rgba(212,175,55,0.40)',
-                    color: '#F5DEB3',
-                    boxShadow: '0 0 24px rgba(140,69,20,0.35)',
-                    transition: 'all 0.25s',
-                  }}
-                >Begin Your Journey</motion.button>
-              </Link>
-              <Link href="/chat" style={{ textDecoration: 'none' }}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    padding: '16px 40px', borderRadius: '40px', cursor: 'pointer',
-                    fontFamily: "'Jost', sans-serif", fontSize: '12px',
-                    fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase',
-                    background: 'rgba(245,222,179,0.06)',
-                    border: '1px solid rgba(245,222,179,0.22)',
-                    color: 'rgba(245,222,179,0.70)',
-                    transition: 'all 0.22s',
-                  }}
-                >Talk to Lumina →</motion.button>
-              </Link>
-            </motion.div>
-          </motion.div>
+      {/* Orion badge top left area */}
+      <div style={{ position: 'absolute', top: 120, left: 52, zIndex: 3 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid rgba(196,160,96,0.3)`, padding: '8px 18px', backdropFilter: 'blur(6px)', background: 'rgba(28,20,16,0.3)' }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.gold, animation: 'pulse 2.5s ease-in-out infinite' }} />
+          <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.gold }}>Orion Online</span>
         </div>
+      </div>
 
-        {/* Scroll hint */}
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          style={{
-            position: 'absolute', bottom: '36px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-          }}
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ width: '1px', height: '48px', background: 'linear-gradient(to bottom, rgba(212,175,55,0.6), transparent)' }}
-          />
-          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.40)' }}>
-            Explore
+      <div style={{ position: 'relative', zIndex: 3 }}>
+        <h1 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(88px, 15vw, 200px)', lineHeight: 0.87, letterSpacing: '-0.02em', color: T.chalk, marginBottom: 0 }}>
+          <span style={{ display: 'block' }}>LUMINA</span>
+          <span style={{ display: 'block', paddingLeft: '9%', color: T.creamDark, position: 'relative' }}>
+            <span style={{ position: 'absolute', top: -26, left: '12%', fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(28px, 4vw, 52px)', color: 'rgba(196,160,96,0.48)', whiteSpace: 'nowrap' }}>your mind, understood.</span>
+            MIND.
           </span>
-        </motion.div>
-      </section>
+        </h1>
+        <div style={{ marginTop: 44, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
+          <div>
+            <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, lineHeight: 1.9, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.42)', maxWidth: 380, marginBottom: 20 }}>
+              A private sanctuary for your emotional wellbeing and mental sharpness. Validated self-reflection tools, a journal that knows you, and Orion, your dedicated thinking companion.
+            </p>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger'].map(f => (
+                <span key={f} style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.3)', borderBottom: '1px solid rgba(250,243,232,0.12)', paddingBottom: 2 }}>{f}</span>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22, justifyContent: 'flex-end' }}>
+            <a href="#begin" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '14px 34px', textDecoration: 'none', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s', display: 'inline-block' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
+            >Begin Journey</a>
+            <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.38)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.16)', paddingBottom: 2, transition: 'color .2s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.38)' }}
+            >Explore Features</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
-      {/* ── STATS BAR — espresso band ────────────────────────────────────── */}
-      <section style={{
-        position: 'relative', overflow: 'hidden',
-        padding: '0',
-        background: 'linear-gradient(180deg, #0D0703 0%, #1A0A03 100%)',
-      }}>
-        <div style={{
-          display: 'flex', justifyContent: 'center', gap: '0',
-          flexWrap: 'wrap',
-          borderTop: '1px solid rgba(196,146,58,0.18)',
-          borderBottom: '1px solid rgba(196,146,58,0.14)',
-        }}>
-          {STATS.map((s, i) => (
-            <Reveal key={s.label} delay={i * 0.08}>
-              <div style={{
-                padding: '40px 60px', textAlign: 'center',
-                borderRight: i < STATS.length - 1 ? '1px solid rgba(196,146,58,0.14)' : 'none',
-              }}>
-                <div style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 300, fontStyle: 'italic',
-                  fontSize: 'clamp(3rem, 6vw, 5rem)',
-                  color: '#D4AF37', lineHeight: 1,
-                  marginBottom: '8px',
-                }}>{s.n}</div>
-                <div style={{
-                  fontFamily: "'Jost', sans-serif",
-                  fontSize: '10px', letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(245,222,179,0.45)',
-                }}>{s.label}</div>
+// ─── PHILOSOPHY (P2) ──────────────────────────────────────────────────────────
+
+function Philosophy() {
+  return (
+    <section id="features" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#ede0c4"
+          color2="#c4a882"
+          color3="#5c3d28"
+          timeSpeed={0.08}
+          warpStrength={0.6}
+          warpFrequency={2.8}
+          warpSpeed={0.9}
+          blendAngle={55}
+          grainAmount={0.085}
+          contrast={1.25}
+          saturation={0.6}
+          zoom={0.92}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(245,230,200,0.82)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.055) 1px, transparent 1px)', backgroundSize: '18px 18px', zIndex: 2 }} />
+      <div style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%)', fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 'clamp(260px, 32vw, 440px)', color: 'rgba(28,20,16,0.04)', lineHeight: 1, pointerEvents: 'none', userSelect: 'none', zIndex: 2 }}>01</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center', position: 'relative', zIndex: 3, width: '100%', padding: '112px 52px', color: T.ink }}>
+        <div>
+          <SectionRule label="The Lumina Approach" num="01" light />
+          <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(52px, 7vw, 96px)', lineHeight: 0.9, letterSpacing: '-0.02em', color: T.ink, marginBottom: 36 }}>
+            Wisdom,<br />not a<br /><em style={{ fontStyle: 'italic', color: T.umber }}>Label.</em>
+          </h2>
+          <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 11, lineHeight: 1.9, letterSpacing: '0.04em', color: 'rgba(28,20,16,0.52)', maxWidth: 400, marginBottom: 32 }}>
+            Lumina removes every clinical label from your experience. Scores become stories. Patterns get names, not numbers. Instead of a severity rating, you receive a warm, honest reflection written in language that feels like a trusted friend who has read everything.
+          </p>
+          <div style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(24px, 3vw, 38px)', color: 'rgba(28,20,16,0.3)', lineHeight: 1.2 }}>
+            Guidance that feels like a conversation,<br />not a report.
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {[
+            { n: '01', title: 'Invisible Clinical Layer', body: 'No jargon, no severity labels, no hospital aesthetics. Gold, cream, warmth, and breathing room in every word.' },
+            { n: '02', title: 'Narrative Reflection', body: 'Your Self Reflection results are translated into a warm, personal 3-paragraph portrait. Your pattern gets a name, not a score.' },
+            { n: '03', title: 'Honest Nudges', body: 'Lumina notices when you pick the socially safe answer and gently asks whether you are being too hard, or too easy, on yourself.' },
+            { n: '04', title: 'Personality-Aware Voice', body: 'Your Big Five results shape how Lumina speaks to you. The tone adapts to match who you actually are, not a generic user.' },
+          ].map(item => (
+            <div key={item.n} style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: 20, padding: '26px 0', borderBottom: '1px solid rgba(28,20,16,0.08)', alignItems: 'start' }}>
+              <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 26, fontWeight: 400, color: 'rgba(28,20,16,0.2)', lineHeight: 1 }}>{item.n}</span>
+              <div>
+                <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 19, color: T.ink, marginBottom: 7, lineHeight: 1.1 }}>{item.title}</div>
+                <div style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, lineHeight: 1.85, letterSpacing: '0.04em', color: 'rgba(28,20,16,0.48)' }}>{item.body}</div>
               </div>
-            </Reveal>
+            </div>
           ))}
         </div>
-      </section>
+      </div>
+    </section>
+  )
+}
 
-      {/* ── LATTE SECTION — milk poured over espresso ────────────────────── */}
-      <section style={{ position: 'relative', overflow: 'hidden', minHeight: '520px' }}>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <Grainient
-            color1={LATTE_GRAIN.color1}
-            color2={LATTE_GRAIN.color2}
-            color3={LATTE_GRAIN.color3}
-            timeSpeed={0.12}
-            colorBalance={0.15}
-            warpStrength={0.8}
-            warpFrequency={3.5}
-            warpSpeed={1.2}
-            warpAmplitude={70}
-            blendAngle={-15}
-            blendSoftness={0.10}
-            rotationAmount={320}
-            noiseScale={1.8}
-            grainAmount={0.09}
-            grainScale={2.4}
-            grainAnimated={false}
-            contrast={1.4}
-            gamma={1.05}
-            saturation={0.9}
-            zoom={0.92}
-          />
+// ─── FEATURES SPLIT (P3) ─────────────────────────────────────────────────────
+
+function FeaturesGrid() {
+  return (
+    <section style={{ background: T.ink, color: T.cream, padding: '120px 52px', position: 'relative', overflow: 'hidden' }} id="orion">
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(250,243,232,0.022) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+
+      {/* subtle grainient accent top right */}
+      <div style={{ position: 'absolute', top: 0, right: 0, width: '45%', height: '100%', zIndex: 0, opacity: 0.08 }}>
+        <Grainient
+          color1="#c4a882"
+          color2="#3a2a1e"
+          color3="#1c1410"
+          timeSpeed={0.06}
+          warpStrength={0.4}
+          grainAmount={0.04}
+          contrast={1.1}
+          saturation={0.5}
+          zoom={1.1}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <SectionRule label="What Lumina Offers" num="02" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'rgba(250,243,232,0.05)' }}>
+          {[
+            {
+              icon: '◎',
+              title: 'Self Reflection',
+              sub: 'Know yourself honestly',
+              body: 'Seven carefully chosen instruments from mood and anxiety to personality, attachment style, and emotional intelligence. All translated into warm, human language with zero clinical labels.',
+              tag: '7 Instruments',
+            },
+            {
+              icon: '◈',
+              title: 'Inner Work',
+              sub: 'Change your patterns',
+              body: 'Four guided modules built on the most effective frameworks in modern psychology. Reframe negative thoughts, activate yourself into motion, clarify what matters, and quiet the inner critic.',
+              tag: '4 Modules',
+            },
+            {
+              icon: '◻',
+              title: 'Inner Ledger',
+              sub: 'Your story, your space',
+              body: 'A 3D-rendered journal that feels like a physical object. Mood stickers, emotional timelines, and thought-dumping rituals that make daily reflection something you look forward to.',
+              tag: '3D Book',
+            },
+            {
+              icon: '▲',
+              title: 'Memory Games',
+              sub: 'Train how you think',
+              body: 'Eight cognitive exercises modelled after real brain health research. Working memory, fluid reasoning, processing speed, executive function. Not entertainment, understanding.',
+              tag: '8 Games',
+            },
+            {
+              icon: '●',
+              title: 'Orion Engine',
+              sub: 'Your thinking companion',
+              body: "Orion watches your game sessions, links your performance to your journal, notices patterns before you do, and debriefs every session with four precise observations. A personal trainer for your mind.",
+              tag: 'Live Coaching',
+            },
+            {
+              icon: '◐',
+              title: 'Local Privacy',
+              sub: 'Your data stays yours',
+              body: 'The deepest analysis happens on your device via Ollama. No journal ever leaves your machine. No data is sold. No cloud inference on your psychological profile.',
+              tag: 'Zero Leakage',
+            },
+          ].map(item => (
+            <div key={item.title} style={{ background: T.ink, padding: '44px 36px', borderRight: '1px solid rgba(250,243,232,0.05)', borderBottom: '1px solid rgba(250,243,232,0.05)', transition: 'background 0.2s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.inkMid }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = T.ink }}
+            >
+              <div style={{ fontFamily: T.serif, fontSize: 28, color: T.gold, opacity: 0.6, marginBottom: 20, lineHeight: 1 }}>{item.icon}</div>
+              <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 22, color: T.cream, marginBottom: 6, lineHeight: 1.1 }}>{item.title}</div>
+              <div style={{ fontFamily: T.script, fontStyle: 'italic', fontSize: 15, color: 'rgba(196,160,96,0.55)', marginBottom: 16, lineHeight: 1 }}>{item.sub}</div>
+              <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, lineHeight: 1.88, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.38)', marginBottom: 20 }}>{item.body}</p>
+              <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, border: `1px solid rgba(196,160,96,0.25)`, padding: '4px 11px', display: 'inline-block' }}>{item.tag}</div>
+            </div>
+          ))}
         </div>
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(160deg, rgba(13,7,3,0.82) 0%, rgba(28,12,5,0.62) 50%, rgba(13,7,3,0.85) 100%)',
-        }} />
-        <div style={{
-          position: 'relative', zIndex: 2,
-          maxWidth: '900px', margin: '0 auto',
-          padding: '100px 40px',
-          textAlign: 'center',
-        }}>
-          <Reveal>
-            <CoffeeDivider />
-            <h2 style={{
-              fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
-              fontWeight: 400, fontStyle: 'italic',
-              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
-              color: '#F5DEB3',
-              letterSpacing: '-0.01em', lineHeight: 1.15,
-              margin: '32px 0 20px',
-            }}>
-              Your Sanctuary of Mind
+      </div>
+    </section>
+  )
+}
+
+// ─── ORION DEEP SECTION (P4) ──────────────────────────────────────────────────
+
+function OrionSection() {
+  return (
+    <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#c4a060"
+          color2="#3a2a1e"
+          color3="#1c1410"
+          timeSpeed={0.1}
+          warpStrength={1.1}
+          warpFrequency={4.2}
+          warpSpeed={1.5}
+          blendAngle={-20}
+          grainAmount={0.065}
+          contrast={1.5}
+          saturation={0.55}
+          zoom={0.82}
+          colorBalance={0.1}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(28,20,16,0.88) 0%, rgba(28,20,16,0.7) 60%, rgba(58,42,30,0.6) 100%)', zIndex: 1 }} />
+
+      <div style={{ position: 'relative', zIndex: 2, padding: '120px 52px', color: T.cream }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 100, alignItems: 'start' }}>
+          <div style={{ position: 'sticky', top: 120 }}>
+            <SectionRule label="Orion" num="03" />
+
+            {/* Orion animated badge */}
+            <div style={{ marginBottom: 32, display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid rgba(196,160,96,0.4)`, padding: '10px 20px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animation: 'pulse 2.5s ease-in-out infinite' }} />
+              <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.gold }}>Thinking Companion</span>
+            </div>
+
+            <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(48px, 6.5vw, 84px)', lineHeight: 0.9, letterSpacing: '-0.02em', color: T.cream, marginBottom: 24 }}>
+              How you<br />feel.<br /><GoldWord>How you think.</GoldWord>
             </h2>
-            <p style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic', fontWeight: 300,
-              fontSize: 'clamp(1.05rem, 2.2vw, 1.35rem)',
-              color: 'rgba(245,222,179,0.65)',
-              lineHeight: 1.75, maxWidth: '620px',
-              margin: '0 auto 40px',
-            }}>
-              A complete system of psychological tools, beautifully integrated.
-              Not clinical. Not cold. A place that feels like home.
+            <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 11, lineHeight: 1.9, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.4)', maxWidth: 320, marginBottom: 36 }}>
+              Orion is your dedicated mind trainer. While Lumina holds your emotional world, Orion watches how you reason, remember, and solve, and connects the two into one living picture of your wellbeing.
             </p>
-            <CoffeeDivider flip />
-          </Reveal>
-        </div>
-      </section>
+            <div style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(22px, 3vw, 34px)', color: 'rgba(196,160,96,0.4)', lineHeight: 1.2 }}>
+              "A personal trainer<br />for your mind."
+            </div>
+          </div>
 
-      {/* ── FEATURES GRID — coffee decoction darkness ─────────────────────── */}
-      <section style={{ position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <Grainient
-            color1={DECOCTION_GRAIN.color1}
-            color2={DECOCTION_GRAIN.color2}
-            color3={DECOCTION_GRAIN.color3}
-            timeSpeed={0.20}
-            colorBalance={-0.05}
-            warpStrength={1.4}
-            warpFrequency={5.5}
-            warpSpeed={1.8}
-            warpAmplitude={55}
-            blendAngle={20}
-            blendSoftness={0.07}
-            rotationAmount={440}
-            noiseScale={2.0}
-            grainAmount={0.13}
-            grainScale={2.0}
-            grainAnimated={false}
-            contrast={1.7}
-            gamma={0.92}
-            saturation={1.15}
-            zoom={0.86}
-          />
-        </div>
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(175deg, rgba(13,7,3,0.88) 0%, rgba(18,8,3,0.78) 50%, rgba(13,7,3,0.90) 100%)',
-        }} />
-        <div style={{ position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto', padding: '100px 40px' }}>
-          <Reveal style={{ marginBottom: '60px', textAlign: 'center' }}>
-            <span style={{
-              fontFamily: "'Jost', sans-serif", fontSize: '9px',
-              letterSpacing: '0.38em', textTransform: 'uppercase',
-              color: 'rgba(196,146,58,0.65)',
-            }}>What's inside</span>
-          </Reveal>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '16px',
-          }}>
-            {FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={i * 0.07}>
-                <Link href={f.href} style={{ textDecoration: 'none' }}>
-                  <motion.div
-                    whileHover={{ y: -6, scale: 1.016 }}
-                    whileTap={{ scale: 0.99 }}
-                    style={{
-                      padding: '28px',
-                      borderRadius: '16px',
-                      background: f.bg,
-                      border: `1px solid ${f.border}`,
-                      cursor: 'pointer',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)',
-                      transition: 'all 0.25s',
-                      height: '100%',
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      marginBottom: '14px',
-                    }}>
-                      <span style={{
-                        fontSize: '18px', color: f.accent,
-                        filter: `drop-shadow(0 0 6px ${f.accent}60)`,
-                      }}>{f.icon}</span>
-                      <div>
-                        <div style={{
-                          fontFamily: "'Cinzel', serif",
-                          fontSize: '12px', fontWeight: 600,
-                          letterSpacing: '0.12em', textTransform: 'uppercase',
-                          color: f.accent,
-                        }}>{f.title}</div>
-                        <div style={{
-                          fontFamily: "'Jost', sans-serif",
-                          fontSize: '9px', letterSpacing: '0.16em',
-                          textTransform: 'uppercase',
-                          color: 'rgba(245,222,179,0.35)',
-                          marginTop: '1px',
-                        }}>{f.subtitle}</div>
-                      </div>
-                    </div>
-                    <div style={{ height: '1px', background: `linear-gradient(90deg, ${f.accent}35, transparent)`, marginBottom: '14px' }} />
-                    <p style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontStyle: 'italic', fontWeight: 300,
-                      fontSize: '1.05rem', lineHeight: 1.65,
-                      color: 'rgba(245,222,179,0.62)',
-                      margin: '0 0 16px',
-                    }}>{f.desc}</p>
-                    <span style={{
-                      fontFamily: "'Jost', sans-serif",
-                      fontSize: '10px', letterSpacing: '0.16em',
-                      textTransform: 'uppercase',
-                      color: `${f.accent}80`,
-                    }}>Explore →</span>
-                  </motion.div>
-                </Link>
-              </Reveal>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[
+              {
+                n: '01',
+                title: 'Cognitive Threading',
+                tag: 'Live pattern detection',
+                body: "Orion links your Memory Game accuracy to your Inner Ledger entries in real time. A drop in spatial recall after a journal entry containing specific emotional markers surfaces a Cognitive Load insight, not a failure screen.",
+              },
+              {
+                n: '02',
+                title: 'Rhythm of Thought',
+                tag: 'Proactive focus detection',
+                body: "Orion measures the variance in how long you take to answer, not just whether you got it right. If you answer correctly but took 400% longer than your personal baseline, Orion flags Cognitive Friction and suggests a break before you start struggling.",
+              },
+              {
+                n: '03',
+                title: 'The Reflective Sandwich',
+                tag: 'Pre, session, debrief',
+                body: "Every session has three parts: a Pre-Session mood check, the exercise itself, and an Orion Debrief. The debrief is a synthesis in four parts: a headline, what happened, what it reveals about your mind today, and one thing to try next time.",
+              },
+              {
+                n: '04',
+                title: 'Live Coaching',
+                tag: 'In-session presence',
+                body: "During every game, Orion sends 1 to 2 sentence messages: celebrating a difficult streak, offering a tactical tip for a specific level, or noting a unique pattern it spotted in your choices. It is present, not passive.",
+              },
+              {
+                n: '05',
+                title: 'Orion Memory',
+                tag: 'Long-term adaptation',
+                body: "Orion remembers your journey across all sessions. It learns your personal baselines, notices if you consistently reach a wall at a certain difficulty, and builds tailored strategies to help you move past it.",
+              },
+              {
+                n: '06',
+                title: 'Daily Mind Prompts',
+                tag: 'Outside the games',
+                body: "Orion provides rotating thinking scenarios, 2-minute mental drills, curiosity prompts, and daily challenges you can do anywhere. Your mind stays sharp between sessions, not just during them.",
+              },
+            ].map(item => (
+              <div key={item.n} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 28, padding: '36px 0', borderBottom: '1px solid rgba(250,243,232,0.06)', alignItems: 'start' }}>
+                <span style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(44px, 4.5vw, 68px)', lineHeight: 0.85, letterSpacing: '-0.04em', color: 'rgba(250,243,232,0.07)' }}>{item.n}</span>
+                <div>
+                  <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 22, color: T.cream, marginBottom: 8, lineHeight: 1.1 }}>{item.title}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, border: `1px solid rgba(196,160,96,0.25)`, padding: '4px 11px', display: 'inline-block', marginBottom: 12 }}>{item.tag}</div>
+                  <div style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, lineHeight: 1.88, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.4)', maxWidth: 460 }}>{item.body}</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  )
+}
 
-      {/* ── ORION HIGHLIGHT — dark roast */}
-      <section style={{
-        position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(180deg, #0D0703 0%, #090402 100%)',
-      }}>
-        <div style={{
-          maxWidth: '900px', margin: '0 auto',
-          padding: '100px 40px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          textAlign: 'center',
-        }}>
-          <Reveal>
-            <div style={{
-              width: '60px', height: '60px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(91,155,213,0.22), rgba(91,155,213,0.06))',
-              border: '1.5px solid rgba(91,155,213,0.42)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '22px', color: '#5B9BD5',
-              boxShadow: '0 0 32px rgba(91,155,213,0.28)',
-              marginBottom: '24px',
-            }}>✦</div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <h2 style={{
-              fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
-              fontWeight: 400, fontStyle: 'italic',
-              fontSize: 'clamp(2rem, 4.5vw, 3.5rem)',
-              color: '#B8D4EE',
-              margin: '0 0 16px',
-              letterSpacing: '-0.01em',
-            }}>Meet Orion</h2>
-          </Reveal>
-          <Reveal delay={0.18}>
-            <p style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic', fontWeight: 300,
-              fontSize: 'clamp(1rem, 2.2vw, 1.3rem)',
-              color: 'rgba(184,212,238,0.55)',
-              lineHeight: 1.75, maxWidth: '580px',
-              margin: '0 0 40px',
-            }}>
-              Lumina's close friend who specialises in memory, reasoning, and how people get smarter.
-              While Lumina handles feelings, Orion handles thinking.
-            </p>
-          </Reveal>
-          <Reveal delay={0.26}>
-            <Link href="/orion" style={{ textDecoration: 'none' }}>
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(91,155,213,0.22)' }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  padding: '14px 36px', borderRadius: '30px', cursor: 'pointer',
-                  fontFamily: "'Jost', sans-serif", fontSize: '11px',
-                  fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase',
-                  background: 'rgba(91,155,213,0.12)',
-                  border: '1px solid rgba(91,155,213,0.38)',
-                  color: '#5B9BD5',
-                  transition: 'all 0.22s',
-                }}
-              >Talk to Orion</motion.button>
-            </Link>
-          </Reveal>
-        </div>
-      </section>
+// ─── DIAGNOSTICS SPLIT (P5) ───────────────────────────────────────────────────
 
-      {/* ── CLOSING — milk and cream ─────────────────────────────────────── */}
-      <section style={{ position: 'relative', overflow: 'hidden', minHeight: '440px' }}>
+function Diagnostics() {
+  return (
+    <section id="science" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', overflow: 'hidden' }}>
+      {/* left: cream grainient */}
+      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           <Grainient
-            color1={MILK_GRAIN.color1}
-            color2={MILK_GRAIN.color2}
-            color3={MILK_GRAIN.color3}
-            timeSpeed={0.10}
-            colorBalance={0.20}
-            warpStrength={0.6}
+            color1="#f5e6c8"
+            color2="#c4a882"
+            color3="#7a5c38"
+            timeSpeed={0.09}
+            warpStrength={0.7}
             warpFrequency={3.0}
-            warpSpeed={1.0}
-            warpAmplitude={80}
-            blendAngle={-8}
-            blendSoftness={0.12}
-            rotationAmount={280}
-            noiseScale={1.6}
-            grainAmount={0.07}
-            grainScale={2.8}
-            grainAnimated={false}
-            contrast={1.3}
-            gamma={1.1}
-            saturation={0.85}
-            zoom={0.94}
+            blendAngle={70}
+            grainAmount={0.09}
+            contrast={1.2}
+            saturation={0.65}
+            zoom={0.95}
+            style={{ width: '100%', height: '100%' }}
           />
         </div>
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(160deg, rgba(13,7,3,0.88) 0%, rgba(22,10,4,0.72) 50%, rgba(13,7,3,0.88) 100%)',
-        }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,224,196,0.86)', zIndex: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.05) 1px, transparent 1px)', backgroundSize: '15px 15px', zIndex: 2 }} />
 
-        <div style={{
-          position: 'relative', zIndex: 2,
-          maxWidth: '760px', margin: '0 auto',
-          padding: '100px 40px',
-          textAlign: 'center',
-        }}>
-          <Reveal>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '48px' }}>
-              <div style={{ height: '1px', width: '100px', background: 'linear-gradient(to right, transparent, rgba(196,146,58,0.45))' }} />
-              <span style={{ color: 'rgba(196,146,58,0.55)', fontSize: '14px' }}>◆</span>
-              <div style={{ height: '1px', width: '100px', background: 'linear-gradient(to left, transparent, rgba(196,146,58,0.45))' }} />
+        <div style={{ position: 'relative', zIndex: 3, padding: '100px 52px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <SectionRule label="Self Reflection" num="04" light />
+            <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(72px, 10vw, 132px)', lineHeight: 0.9, letterSpacing: '-0.04em', color: T.ink }}>7</div>
+            <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.3)', marginTop: 12, marginBottom: 48 }}>Reflection Instruments</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                { code: 'Mood', name: 'How you have been feeling lately' },
+                { code: 'Anxiety', name: 'What worry feels like in your body' },
+                { code: 'Self-Worth', name: 'How you see yourself, honestly' },
+                { code: 'Attachment', name: 'How you relate to the people close to you' },
+                { code: 'Personality', name: 'Your Big Five traits, in plain language' },
+                { code: 'Shadow', name: 'The darker patterns you rarely acknowledge' },
+                { code: 'Emotional IQ', name: 'How you read and manage emotions' },
+              ].map(s => (
+                <div key={s.code} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '14px 0', borderTop: '1px solid rgba(28,20,16,0.07)' }}>
+                  <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.28)', flexShrink: 0, marginTop: 2, width: 88 }}>{s.code}</span>
+                  <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, color: 'rgba(28,20,16,0.55)', lineHeight: 1.7 }}>{s.name}</span>
+                </div>
+              ))}
             </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <blockquote style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic', fontWeight: 300,
-              fontSize: 'clamp(1.1rem, 2.4vw, 1.5rem)',
-              color: 'rgba(245,222,179,0.65)',
-              lineHeight: 1.78, margin: '0 0 48px',
-              letterSpacing: '0.01em',
-            }}>
-              Lumina is not a substitute for licensed therapy or medical care.
-              It is a companion for the examined life — a lantern held gently beside the path you choose to walk.
-            </blockquote>
-          </Reveal>
-          <Reveal delay={0.2}>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/auth/signup" style={{ textDecoration: 'none' }}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                  style={{
-                    padding: '13px 32px', borderRadius: '30px', cursor: 'pointer',
-                    fontFamily: "'Jost', sans-serif", fontSize: '11px',
-                    fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-                    background: 'linear-gradient(135deg, rgba(92,42,14,0.8), rgba(139,69,19,0.7))',
-                    border: '1px solid rgba(212,175,55,0.38)',
-                    color: '#F5DEB3',
-                    transition: 'all 0.22s',
-                  }}
-                >Create Your Sanctuary</motion.button>
-              </Link>
-              <Link href="/auth/signin" style={{ textDecoration: 'none' }}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                  style={{
-                    padding: '13px 32px', borderRadius: '30px', cursor: 'pointer',
-                    fontFamily: "'Jost', sans-serif", fontSize: '11px',
-                    fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase',
-                    background: 'rgba(245,222,179,0.05)',
-                    border: '1px solid rgba(245,222,179,0.18)',
-                    color: 'rgba(245,222,179,0.55)',
-                    transition: 'all 0.2s',
-                  }}
-                >Sign In</motion.button>
-              </Link>
+          </div>
+          <div style={{ marginTop: 48 }}>
+            <div style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(28px, 4vw, 46px)', color: 'rgba(28,20,16,0.3)', lineHeight: 1.15 }}>
+              Accuracy<br />without stigma.
             </div>
-          </Reveal>
-          <Reveal delay={0.3}>
-            <p style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: '9px', letterSpacing: '0.28em',
-              textTransform: 'uppercase',
-              color: 'rgba(245,222,179,0.25)',
-              marginTop: '40px',
-            }}>Private · Local · 16+ Only</p>
-          </Reveal>
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+
+      {/* right: ink */}
+      <div style={{ background: T.inkMid, padding: '100px 52px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <SectionRule label="Memory Games" num="05" />
+          <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(40px, 5.5vw, 68px)', lineHeight: 0.92, letterSpacing: '-0.015em', color: T.cream, marginBottom: 32 }}>
+            Eight<br />Games.<br /><em style={{ fontStyle: 'italic', color: 'rgba(196,168,130,0.7)' }}>Infinite Insight.</em>
+          </h2>
+          <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, lineHeight: 1.95, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.42)', maxWidth: 360, marginBottom: 44 }}>
+            Cognitive exercises modelled after the same tasks used in brain health research. Not entertainment. Real insight into how your mind works, with Orion watching every move.
+          </p>
+          {[
+            { label: 'Working Memory', sub: 'Holding and using information in the moment' },
+            { label: 'Fluid Reasoning', sub: 'Solving new problems without prior knowledge' },
+            { label: 'Executive Function', sub: 'Manipulating information, not just storing it' },
+            { label: 'Processing Speed', sub: 'Your personal rhythm, measured against your own baseline' },
+          ].map(item => (
+            <div key={item.label} style={{ padding: '20px 0', borderBottom: '1px solid rgba(250,243,232,0.06)' }}>
+              <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 17, color: T.cream, marginBottom: 6, lineHeight: 1.1 }}>{item.label}</div>
+              <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.1em', color: 'rgba(250,243,232,0.3)', lineHeight: 1.8 }}>{item.sub}</div>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 44, padding: '24px', background: 'rgba(250,243,232,0.03)', border: `1px solid rgba(250,243,232,0.08)`, borderLeft: `3px solid rgba(196,160,96,0.5)` }}>
+            <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.gold, marginBottom: 10 }}>Orion is present</div>
+            <div style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, lineHeight: 1.8, color: 'rgba(250,243,232,0.45)' }}>During every session, Orion watches your rhythm, celebrates your streaks, and prepares a personalised debrief for when you finish.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── INNER WORK (P6) ──────────────────────────────────────────────────────────
+
+function InnerWork() {
+  return (
+    <section id="inner-work" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#d4c9a8"
+          color2="#c4a882"
+          color3="#3a2a1e"
+          timeSpeed={0.07}
+          warpStrength={0.5}
+          warpFrequency={2.4}
+          warpSpeed={0.8}
+          blendAngle={-40}
+          grainAmount={0.095}
+          contrast={1.15}
+          saturation={0.55}
+          zoom={1.0}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(245,230,200,0.88)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', bottom: -30, left: -10, fontFamily: T.serif, fontWeight: 900, fontStyle: 'italic', fontSize: 'clamp(120px, 17vw, 210px)', lineHeight: 1, color: 'rgba(28,20,16,0.033)', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 2 }}>Inner Work</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, position: 'relative', zIndex: 3, width: '100%', padding: '112px 52px', color: T.ink }}>
+        <div>
+          <SectionRule label="Guided Sessions" num="06" light />
+          <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(48px, 6.5vw, 84px)', lineHeight: 0.9, letterSpacing: '-0.02em', color: T.ink, marginBottom: 48 }}>
+            Built on<br /><em style={{ fontStyle: 'italic', color: T.umber }}>Evidence.</em><br />Spoken in warmth.
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 52 }}>
+            {['Thought Reframing', 'Activation', 'Values Clarity', 'Self-Compassion', 'Socratic Method'].map(tag => (
+              <div key={tag} style={{ border: `1px solid rgba(28,20,16,0.22)`, padding: '9px 17px', fontFamily: T.serif, fontWeight: 700, fontSize: 12, letterSpacing: '0.04em', color: T.ink }}>{tag}</div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[
+              { n: '01', title: 'Thought Reframing', body: 'Identify the automatic thoughts that loop quietly in the background. Socratic questions surface them without forcing positivity.' },
+              { n: '02', title: 'Activation', body: 'Build a gentle ladder of activities ranked by how daunting they feel. Momentum comes before motivation.' },
+              { n: '03', title: 'Values Clarity', body: 'Separate who you are from what you think. Identify what genuinely matters and reconnect with it.' },
+              { n: '04', title: 'Self-Compassion', body: 'Quiet the inner critic using the same techniques that actually work. A log of evidence against the harsh voice in your head.' },
+            ].map(item => (
+              <div key={item.n} style={{ display: 'grid', gridTemplateColumns: '32px 1fr', gap: 20, padding: '20px 0', borderBottom: '1px solid rgba(28,20,16,0.08)', alignItems: 'start' }}>
+                <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 18, color: 'rgba(28,20,16,0.2)', lineHeight: 1 }}>{item.n}</span>
+                <div>
+                  <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 16, color: T.ink, marginBottom: 6, lineHeight: 1.1 }}>{item.title}</div>
+                  <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, lineHeight: 1.85, letterSpacing: '0.04em', color: 'rgba(28,20,16,0.5)' }}>{item.body}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(34px, 4.8vw, 58px)', color: 'rgba(28,20,16,0.28)', lineHeight: 1.1, marginBottom: 52 }}>
+            "Not therapy.<br />A way forward."
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 52 }}>
+            {[
+              { n: '7', l: 'Reflection Instruments' },
+              { n: '8', l: 'Memory Games' },
+              { n: '4', l: 'Inner Work Modules' },
+              { n: '0', l: 'Data Sold. Ever.' },
+            ].map(s => (
+              <div key={s.l} style={{ borderTop: '1px solid rgba(28,20,16,0.1)', paddingTop: 16 }}>
+                <span style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 52, lineHeight: 1, color: T.ink, display: 'block', letterSpacing: '-0.03em' }}>{s.n}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.32)', display: 'block', marginTop: 4 }}>{s.l}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ height: 180, position: 'relative', overflow: 'hidden', boxShadow: `5px 5px 0 ${T.umber}`, border: `1px solid rgba(28,20,16,0.12)` }}>
+            <Grainient color1="#c4a882" color2="#f0dfc0" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.065} contrast={1.3} saturation={0.8} style={{ width: '100%', height: '100%' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 28, color: T.ink, letterSpacing: '-0.01em' }}>The Inner Ledger</div>
+              <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.45)' }}>3D Journal · Mood Stickers · Emotional Timeline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── PRIVACY (P7) ─────────────────────────────────────────────────────────────
+
+function Privacy() {
+  return (
+    <section id="privacy" style={{ position: 'relative', overflow: 'hidden', minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#241a13"
+          color2="#3a2a1e"
+          color3="#1c1410"
+          timeSpeed={0.06}
+          warpStrength={0.8}
+          warpFrequency={5.5}
+          warpSpeed={2.0}
+          blendAngle={15}
+          grainAmount={0.055}
+          contrast={1.6}
+          saturation={0.35}
+          zoom={0.78}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(28,20,16,0.72)', zIndex: 1 }} />
+
+      <svg style={{ position: 'absolute', top: '50%', right: -180, transform: 'translateY(-50%)', opacity: 0.055, pointerEvents: 'none', zIndex: 2 }} width="540" height="540" viewBox="0 0 540 540">
+        {[36, 80, 128, 180, 234, 264].map((r, i) => <circle key={r} cx="270" cy="270" r={r} fill="none" stroke="#f5e6c8" strokeWidth={i < 4 ? 1 : 0.7} />)}
+      </svg>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center', position: 'relative', zIndex: 3, width: '100%', padding: '120px 52px', color: T.cream }}>
+        <div>
+          <SectionRule label="Local-First Privacy" num="07" />
+          <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(52px, 7vw, 88px)', lineHeight: 0.9, letterSpacing: '-0.02em', marginBottom: 36 }}>
+            What you share<br /><em style={{ fontStyle: 'italic', color: 'rgba(196,168,130,0.7)' }}>stays with you.</em>
+          </h2>
+          <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 11, lineHeight: 1.9, color: 'rgba(250,243,232,0.4)', maxWidth: 400, marginBottom: 48 }}>
+            Lumina runs on Ollama, a local model runtime. The most sensitive work, your journal analysis, your Self Reflection scoring, your personality synthesis, happens on your machine. No cloud inference. No training on your data. No advertising. No surveillance.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[
+              { n: '01', body: 'Local AI inference via Ollama. Your Inner Ledger never leaves your device.' },
+              { n: '02', body: 'No data sold to advertisers. No third-party access to your reflection results.' },
+              { n: '03', body: 'Support resources are triggered locally. Nothing flags a server.' },
+              { n: '04', body: 'Open architecture. You can inspect everything that runs, everything that is stored.' },
+            ].map(item => (
+              <div key={item.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '18px 0', borderTop: '1px solid rgba(250,243,232,0.07)' }}>
+                <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.2em', color: 'rgba(250,243,232,0.2)', flexShrink: 0, marginTop: 2 }}>{item.n}</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, color: 'rgba(250,243,232,0.45)', lineHeight: 1.7 }}>{item.body}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: 36, background: 'rgba(250,243,232,0.03)', border: '1px solid rgba(250,243,232,0.08)', boxShadow: `5px 5px 0 rgba(90,60,36,0.5)` }}>
+          <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 20, color: T.cream, letterSpacing: '-0.01em', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(250,243,232,0.08)' }}>Privacy Manifest</div>
+          {[
+            ['Data Location', 'Your device only'],
+            ['AI Runtime', 'Ollama, local inference'],
+            ['Reflection Scoring', 'On-device'],
+            ['Inner Ledger', 'Never transmitted'],
+            ['Third-Party Sharing', 'None, ever'],
+            ['Advertising', 'None, ever'],
+          ].map(([label, value]) => (
+            <div key={label} style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontFamily: T.mono, fontSize: 6.5, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.22)', marginBottom: 3 }}>{label}</label>
+              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.cream, letterSpacing: '0.03em' }}>{value}</div>
+            </div>
+          ))}
+          <div style={{ marginTop: 18, padding: '10px 12px', background: 'rgba(90,60,36,0.25)', fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.14em', color: T.gold, lineHeight: 1.7, borderLeft: `2px solid ${T.gold}` }}>
+            Built for the era when your mind is the last private place.
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── CTA (P8) ─────────────────────────────────────────────────────────────────
+
+function CTA() {
+  return (
+    <section id="begin" style={{ position: 'relative', overflow: 'hidden', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#c4a882"
+          color2="#e8d5b0"
+          color3="#1c1410"
+          timeSpeed={0.1}
+          warpStrength={0.7}
+          grainAmount={0.06}
+          contrast={1.3}
+          saturation={0.7}
+          zoom={0.9}
+          blendAngle={-10}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(28,20,16,0.65) 0%, rgba(28,20,16,0.78) 100%)', zIndex: 1 }} />
+
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', height: 5, zIndex: 2 }}>
+        <span style={{ flex: 2, background: T.ink }} />
+        <span style={{ flex: 1, background: `rgba(196,160,96,0.6)` }} />
+        <span style={{ flex: 1, background: T.cream, opacity: 0.12 }} />
+        <span style={{ flex: 3, background: T.ink }} />
+        <span style={{ flex: 1, background: 'rgba(196,168,130,0.18)' }} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 3, fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(38px, 6vw, 82px)', lineHeight: 1.05, letterSpacing: '-0.01em', color: T.cream, maxWidth: 720, margin: '0 auto 80px', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 52px 0' }}>
+        Every thought held.<br />
+        Every pattern <strong style={{ fontWeight: 900 }}>understood.</strong>
+        <span style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(48px, 8vw, 112px)', color: 'rgba(250,243,232,0.28)', display: 'block', lineHeight: 1, margin: '8px 0', letterSpacing: '0.01em' }}>privately.</span>
+        <div style={{ marginTop: 52, display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href="#" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '16px 40px', textDecoration: 'none', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
+          >Begin Your Journey</a>
+          <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.38)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.16)', paddingBottom: 2, alignSelf: 'center', transition: 'color .2s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.38)' }}
+          >Explore Features</a>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 3, padding: '0 52px', borderTop: '1px solid rgba(250,243,232,0.07)', paddingTop: 44, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 60, marginBottom: 44 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 }}>
+            <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 40, letterSpacing: '-0.02em', color: T.cream, opacity: 0.1 }}>Lumina</div>
+            <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.gold, opacity: 0.3 }}>+ Orion</div>
+          </div>
+          <div style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, color: 'rgba(250,243,232,0.28)', lineHeight: 1.85, maxWidth: 300 }}>A private sanctuary for your emotional wellbeing and mental sharpness, built on honest science and the belief that self-knowledge is the rarest luxury.</div>
+        </div>
+        {[
+          { head: 'Features', links: ['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger', 'Orion'] },
+          { head: 'Orion', links: ['Cognitive Threading', 'Live Coaching', 'Reflective Debrief', 'Daily Prompts', 'Privacy'] },
+        ].map(col => (
+          <div key={col.head}>
+            <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.2)', marginBottom: 16 }}>{col.head}</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {col.links.map(l => (
+                <li key={l}><a href="#" style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.28)', textDecoration: 'none', transition: 'color .2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = T.cream)}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(250,243,232,0.28)')}
+                >{l}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: 'relative', zIndex: 3, padding: '0 52px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(250,243,232,0.06)', paddingTop: 20 }}>
+        <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.18)' }}>2026 Lumina. Your mind stays yours.</div>
+        <div style={{ display: 'flex', gap: 18, fontFamily: T.mono, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(196,168,130,0.35)' }}>
+          <span>Local AI</span><span>No Ads</span><span>Open Source</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+
+export default function LuminaOrionLanding() {
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:ital,wght@0,200;0,300;0,400;1,200&family=IBM+Plex+Mono:wght@300;400&display=swap');
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { background: #1c1410; color: #f5e6c8; font-family: 'DM Sans', sans-serif; overflow-x: hidden; cursor: crosshair; }
+        a { color: inherit; text-decoration: none; }
+        button { cursor: crosshair; border: none; background: none; }
+        @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes textShimmer { to { background-position: -200% center; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+        body::after {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          pointer-events: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+          opacity: 0.5;
+        }
+      `}</style>
+      <Nav />
+      <Hero />
+      <Ticker />
+      <Philosophy />
+      <FeaturesGrid />
+      <OrionSection />
+      <Diagnostics />
+      <InnerWork />
+      <Privacy />
+      <CTA />
+    </>
   )
 }
