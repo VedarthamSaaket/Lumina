@@ -89,8 +89,12 @@ interface Props {
 
 const packCache: Record<string, Sticker[]> = {}
 
-// Giphy API key
-const GIPHY_KEY = 'dc6zaTOxFJmzC'
+// Giphy API key (from env, fallback to beta key)
+const GIPHY_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY || 'dc6zaTOxFJmzC'
+
+const STICKER_EXTS = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif']
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export default function JournalStickers({ onSelect, onClose }: Props) {
     const [tab, setTab] = useState<Tab>('local')

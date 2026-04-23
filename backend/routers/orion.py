@@ -599,6 +599,42 @@ async def get_debriefs(
     ]
 
 
+@router.get("/memory-view")
+def orion_memory_view(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return Orion's stored memory about this user (for the memory viewer in settings)."""
+    cognitive_context = _get_cognitive_context(current_user.id, db)
+    user_memory = _get_orion_user_memory(current_user.id, db)
+    orion_settings = _get_orion_settings(current_user.id, db)
+    settings_prompt = _build_orion_settings_prompt(orion_settings)
+
+    summaries = (
+        db.query(InsightSummary)
+        .filter(
+            InsightSummary.user_id == current_user.id,
+            InsightSummary.source.in_(["orion_memory", "orion_debrief"]),
+        )
+        .order_by(desc(InsightSummary.created_at))
+        .limit(10)
+        .all()
+    )
+    insights = [
+        {"title": s.title, "content": s.content[:300], "source": s.source, "created_at": s.created_at.isoformat() if s.created_at else None}
+        for s in summaries
+    ]
+
+    return {
+        "settings_prompt": settings_prompt.strip() if settings_prompt else "",
+        "cognitive_context": cognitive_context.strip() if cognitive_context else "",
+        "user_memory": user_memory.strip() if user_memory else "",
+        "insights": insights,
+        "tone": orion_settings.get("orion_tone", "coach"),
+        "focus_games": orion_settings.get("orion_focus_games", []),
+    }
+
+
 @router.post("/save-note")
 async def save_orion_note(
     data: SaveOrionNoteRequest,

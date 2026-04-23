@@ -6,7 +6,7 @@ import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
 import OrionButton from '@/components/orion/OrionButton'
-import '@/components/DarkVeil.css'
+
 import OrionLiveObserver, { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
 import OrionDebrief from '@/components/orion/OrionDebrief'
 import OrionChatPanel from '@/components/orion/OrionChatPanel'
