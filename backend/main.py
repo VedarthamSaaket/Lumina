@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy import text
 from routers import dashboard
 from models.database import engine, run_migrations
-from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion
+from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion, stickers
 from config import settings
 from services.llm import warmup_model, close_http_client
 from middleware.security import SecurityMiddleware
@@ -65,6 +65,7 @@ app.include_router(cognitive.router)
 app.include_router(dashboard.router)
 app.include_router(settings_router.router)
 app.include_router(orion.router)
+app.include_router(stickers.router)
 
 
 @app.get("/health")
