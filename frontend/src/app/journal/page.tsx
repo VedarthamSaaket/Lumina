@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
-import { GoldHeading } from '@/components/ui/GoldHeading'
 import dynamic from 'next/dynamic'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 import { journalAPI, moodAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
@@ -238,7 +238,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 </div>
             )}
 
-            {/* HEADING centered on the full page, rises upward */}
+            {/* HEADING - centered on the full page, rises upward */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <motion.div
@@ -408,7 +408,7 @@ export default function JournalPage() {
                 journalAPI.create(content, mood, tags),
                 moodAPI.log(mood, '', tags),
             ])
-            toast.success('Entry saved .', {
+            toast.success('Entry saved ✦', {
                 style: {
                     background: 'rgba(20,10,0,0.95)',
                     color: '#d4af37',
@@ -455,6 +455,7 @@ export default function JournalPage() {
                     >
                         <Navigation />
 
+                        {/* Centered heading over the full page width */}
                         <div style={{
                             position: 'absolute',
                             top: '68px',
@@ -465,7 +466,26 @@ export default function JournalPage() {
                             pointerEvents: 'none',
                             whiteSpace: 'nowrap',
                         }}>
-                            <GoldHeading prefix="The Inner" gold="Ledger" size="clamp(1.4rem, 2.2vw, 1.9rem)" />
+                            <h1 style={{
+                                fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+                                fontWeight: 400,
+                                fontStyle: 'italic',
+                                fontSize: 'clamp(1.4rem, 2.2vw, 1.9rem)',
+                                margin: 0,
+                                letterSpacing: '0.02em',
+                                color: 'rgba(254,244,228,0.92)',
+                                lineHeight: 1.2,
+                            }}>
+                                The Inner{' '}
+                                <span style={{
+                                    background: 'linear-gradient(90deg, #b8860b 0%, #d4af37 30%, #f9e07a 55%, #d4af37 78%, #b8860b 100%)',
+                                    backgroundSize: '220% auto',
+                                    WebkitBackgroundClip: 'text',
+                                    backgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    animation: 'textShimmer 4s linear infinite',
+                                }}>Ledger</span>
+                            </h1>
                         </div>
 
                         <OpenBook
