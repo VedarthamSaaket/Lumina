@@ -34,6 +34,17 @@ class UserSettings(BaseModel):
     # Focus Areas — topics the user wants the AI to be most aware of
     focus_areas: Optional[List[str]] = []
 
+    # ── Orion (Brain Training Companion) ──────────────────────────────────────
+    orion_tone: Optional[str] = "coach"  # coach | casual | professor | challenger
+    orion_response_length: Optional[str] = "medium"  # short | medium | long
+    orion_coaching_intensity: Optional[str] = "balanced"  # subtle | balanced | active
+    orion_knowledge_depth: Optional[str] = "moderate"  # simple | moderate | deep
+    orion_use_game_tips: Optional[bool] = True
+    orion_use_fun_facts: Optional[bool] = True
+    orion_use_user_name: Optional[bool] = True
+    orion_about_me: Optional[str] = ""
+    orion_focus_games: Optional[List[str]] = []
+
 
 def _defaults() -> dict:
     return UserSettings().model_dump()

@@ -129,6 +129,114 @@ GAME_NAMES = {
     "analogy": "Visual Analogy", "paperfold": "Paper Folding",
 }
 
+# Shared Groq client (reuse instead of creating per-request)
+from groq import Groq
+from config import settings as _app_settings
+_groq_client = Groq(api_key=_app_settings.GROQ_API_KEY)
+
+
+# ── Orion settings helpers ────────────────────────────────────────────────────
+
+def _get_orion_settings(user_id: str, db: Session) -> dict:
+    """Load Orion-specific settings from the user's settings_json."""
+    user = db.query(User).filter(User.id == user_id).first()
+    raw = getattr(user, "settings_json", None) if user else None
+    defaults = {
+        "orion_tone": "coach",
+        "orion_response_length": "medium",
+        "orion_coaching_intensity": "balanced",
+        "orion_knowledge_depth": "moderate",
+        "orion_use_game_tips": True,
+        "orion_use_fun_facts": True,
+        "orion_use_user_name": True,
+        "orion_about_me": "",
+        "orion_focus_games": [],
+        "preferred_name": "",
+    }
+    if not raw:
+        return defaults
+    try:
+        stored = json.loads(raw) if isinstance(raw, str) else {}
+        return {**defaults, **stored}
+    except Exception:
+        return defaults
+
+
+def _build_orion_settings_prompt(s: dict) -> str:
+    """Turn user's Orion settings into a system-prompt block."""
+    lines = ["\n\n═══════════════════════════════════════════════"]
+    lines.append("ORION USER PREFERENCES (follow these carefully)")
+    lines.append("═══════════════════════════════════════════════")
+
+    name = s.get("preferred_name", "").strip()
+    use_name = s.get("orion_use_user_name", True)
+    if name:
+        if use_name:
+            lines.append(
+                f"- This user prefers to be called '{name}'. Use their name occasionally "
+                "in conversation, naturally, the way a friend would."
+            )
+        else:
+            lines.append(
+                f"- The user's preferred name is '{name}' but they prefer you NOT use it in chat."
+            )
+
+    about = s.get("orion_about_me", "").strip()
+    if about:
+        lines.append("\nUSER'S SELF-DESCRIPTION FOR ORION (let it inform how you coach and respond):")
+        lines.append(f'"{about}"')
+
+    tone = s.get("orion_tone", "coach")
+    tone_map = {
+        "coach": "You are an encouraging coach. Celebrate wins, notice patterns, give advice that feels personal and specific. Warm but driven.",
+        "casual": "You are a relaxed, casual friend. Light humor is welcome. Less intense coaching, more like chatting about brains over coffee.",
+        "professor": "You are a knowledgeable guide. Go deeper into the science and research behind what's happening. The user enjoys understanding the 'why'.",
+        "challenger": "You are a sharp, stretching trainer. Push the user to do better. Be direct about weaknesses and specific about how to improve. Less hand-holding.",
+    }
+    if tone in tone_map:
+        lines.append(f"\nORION COMMUNICATION STYLE: {tone_map[tone]}")
+
+    length = s.get("orion_response_length", "medium")
+    length_map = {
+        "short": "Keep responses SHORT — 1-3 sentences maximum unless the question clearly needs more. Be punchy.",
+        "medium": "Balance response length — short for quick questions, longer when the topic deserves depth.",
+        "long": "Give thorough, full responses. Explore ideas and strategies completely. The user prefers depth.",
+    }
+    if length in length_map:
+        lines.append(f"ORION RESPONSE LENGTH: {length_map[length]}")
+
+    intensity = s.get("orion_coaching_intensity", "balanced")
+    intensity_map = {
+        "subtle": "COACHING INTENSITY: Subtle. Drop gentle hints and let the user connect the dots. Don't over-coach or give too many tips at once.",
+        "balanced": "COACHING INTENSITY: Balanced. Offer one concrete strategy per interaction. Mix celebration with constructive advice.",
+        "active": "COACHING INTENSITY: Active. Be proactive with tips, strategies, and suggestions. The user wants you to push them forward with specific, actionable guidance.",
+    }
+    if intensity in intensity_map:
+        lines.append(intensity_map[intensity])
+
+    depth = s.get("orion_knowledge_depth", "moderate")
+    depth_map = {
+        "simple": "KNOWLEDGE DEPTH: Keep explanations simple and light. No research references unless specifically asked. Talk like a smart friend, not a textbook.",
+        "moderate": "KNOWLEDGE DEPTH: Moderate. Share interesting insights and occasional fun facts. Connect what they're doing to how brains work without overwhelming them.",
+        "deep": "KNOWLEDGE DEPTH: Deep. The user wants to understand the science. Reference research freely, explain mechanisms, and go into detail about why things work.",
+    }
+    if depth in depth_map:
+        lines.append(depth_map[depth])
+
+    if not s.get("orion_use_game_tips", True):
+        lines.append("\nGAME-SPECIFIC TIPS: The user has opted out of game-specific coaching tips. Stick to general cognitive advice.")
+
+    if not s.get("orion_use_fun_facts", True):
+        lines.append("FUN FACTS: The user has opted out of fun facts. Skip the 'Fun fact!' asides.")
+
+    focus_games = s.get("orion_focus_games", [])
+    if focus_games:
+        names = [GAME_NAMES.get(g, g) for g in focus_games]
+        lines.append(f"\nFOCUS GAMES: The user specifically wants coaching emphasis on: {', '.join(names)}. Weight your advice and suggestions toward these games.")
+
+    lines.append("═══════════════════════════════════════════════")
+    return "\n".join(lines)
+
 
 def _get_cognitive_context(user_id: str, db: Session) -> str:
     try:
@@ -252,10 +360,7 @@ class SaveOrionNoteRequest(BaseModel):
 
 
 def _call_groq(messages: list[dict], max_tokens: int = 900, temperature: float = 0.68):
-    from groq import Groq
-    from config import settings
-    client = Groq(api_key=settings.GROQ_API_KEY)
-    return client.chat.completions.create(
+    return _groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,
         max_tokens=max_tokens,
@@ -274,7 +379,9 @@ async def orion_stream(
 
     cognitive_context = _get_cognitive_context(current_user.id, db)
     user_memory = _get_orion_user_memory(current_user.id, db)
-    system_prompt = ORION_SYSTEM_PROMPT + cognitive_context + user_memory
+    orion_settings = _get_orion_settings(current_user.id, db)
+    settings_prompt = _build_orion_settings_prompt(orion_settings)
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + cognitive_context + user_memory
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
