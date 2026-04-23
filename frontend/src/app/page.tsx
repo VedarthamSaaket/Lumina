@@ -251,6 +251,10 @@ const T = {
   creamLine: 'rgba(28,20,16,0.09)',
 }
 
+// ─── NAVIGATION HELPER ───────────────────────────────────────────────────────
+
+const goToSignup = () => { window.location.href = '/auth/signup' }
+
 // ─── GOLD SHIMMER HEADING ─────────────────────────────────────────────────────
 
 function GoldWord({ children }: { children: React.ReactNode }) {
@@ -328,8 +332,17 @@ function Ticker() {
   const items = ['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger', 'Orion Engine', 'Local AI', 'Zero Data Leakage', 'The Mirror', 'Thinking Companion', 'Cognitive Threading', 'Crisis Safe', 'Mood Tracking']
   const doubled = [...items, ...items]
   return (
-    <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '10px 0', background: T.parchment, borderTop: `1px solid rgba(28,20,16,0.12)`, borderBottom: `1px solid rgba(28,20,16,0.12)` }}>
-      <div style={{ display: 'inline-block', animation: 'tick 40s linear infinite', fontFamily: T.mono, fontSize: 8.5, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.52)' }}>
+    <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '10px 0', position: 'relative', zIndex: 5 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <Grainient
+          color1="#c4a882" color2="#ede0c4" color3="#5c3d28"
+          timeSpeed={0.06} warpStrength={0.3} grainAmount={0.06}
+          contrast={1.2} saturation={0.7} zoom={1.2}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(196,168,130,0.88)', zIndex: 1, borderTop: `1px solid rgba(28,20,16,0.12)`, borderBottom: `1px solid rgba(28,20,16,0.12)` }} />
+      <div style={{ position: 'relative', zIndex: 2, display: 'inline-block', animation: 'tick 40s linear infinite', fontFamily: T.mono, fontSize: 8.5, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.52)' }}>
         {doubled.map((t, i) => (
           <span key={i} style={{ padding: '0 32px' }}>{t}</span>
         ))}
@@ -345,17 +358,10 @@ function Hero() {
     <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 52px 72px', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#c4a882"
-          color2="#f0dfc0"
-          color3="#3a2a1e"
-          timeSpeed={0.14}
-          warpStrength={0.9}
-          warpFrequency={3.5}
-          warpSpeed={1.2}
-          grainAmount={0.07}
-          contrast={1.4}
-          saturation={0.78}
-          zoom={0.85}
+          color1="#c4a882" color2="#f0dfc0" color3="#3a2a1e"
+          timeSpeed={0.14} warpStrength={0.9} warpFrequency={3.5}
+          warpSpeed={1.2} grainAmount={0.07} contrast={1.4}
+          saturation={0.78} zoom={0.85}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
@@ -373,15 +379,12 @@ function Hero() {
       <div style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%) rotate(90deg)', transformOrigin: 'center center', fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.14)', whiteSpace: 'nowrap', zIndex: 2 }}>
         Self Reflection · Inner Work · Memory Games · Inner Ledger · Orion · Local AI
       </div>
-
-      {/* Orion badge top left area */}
       <div style={{ position: 'absolute', top: 120, left: 52, zIndex: 3 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid rgba(196,160,96,0.3)`, padding: '8px 18px', backdropFilter: 'blur(6px)', background: 'rgba(28,20,16,0.3)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.gold, animation: 'pulse 2.5s ease-in-out infinite' }} />
           <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.gold }}>Orion Online</span>
         </div>
       </div>
-
       <div style={{ position: 'relative', zIndex: 3 }}>
         <h1 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(88px, 15vw, 200px)', lineHeight: 0.87, letterSpacing: '-0.02em', color: T.chalk, marginBottom: 0 }}>
           <span style={{ display: 'block' }}>LUMINA</span>
@@ -402,10 +405,12 @@ function Hero() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 22, justifyContent: 'flex-end' }}>
-            <a href="#begin" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '14px 34px', textDecoration: 'none', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s', display: 'inline-block' }}
+            <button
+              onClick={goToSignup}
+              style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '14px 34px', border: 'none', cursor: 'pointer', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s', display: 'inline-block' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
-            >Begin Journey</a>
+            >Begin Journey</button>
             <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.38)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.16)', paddingBottom: 2, transition: 'color .2s' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.38)' }}
@@ -424,23 +429,15 @@ function Philosophy() {
     <section id="features" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#ede0c4"
-          color2="#c4a882"
-          color3="#5c3d28"
-          timeSpeed={0.08}
-          warpStrength={0.6}
-          warpFrequency={2.8}
-          warpSpeed={0.9}
-          blendAngle={55}
-          grainAmount={0.085}
-          contrast={1.25}
-          saturation={0.6}
-          zoom={0.92}
+          color1="#f0dfc0" color2="#c4a882" color3="#6b4828"
+          timeSpeed={0.08} warpStrength={0.55} warpFrequency={2.6}
+          warpSpeed={0.85} blendAngle={58} grainAmount={0.09}
+          contrast={1.22} saturation={0.58} zoom={0.90}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(245,230,200,0.82)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.055) 1px, transparent 1px)', backgroundSize: '18px 18px', zIndex: 2 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,220,192,0.72)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.045) 1px, transparent 1px)', backgroundSize: '18px 18px', zIndex: 2 }} />
       <div style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%)', fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 'clamp(260px, 32vw, 440px)', color: 'rgba(28,20,16,0.04)', lineHeight: 1, pointerEvents: 'none', userSelect: 'none', zIndex: 2 }}>01</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center', position: 'relative', zIndex: 3, width: '100%', padding: '112px 52px', color: T.ink }}>
         <div>
@@ -476,79 +473,43 @@ function Philosophy() {
   )
 }
 
-// ─── FEATURES SPLIT (P3) ─────────────────────────────────────────────────────
+// ─── FEATURES GRID (P3) ─────────────────────────────────────────────────────
 
 function FeaturesGrid() {
   return (
-    <section style={{ background: T.ink, color: T.cream, padding: '120px 52px', position: 'relative', overflow: 'hidden' }} id="orion">
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(250,243,232,0.022) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
-
-      {/* subtle grainient accent top right */}
-      <div style={{ position: 'absolute', top: 0, right: 0, width: '45%', height: '100%', zIndex: 0, opacity: 0.08 }}>
+    <section style={{ position: 'relative', color: T.cream, padding: '120px 52px', overflow: 'hidden' }} id="orion">
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#c4a882"
-          color2="#3a2a1e"
-          color3="#1c1410"
-          timeSpeed={0.06}
-          warpStrength={0.4}
-          grainAmount={0.04}
-          contrast={1.1}
-          saturation={0.5}
-          zoom={1.1}
+          color1="#3a2a1e" color2="#1c1410" color3="#0e0906"
+          timeSpeed={0.07} warpStrength={0.5} warpFrequency={4.0}
+          warpSpeed={1.2} blendAngle={-15} grainAmount={0.065}
+          contrast={1.55} saturation={0.42} zoom={0.88}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-
-      <div style={{ position: 'relative', zIndex: 2 }}>
+      <div style={{ position: 'absolute', top: 0, right: 0, width: '45%', height: '100%', zIndex: 1, opacity: 0.18 }}>
+        <Grainient
+          color1="#c4a060" color2="#3a2a1e" color3="#1c1410"
+          timeSpeed={0.05} warpStrength={0.35} grainAmount={0.04}
+          contrast={1.1} saturation={0.5} zoom={1.1}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(250,243,232,0.018) 1px, transparent 1px)', backgroundSize: '22px 22px', zIndex: 2 }} />
+      <div style={{ position: 'relative', zIndex: 3 }}>
         <SectionRule label="What Lumina Offers" num="02" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'rgba(250,243,232,0.05)' }}>
           {[
-            {
-              icon: '◎',
-              title: 'Self Reflection',
-              sub: 'Know yourself honestly',
-              body: 'Seven carefully chosen instruments from mood and anxiety to personality, attachment style, and emotional intelligence. All translated into warm, human language with zero clinical labels.',
-              tag: '7 Instruments',
-            },
-            {
-              icon: '◈',
-              title: 'Inner Work',
-              sub: 'Change your patterns',
-              body: 'Four guided modules built on the most effective frameworks in modern psychology. Reframe negative thoughts, activate yourself into motion, clarify what matters, and quiet the inner critic.',
-              tag: '4 Modules',
-            },
-            {
-              icon: '◻',
-              title: 'Inner Ledger',
-              sub: 'Your story, your space',
-              body: 'A 3D-rendered journal that feels like a physical object. Mood stickers, emotional timelines, and thought-dumping rituals that make daily reflection something you look forward to.',
-              tag: '3D Book',
-            },
-            {
-              icon: '▲',
-              title: 'Memory Games',
-              sub: 'Train how you think',
-              body: 'Eight cognitive exercises modelled after real brain health research. Working memory, fluid reasoning, processing speed, executive function. Not entertainment, understanding.',
-              tag: '8 Games',
-            },
-            {
-              icon: '●',
-              title: 'Orion Engine',
-              sub: 'Your thinking companion',
-              body: "Orion watches your game sessions, links your performance to your journal, notices patterns before you do, and debriefs every session with four precise observations. A personal trainer for your mind.",
-              tag: 'Live Coaching',
-            },
-            {
-              icon: '◐',
-              title: 'Local Privacy',
-              sub: 'Your data stays yours',
-              body: 'The deepest analysis happens on your device via Ollama. No journal ever leaves your machine. No data is sold. No cloud inference on your psychological profile.',
-              tag: 'Zero Leakage',
-            },
+            { icon: '◎', title: 'Self Reflection', sub: 'Know yourself honestly', body: 'Seven carefully chosen instruments from mood and anxiety to personality, attachment style, and emotional intelligence. All translated into warm, human language with zero clinical labels.', tag: '7 Instruments' },
+            { icon: '◈', title: 'Inner Work', sub: 'Change your patterns', body: 'Four guided modules built on the most effective frameworks in modern psychology. Reframe negative thoughts, activate yourself into motion, clarify what matters, and quiet the inner critic.', tag: '4 Modules' },
+            { icon: '◻', title: 'Inner Ledger', sub: 'Your story, your space', body: 'A 3D-rendered journal that feels like a physical object. Mood stickers, emotional timelines, and thought-dumping rituals that make daily reflection something you look forward to.', tag: '3D Book' },
+            { icon: '▲', title: 'Memory Games', sub: 'Train how you think', body: 'Eight cognitive exercises modelled after real brain health research. Working memory, fluid reasoning, processing speed, executive function. Not entertainment, understanding.', tag: '8 Games' },
+            { icon: '●', title: 'Orion Engine', sub: 'Your thinking companion', body: "Orion watches your game sessions, links your performance to your journal, notices patterns before you do, and debriefs every session with four precise observations. A personal trainer for your mind.", tag: 'Live Coaching' },
+            { icon: '◐', title: 'Local Privacy', sub: 'Your data stays yours', body: 'The deepest analysis happens on your device via Ollama. No journal ever leaves your machine. No data is sold. No cloud inference on your psychological profile.', tag: 'Zero Leakage' },
           ].map(item => (
-            <div key={item.title} style={{ background: T.ink, padding: '44px 36px', borderRight: '1px solid rgba(250,243,232,0.05)', borderBottom: '1px solid rgba(250,243,232,0.05)', transition: 'background 0.2s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.inkMid }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = T.ink }}
+            <div key={item.title} style={{ position: 'relative', padding: '44px 36px', borderRight: '1px solid rgba(250,243,232,0.05)', borderBottom: '1px solid rgba(250,243,232,0.05)', overflow: 'hidden' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(250,243,232,0.04)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
               <div style={{ fontFamily: T.serif, fontSize: 28, color: T.gold, opacity: 0.6, marginBottom: 20, lineHeight: 1 }}>{item.icon}</div>
               <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 22, color: T.cream, marginBottom: 6, lineHeight: 1.1 }}>{item.title}</div>
@@ -570,35 +531,22 @@ function OrionSection() {
     <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#c4a060"
-          color2="#3a2a1e"
-          color3="#1c1410"
-          timeSpeed={0.1}
-          warpStrength={1.1}
-          warpFrequency={4.2}
-          warpSpeed={1.5}
-          blendAngle={-20}
-          grainAmount={0.065}
-          contrast={1.5}
-          saturation={0.55}
-          zoom={0.82}
-          colorBalance={0.1}
+          color1="#c4a060" color2="#3a2a1e" color3="#1c1410"
+          timeSpeed={0.1} warpStrength={1.1} warpFrequency={4.2}
+          warpSpeed={1.5} blendAngle={-20} grainAmount={0.065}
+          contrast={1.5} saturation={0.55} zoom={0.82} colorBalance={0.1}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(28,20,16,0.88) 0%, rgba(28,20,16,0.7) 60%, rgba(58,42,30,0.6) 100%)', zIndex: 1 }} />
-
       <div style={{ position: 'relative', zIndex: 2, padding: '120px 52px', color: T.cream }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 100, alignItems: 'start' }}>
           <div style={{ position: 'sticky', top: 120 }}>
             <SectionRule label="Orion" num="03" />
-
-            {/* Orion animated badge */}
             <div style={{ marginBottom: 32, display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid rgba(196,160,96,0.4)`, padding: '10px 20px' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animation: 'pulse 2.5s ease-in-out infinite' }} />
               <span style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.gold }}>Thinking Companion</span>
             </div>
-
             <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(48px, 6.5vw, 84px)', lineHeight: 0.9, letterSpacing: '-0.02em', color: T.cream, marginBottom: 24 }}>
               How you<br />feel.<br /><GoldWord>How you think.</GoldWord>
             </h2>
@@ -609,45 +557,14 @@ function OrionSection() {
               "A personal trainer<br />for your mind."
             </div>
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {[
-              {
-                n: '01',
-                title: 'Cognitive Threading',
-                tag: 'Live pattern detection',
-                body: "Orion links your Memory Game accuracy to your Inner Ledger entries in real time. A drop in spatial recall after a journal entry containing specific emotional markers surfaces a Cognitive Load insight, not a failure screen.",
-              },
-              {
-                n: '02',
-                title: 'Rhythm of Thought',
-                tag: 'Proactive focus detection',
-                body: "Orion measures the variance in how long you take to answer, not just whether you got it right. If you answer correctly but took 400% longer than your personal baseline, Orion flags Cognitive Friction and suggests a break before you start struggling.",
-              },
-              {
-                n: '03',
-                title: 'The Reflective Sandwich',
-                tag: 'Pre, session, debrief',
-                body: "Every session has three parts: a Pre-Session mood check, the exercise itself, and an Orion Debrief. The debrief is a synthesis in four parts: a headline, what happened, what it reveals about your mind today, and one thing to try next time.",
-              },
-              {
-                n: '04',
-                title: 'Live Coaching',
-                tag: 'In-session presence',
-                body: "During every game, Orion sends 1 to 2 sentence messages: celebrating a difficult streak, offering a tactical tip for a specific level, or noting a unique pattern it spotted in your choices. It is present, not passive.",
-              },
-              {
-                n: '05',
-                title: 'Orion Memory',
-                tag: 'Long-term adaptation',
-                body: "Orion remembers your journey across all sessions. It learns your personal baselines, notices if you consistently reach a wall at a certain difficulty, and builds tailored strategies to help you move past it.",
-              },
-              {
-                n: '06',
-                title: 'Daily Mind Prompts',
-                tag: 'Outside the games',
-                body: "Orion provides rotating thinking scenarios, 2-minute mental drills, curiosity prompts, and daily challenges you can do anywhere. Your mind stays sharp between sessions, not just during them.",
-              },
+              { n: '01', title: 'Cognitive Threading', tag: 'Live pattern detection', body: "Orion links your Memory Game accuracy to your Inner Ledger entries in real time. A drop in spatial recall after a journal entry containing specific emotional markers surfaces a Cognitive Load insight, not a failure screen." },
+              { n: '02', title: 'Rhythm of Thought', tag: 'Proactive focus detection', body: "Orion measures the variance in how long you take to answer, not just whether you got it right. If you answer correctly but took 400% longer than your personal baseline, Orion flags Cognitive Friction and suggests a break before you start struggling." },
+              { n: '03', title: 'The Reflective Sandwich', tag: 'Pre, session, debrief', body: "Every session has three parts: a Pre-Session mood check, the exercise itself, and an Orion Debrief. The debrief is a synthesis in four parts: a headline, what happened, what it reveals about your mind today, and one thing to try next time." },
+              { n: '04', title: 'Live Coaching', tag: 'In-session presence', body: "During every game, Orion sends 1 to 2 sentence messages: celebrating a difficult streak, offering a tactical tip for a specific level, or noting a unique pattern it spotted in your choices. It is present, not passive." },
+              { n: '05', title: 'Orion Memory', tag: 'Long-term adaptation', body: "Orion remembers your journey across all sessions. It learns your personal baselines, notices if you consistently reach a wall at a certain difficulty, and builds tailored strategies to help you move past it." },
+              { n: '06', title: 'Daily Mind Prompts', tag: 'Outside the games', body: "Orion provides rotating thinking scenarios, 2-minute mental drills, curiosity prompts, and daily challenges you can do anywhere. Your mind stays sharp between sessions, not just during them." },
             ].map(item => (
               <div key={item.n} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 28, padding: '36px 0', borderBottom: '1px solid rgba(250,243,232,0.06)', alignItems: 'start' }}>
                 <span style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(44px, 4.5vw, 68px)', lineHeight: 0.85, letterSpacing: '-0.04em', color: 'rgba(250,243,232,0.07)' }}>{item.n}</span>
@@ -670,27 +587,18 @@ function OrionSection() {
 function Diagnostics() {
   return (
     <section id="science" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', overflow: 'hidden' }}>
-      {/* left: cream grainient */}
       <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           <Grainient
-            color1="#f5e6c8"
-            color2="#c4a882"
-            color3="#7a5c38"
-            timeSpeed={0.09}
-            warpStrength={0.7}
-            warpFrequency={3.0}
-            blendAngle={70}
-            grainAmount={0.09}
-            contrast={1.2}
-            saturation={0.65}
-            zoom={0.95}
+            color1="#f5e6c8" color2="#c4a882" color3="#7a5c38"
+            timeSpeed={0.09} warpStrength={0.7} warpFrequency={3.0}
+            blendAngle={70} grainAmount={0.09} contrast={1.2}
+            saturation={0.65} zoom={0.95}
             style={{ width: '100%', height: '100%' }}
           />
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,224,196,0.86)', zIndex: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,218,188,0.80)', zIndex: 1 }} />
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.05) 1px, transparent 1px)', backgroundSize: '15px 15px', zIndex: 2 }} />
-
         <div style={{ position: 'relative', zIndex: 3, padding: '100px 52px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <SectionRule label="Self Reflection" num="04" light />
@@ -720,10 +628,18 @@ function Diagnostics() {
           </div>
         </div>
       </div>
-
-      {/* right: ink */}
-      <div style={{ background: T.inkMid, padding: '100px 52px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', zIndex: 2 }}>
+      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <Grainient
+            color1="#3a2a1e" color2="#241a13" color3="#14100a"
+            timeSpeed={0.07} warpStrength={0.6} warpFrequency={3.8}
+            warpSpeed={1.1} blendAngle={30} grainAmount={0.07}
+            contrast={1.6} saturation={0.38} zoom={0.92}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(28,20,16,0.55)', zIndex: 1 }} />
+        <div style={{ position: 'relative', zIndex: 2, padding: '100px 52px' }}>
           <SectionRule label="Memory Games" num="05" />
           <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(40px, 5.5vw, 68px)', lineHeight: 0.92, letterSpacing: '-0.015em', color: T.cream, marginBottom: 32 }}>
             Eight<br />Games.<br /><em style={{ fontStyle: 'italic', color: 'rgba(196,168,130,0.7)' }}>Infinite Insight.</em>
@@ -742,7 +658,6 @@ function Diagnostics() {
               <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.1em', color: 'rgba(250,243,232,0.3)', lineHeight: 1.8 }}>{item.sub}</div>
             </div>
           ))}
-
           <div style={{ marginTop: 44, padding: '24px', background: 'rgba(250,243,232,0.03)', border: `1px solid rgba(250,243,232,0.08)`, borderLeft: `3px solid rgba(196,160,96,0.5)` }}>
             <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.gold, marginBottom: 10 }}>Orion is present</div>
             <div style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, lineHeight: 1.8, color: 'rgba(250,243,232,0.45)' }}>During every session, Orion watches your rhythm, celebrates your streaks, and prepares a personalised debrief for when you finish.</div>
@@ -760,24 +675,15 @@ function InnerWork() {
     <section id="inner-work" style={{ position: 'relative', overflow: 'hidden', minHeight: '95vh', display: 'flex', alignItems: 'center' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#d4c9a8"
-          color2="#c4a882"
-          color3="#3a2a1e"
-          timeSpeed={0.07}
-          warpStrength={0.5}
-          warpFrequency={2.4}
-          warpSpeed={0.8}
-          blendAngle={-40}
-          grainAmount={0.095}
-          contrast={1.15}
-          saturation={0.55}
-          zoom={1.0}
+          color1="#d4c9a8" color2="#b8a882" color3="#3a2a1e"
+          timeSpeed={0.07} warpStrength={0.48} warpFrequency={2.4}
+          warpSpeed={0.75} blendAngle={-42} grainAmount={0.10}
+          contrast={1.18} saturation={0.52} zoom={1.0}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(245,230,200,0.88)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(238,224,196,0.84)', zIndex: 1 }} />
       <div style={{ position: 'absolute', bottom: -30, left: -10, fontFamily: T.serif, fontWeight: 900, fontStyle: 'italic', fontSize: 'clamp(120px, 17vw, 210px)', lineHeight: 1, color: 'rgba(28,20,16,0.033)', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 2 }}>Inner Work</div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, position: 'relative', zIndex: 3, width: '100%', padding: '112px 52px', color: T.ink }}>
         <div>
           <SectionRule label="Guided Sessions" num="06" light />
@@ -806,7 +712,6 @@ function InnerWork() {
             ))}
           </div>
         </div>
-
         <div>
           <div style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(34px, 4.8vw, 58px)', color: 'rgba(28,20,16,0.28)', lineHeight: 1.1, marginBottom: 52 }}>
             "Not therapy.<br />A way forward."
@@ -844,27 +749,17 @@ function Privacy() {
     <section id="privacy" style={{ position: 'relative', overflow: 'hidden', minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#241a13"
-          color2="#3a2a1e"
-          color3="#1c1410"
-          timeSpeed={0.06}
-          warpStrength={0.8}
-          warpFrequency={5.5}
-          warpSpeed={2.0}
-          blendAngle={15}
-          grainAmount={0.055}
-          contrast={1.6}
-          saturation={0.35}
-          zoom={0.78}
+          color1="#241a13" color2="#3a2a1e" color3="#1c1410"
+          timeSpeed={0.06} warpStrength={0.8} warpFrequency={5.5}
+          warpSpeed={2.0} blendAngle={15} grainAmount={0.055}
+          contrast={1.6} saturation={0.35} zoom={0.78}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(28,20,16,0.72)', zIndex: 1 }} />
-
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(18,12,8,0.68)', zIndex: 1 }} />
       <svg style={{ position: 'absolute', top: '50%', right: -180, transform: 'translateY(-50%)', opacity: 0.055, pointerEvents: 'none', zIndex: 2 }} width="540" height="540" viewBox="0 0 540 540">
         {[36, 80, 128, 180, 234, 264].map((r, i) => <circle key={r} cx="270" cy="270" r={r} fill="none" stroke="#f5e6c8" strokeWidth={i < 4 ? 1 : 0.7} />)}
       </svg>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center', position: 'relative', zIndex: 3, width: '100%', padding: '120px 52px', color: T.cream }}>
         <div>
           <SectionRule label="Local-First Privacy" num="07" />
@@ -888,7 +783,6 @@ function Privacy() {
             ))}
           </div>
         </div>
-
         <div style={{ padding: 36, background: 'rgba(250,243,232,0.03)', border: '1px solid rgba(250,243,232,0.08)', boxShadow: `5px 5px 0 rgba(90,60,36,0.5)` }}>
           <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 20, color: T.cream, letterSpacing: '-0.01em', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(250,243,232,0.08)' }}>Privacy Manifest</div>
           {[
@@ -920,21 +814,13 @@ function CTA() {
     <section id="begin" style={{ position: 'relative', overflow: 'hidden', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#c4a882"
-          color2="#e8d5b0"
-          color3="#1c1410"
-          timeSpeed={0.1}
-          warpStrength={0.7}
-          grainAmount={0.06}
-          contrast={1.3}
-          saturation={0.7}
-          zoom={0.9}
-          blendAngle={-10}
+          color1="#c4a882" color2="#e8d5b0" color3="#1c1410"
+          timeSpeed={0.1} warpStrength={0.7} grainAmount={0.065}
+          contrast={1.35} saturation={0.72} zoom={0.9} blendAngle={-10}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(28,20,16,0.65) 0%, rgba(28,20,16,0.78) 100%)', zIndex: 1 }} />
-
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(28,20,16,0.65) 0%, rgba(28,20,16,0.82) 100%)', zIndex: 1 }} />
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', height: 5, zIndex: 2 }}>
         <span style={{ flex: 2, background: T.ink }} />
         <span style={{ flex: 1, background: `rgba(196,160,96,0.6)` }} />
@@ -942,23 +828,23 @@ function CTA() {
         <span style={{ flex: 3, background: T.ink }} />
         <span style={{ flex: 1, background: 'rgba(196,168,130,0.18)' }} />
       </div>
-
       <div style={{ position: 'relative', zIndex: 3, fontFamily: T.serif, fontWeight: 300, fontSize: 'clamp(38px, 6vw, 82px)', lineHeight: 1.05, letterSpacing: '-0.01em', color: T.cream, maxWidth: 720, margin: '0 auto 80px', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 52px 0' }}>
         Every thought held.<br />
         Every pattern <strong style={{ fontWeight: 900 }}>understood.</strong>
         <span style={{ fontFamily: T.script, fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(48px, 8vw, 112px)', color: 'rgba(250,243,232,0.28)', display: 'block', lineHeight: 1, margin: '8px 0', letterSpacing: '0.01em' }}>privately.</span>
         <div style={{ marginTop: 52, display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="#" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '16px 40px', textDecoration: 'none', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s' }}
+          <button
+            onClick={goToSignup}
+            style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '16px 40px', border: 'none', cursor: 'pointer', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
-          >Begin Your Journey</a>
+          >Begin Your Journey</button>
           <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.38)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.16)', paddingBottom: 2, alignSelf: 'center', transition: 'color .2s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.38)' }}
           >Explore Features</a>
         </div>
       </div>
-
       <div style={{ position: 'relative', zIndex: 3, padding: '0 52px', borderTop: '1px solid rgba(250,243,232,0.07)', paddingTop: 44, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 60, marginBottom: 44 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 }}>
@@ -1005,7 +891,7 @@ export default function LuminaOrionLanding() {
         html { scroll-behavior: smooth; }
         body { background: #1c1410; color: #f5e6c8; font-family: 'DM Sans', sans-serif; overflow-x: hidden; cursor: crosshair; }
         a { color: inherit; text-decoration: none; }
-        button { cursor: crosshair; border: none; background: none; }
+        button { cursor: crosshair; background: none; }
         @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes textShimmer { to { background-position: -200% center; } }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
