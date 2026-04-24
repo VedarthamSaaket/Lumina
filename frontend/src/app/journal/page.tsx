@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
@@ -28,10 +28,7 @@ interface JournalEntry {
 function BookScene({ onBookClick }: { onBookClick: () => void }) {
     const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
-    const mountRef = typeof document !== 'undefined' ? (() => {
-        const { useRef } = require('react')
-        return useRef<HTMLDivElement>(null)
-    })() : { current: null }
+    const mountRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         let cancelled = false

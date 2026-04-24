@@ -1701,7 +1701,7 @@ function ResultScreen({ gameId, rounds, onRetake, onBack }: {
   const [summary, setSummary] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const stats = (() => {
+  const stats: Record<string, string | number> = (() => {
     const correct = rounds.filter(r => r.correct).length
     const maxLevel = Math.max(...rounds.map(r => r.level), 0)
     const total = rounds.length
@@ -1748,7 +1748,7 @@ function ResultScreen({ gameId, rounds, onRetake, onBack }: {
   useEffect(() => {
     if (savedRef.current) return
     savedRef.current = true
-    const numStats: Record<string, number | string> = { ...stats }
+    const numStats = { ...stats }
     generateMemorySummary(gameId, numStats, rounds as AnyRound[]).then(s => {
       setSummary(s)
       setLoading(false)
@@ -3222,9 +3222,9 @@ export default function MemoryPage() {
   }
 
   const gameGroups = [
-    { label: 'Sequence Memory', ids: ['digit', 'letter', 'math'] as GameId[] },
-    { label: 'Visual Memory', ids: ['color', 'spatial', 'spatial_reverse'] as GameId[] },
-    { label: 'Verbal Memory', ids: ['word'] as GameId[] },
+    { label: 'Sequence Memory', ids: ['digit', 'letter', 'math'] as (keyof typeof GAMES)[] },
+    { label: 'Visual Memory', ids: ['color', 'spatial', 'spatial_reverse'] as (keyof typeof GAMES)[] },
+    { label: 'Verbal Memory', ids: ['word'] as (keyof typeof GAMES)[] },
   ]
 
   return (
@@ -3378,7 +3378,7 @@ export default function MemoryPage() {
             <motion.div key="result">
               <OrionDebrief
                 gameId={selected}
-                gameTitle={GAMES[selected]?.title || selected}
+                gameTitle={GAMES[selected as keyof typeof GAMES]?.title || selected}
                 rounds={rounds}
                 stats={{
                   'Rounds played': rounds.length,
@@ -3389,8 +3389,8 @@ export default function MemoryPage() {
                 sessionStartMs={sessionStartRef.current}
                 onBack={back}
                 onRetake={retake}
-                color={GAMES[selected]?.color || GOLD}
-                icon={GAMES[selected]?.icon || '◉'}
+                color={GAMES[selected as keyof typeof GAMES]?.color || GOLD}
+                icon={GAMES[selected as keyof typeof GAMES]?.icon || '◉'}
               />
             </motion.div>
           )}

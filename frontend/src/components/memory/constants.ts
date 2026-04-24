@@ -1,4 +1,4 @@
-import { MemoryGameId, GameConfig, PuzzleGameId, PuzzleConfig, SeqMode } from './types'
+import { MemoryGameId, GameConfig, PuzzleGameId, PuzzleConfig, SeqMode, GameId } from './types'
 
 // Colors
 export const SAGE = '#7A9E7E'
@@ -179,7 +179,7 @@ export const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 
 // Game groups for selector
 export const GAME_GROUPS = [
-  { label: 'Sequence Memory', ids: ['digit', 'letter', 'math'] as GameId[] },
-  { label: 'Visual Memory', ids: ['color', 'spatial', 'spatial_reverse'] as GameId[] },
-  { label: 'Verbal Memory', ids: ['word'] as GameId[] },
+  { label: 'Sequence Memory', ids: ['digit', 'letter', 'math'] as MemoryGameId[] },
+  { label: 'Visual Memory', ids: ['color', 'spatial', 'spatial_reverse'] as MemoryGameId[] },
+  { label: 'Verbal Memory', ids: ['word'] as MemoryGameId[] },
 ] as const

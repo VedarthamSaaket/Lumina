@@ -388,7 +388,7 @@ async def orion_stream(
     if data.right_panel_context:
         ctx = data.right_panel_context
         panel_type = ctx.get("type", "unknown")
-    panel_data = ctx.get("data", {})
+        panel_data = ctx.get("data", {})
         if panel_type == "scenario":
             right_panel_prompt = f"""
 
@@ -422,17 +422,17 @@ CURRENT CHALLENGE CONTEXT:
 Encourage the user to try this challenge. Check in on their progress.
 """
     elif panel_type == "fun_fact":
-        right_panel_prompt = f"""
+        right_panel_prompt = """
 
 CURRENT FUN FACT CONTEXT:
-- Hook: {panel_data.get('hook', ''))}
-- Detail: {panel_data.get('detail', ''))}
-- Connection: {panel_data.get('connection', ''))}
+- Hook: {panel_data.get('hook', '')}}
+- Detail: {panel_data.get('detail', '')}}
+- Connection: {panel_data.get('connection', '')}}
 
 Discuss this brain fact with the user and encourage them to apply it.
 """
     elif panel_type == "curiosity_prompt":
-        right_panel_prompt = f"""
+        right_panel_prompt = """
 
 CURRENT CURIOSITY PROMPT CONTEXT:
 - Question: {panel_data.get('question', ''))}
@@ -493,7 +493,7 @@ async def orion_message(
     if data.right_panel_context:
         ctx = data.right_panel_context
         panel_type = ctx.get("type", "unknown")
-    panel_data = ctx.get("data", {})
+        panel_data = ctx.get("data", {})
         if panel_type == "scenario":
             right_panel_prompt = f"""
 
@@ -526,7 +526,7 @@ CURRENT CHALLENGE CONTEXT:
 Encourage the user to try this challenge.
 """
     elif panel_type == "fun_fact":
-        right_panel_prompt = f"""
+        right_panel_prompt = """
 
 CURRENT FUN FACT CONTEXT:
 - Hook: {panel_data.get('hook', ')}
@@ -536,7 +536,7 @@ CURRENT FUN FACT CONTEXT:
 Discuss this brain fact with the user and encourage them to apply it.
 """
     elif panel_type == "curiosity_prompt":
-        right_panel_prompt = f"""
+        right_panel_prompt = """
 
 CURRENT CURIOSITY PROMPT CONTEXT:
 - Question: {panel_data.get('question', ')}

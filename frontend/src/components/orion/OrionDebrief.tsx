@@ -88,7 +88,7 @@ function computeDetailedStats(gameId: string, rounds: any[], sessionDurationMs: 
         const reverseRounds = rounds.filter(r => r.mode === 'reverse')
         const maxFwdSpan = Math.max(...correct.filter(r => r.mode === 'forward').map(r => r.sequence?.length || 0), 0)
         const maxRevSpan = Math.max(...correct.filter(r => r.mode === 'reverse').map(r => r.sequence?.length || 0), 0)
-        const modesUsed = [...new Set(rounds.map(r => r.mode).filter(Boolean))]
+        const modesUsed = Array.from(new Set(rounds.map(r => r.mode).filter(Boolean)))
         const forwardAcc = forwardRounds.length > 0 ? Math.round(forwardRounds.filter(r => r.correct).length / forwardRounds.length * 100) : null
         const reverseAcc = reverseRounds.length > 0 ? Math.round(reverseRounds.filter(r => r.correct).length / reverseRounds.length * 100) : null
 
@@ -127,7 +127,7 @@ function computeDetailedStats(gameId: string, rounds: any[], sessionDurationMs: 
         fatiguedPattern,
         sessionDurationSec: Math.round(sessionDurationMs / 1000),
         ...gameSpecific,
-    }
+    } as Record<string, any>
 }
 
 export default function OrionDebrief({

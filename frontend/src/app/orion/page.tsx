@@ -45,7 +45,8 @@ const RESEARCH_HIGHLIGHTS = [
 
 export default function OrionPage() {
     const [chatOpen, setChatOpen] = useState(true)
-    const [rightContent, setRightContent] = useState<string | null>(null)\n  const [rightPanelActive, setRightPanelActive] = useState<any>(null)
+    const [rightContent, setRightContent] = useState<string | null>(null)
+    const [rightPanelActive, setRightPanelActive] = useState<any>(null)
     const [showInfo, setShowInfo] = useState(true)
     const { theme } = useThemeStore()
     const isDark = theme === 'dark'
@@ -65,10 +66,10 @@ export default function OrionPage() {
         setRightContent(null)
   setRightPanelActive(null)
         setShowInfo(true)
+    }, [])
 
-const handleContentLoaded = useCallback((content: { type: string; data: Record<string, any> }) => {
-  setRightPanelActive(content)
-}, [])
+    const handleContentLoaded = useCallback((content: { type: string; data: Record<string, any> }) => {
+        setRightPanelActive(content)
     }, [])
 
     return (
@@ -88,7 +89,7 @@ const handleContentLoaded = useCallback((content: { type: string; data: Record<s
         color3={isDark ? '#050a10' : '#e8f0f8'}
       />
     </div>
-    <ParticleCanvas colors={[ORION_COLOR, '#3a7abd', '#1a5a9e', '#7bb8f0']} count={18} style={{ position: 'relative', zIndex: 1 }} />
+    <div style={{ position: 'relative', zIndex: 1 }}><ParticleCanvas colors={[ORION_COLOR, '#3a7abd', '#1a5a9e', '#7bb8f0']} count={18} /></div>
     <Navigation />
 
             <div className="relative z-10 pt-20 pb-20 px-5" style={{ maxWidth: '1200px', margin: '0 auto' }}>

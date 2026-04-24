@@ -215,7 +215,7 @@ export default function OrionLiveObserver({ gameType }: OrionLiveObserverProps) 
     }, [gameType, pushNotification])
 
     useEffect(() => {
-        window.addEventListener('orion:live', handleOrionEvent as EventListener)
+        window.addEventListener('orion:live', handleOrionEvent as unknown as EventListener)
 
         // Announce session start
         setTimeout(() => {
@@ -223,7 +223,7 @@ export default function OrionLiveObserver({ gameType }: OrionLiveObserverProps) 
         }, 1500)
 
         return () => {
-            window.removeEventListener('orion:live', handleOrionEvent as EventListener)
+            window.removeEventListener('orion:live', handleOrionEvent as unknown as EventListener)
         }
     }, [handleOrionEvent, pushNotification])
 
