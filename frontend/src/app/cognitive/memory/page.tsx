@@ -10,8 +10,8 @@ import OrionButton from '@/components/orion/OrionButton'
 import OrionLiveObserver, { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
 import { orion } from '@/lib/orionBridge'
 import OrionDebrief from '@/components/orion/OrionDebrief'
-import OrionChatPanel from '@/components/orion/OrionChatPanel'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
+
 function OrionBanner() {
   return (
     <motion.div
@@ -59,12 +59,7 @@ type PuzzleGameId = 'matrix' | 'oddoneout' | 'series' | 'analogy' | 'paperfold'
 interface BaseRound { level: number; correct: boolean }
 const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5)
 
-interface SeqRound extends BaseRound {
-  type: 'sequence'
-  mode: 'forward' | 'reverse' | 'ascending' | 'descending' | 'odd_only' | 'even_only'
-  sequence: (number | string)[]
-  given: (number | string)[]
-}
+interface SeqRound extends BaseRound { type: 'sequence'; mode: string; sequence: (number | string)[]; given: (number | string)[] }
 interface SpatialRound extends BaseRound { type: 'spatial'; shown: number[]; selected: number[] }
 interface WordRound extends BaseRound { type: 'word'; words: string[]; recalled: string[] }
 interface ColorRound extends BaseRound { type: 'color'; sequence: string[]; given: string[] }
@@ -816,6 +811,14 @@ function SequenceGame({
       return newRounds
     })
     setLastCorrect(correct)
+  // Orion live commentary
+ if (correct) {
+    dispatchOrionLiveEvent('correct', { game_type: gameId, level, roundInLevel })
+    if (roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: gameId, level: level + 1 })
+  } else {
+    dispatchOrionLiveEvent('wrong', { game_type: gameId, level, roundInLevel })
+    if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: gameId, consecutive_fails: newConsecFails })
+  }
     setPhase('feedback')
 
     if (newConsecFails < MAX_CONSEC) {
@@ -994,6 +997,8 @@ function MathGame({
     })
     setLastCorrect(correct)
     setPhase('feedback')
+  // Orion live commentary - math
+  if (correct) { dispatchOrionLiveEvent('correct', { game_type: 'math', level, roundInLevel }); if (roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: 'math', level: level + 1 }); } else { dispatchOrionLiveEvent('wrong', { game_type: 'math', level, roundInLevel }); if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: 'math', consecutive_fails: newConsecFails }); }
     if (newConsecFails < MAX_CONSEC) {
       setTimeout(() => {
         if (!mountedRef.current) return
@@ -1170,6 +1175,8 @@ function ColorGame({
       })
       setLastCorrect(correct)
       setPhase('feedback')
+  // Orion live commentary - color
+  if (correct) { dispatchOrionLiveEvent('correct', { game_type: 'color', level, roundInLevel }); if (roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: 'color', level: level + 1 }); } else { dispatchOrionLiveEvent('wrong', { game_type: 'color', level, roundInLevel }); if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: 'color', consecutive_fails: newConsecFails }); }
       if (newConsecFails < MAX_CONSEC) {
         setTimeout(() => {
           if (!mountedRef.current) return
@@ -1391,6 +1398,8 @@ function SpatialGame({
     })
     setLastCorrect(correct)
     setPhase('feedback')
+  // Orion live commentary - spatial
+  if (correct) { dispatchOrionLiveEvent('correct', { game_type: 'spatial', level, roundInLevel }); if (roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: 'spatial', level: level + 1 }); } else { dispatchOrionLiveEvent('wrong', { game_type: 'spatial', level, roundInLevel }); if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: 'spatial', consecutive_fails: newConsecFails }); }
     if (newConsecFails < MAX_CONSEC) {
       const delay = correct ? 1400 : 2800
       setTimeout(() => {
@@ -3452,16 +3461,35 @@ export default function MemoryPage() {
 
       {/* Orion chat panel - shown on left side when not playing */}
       {phase === 'selector' && (
-        <div style={{
-          position: 'fixed', left: '16px', bottom: '16px',
-          width: '320px', height: '420px', zIndex: 100,
-        }}>
-          <OrionChatPanel
-            isMemoryPage
-            gameType={activeGameType || undefined}
-            onRequestRightPanel={(type) => setOrionRightContent(type)}
-          />
-        </div>
+            <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              position: 'fixed', left: '20px', bottom: '20px',
+              zIndex: 100, display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '8px 14px', borderRadius: '24px',
+              background: 'rgba(91,155,213,0.08)',
+              border: '1px solid rgba(91,155,213,0.25)',
+              cursor: 'default',
+            }}
+          >
+            <motion.div
+              animate={{ scale: [1, 1.5, 1], opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: '#5B9BD5',
+                boxShadow: '0 0 12px rgba(91,155,213,0.7)',
+              }}
+            />
+            <span style={{
+              fontFamily: 'var(--font-jost)', fontSize: '10px',
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: 'rgba(91,155,213,0.85)',
+            }}>
+              Orion watching
+            </span>
+          </motion.div>
       )}
 
       {/* Orion right panel */}

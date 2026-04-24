@@ -9,6 +9,7 @@ import type { RiskLevel } from '@/types'
 import { CrisisBanner } from '@/components/crisis/CrisisBanner'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
+import { useThemeStore } from '@/lib/themeStore'
 import Grainient from '@/components/ui/Grainient'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -107,6 +108,8 @@ function getAuthHeader(): Record<string, string> {
 
 export default function ChatPage() {
   const router = useRouter()
+  const { theme } = useThemeStore()
+  const isLight = theme === 'light'
   const [userName, setUserName] = useState<string | null>(null)
   const [msgs, setMsgs] = useState<Msg[]>([buildWelcome(null)])
   const [input, setInput] = useState('')
@@ -395,6 +398,7 @@ export default function ChatPage() {
   return (
     <main className={`min-h-screen relative overflow-hidden ${risk >= 2 ? 'bg-crisis' : 'bg-chat'}`}>
       <ParticleCanvas colors={risk >= 2 ? ['#dc2626', '#7f1d1d'] : ['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+ {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
       <Navigation />
       {risk >= 2 && <CrisisBanner level={risk} />}
       {!online && (
@@ -413,10 +417,11 @@ export default function ChatPage() {
         {/* ── SIDEBAR ── */}
         <div style={{
           width: '300px', flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column',
-          background: 'rgba(255,200,120,0.028)',
+          background: isLight ? 'linear-gradient(170deg, rgba(255,245,220,0.78) 0%, rgba(240,230,204,0.72) 50%, rgba(226,216,184,0.68) 100%)' : 'rgba(255,200,120,0.028)',
           backdropFilter: 'blur(40px) saturate(180%)',
           WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-          borderRight: '1px solid rgba(212,175,55,0.1)',
+          borderRight: isLight ? '1px solid rgba(180,150,100,0.18)' : '1px solid rgba(212,175,55,0.1)',
+    boxShadow: isLight ? '4px 0 28px rgba(160,130,90,0.15), inset 0 1px 0 rgba(255,255,255,0.5)' : 'none',
         }}>
           <div style={{ padding: '14px 12px 8px', flexShrink: 0 }}>
             <button onClick={newChat} style={{

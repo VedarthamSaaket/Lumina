@@ -202,9 +202,10 @@ function ContextRow({
   )
 }
 
-function MemoryViewer({ title, color, endpoint }: { title: string; color: string; endpoint: string }) {
-  const [data, setData] = useState<string>('')
+function MemoryViewer({ title, color, endpoint, isOrion = false }: { title: string; color: string; endpoint: string; isOrion?: boolean }) {
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -212,7 +213,7 @@ function MemoryViewer({ title, color, endpoint }: { title: string; color: string
         const res = await apiFetch(endpoint)
         if (res.ok) {
           const json = await res.json()
-          setData(JSON.stringify(json, null, 2))
+          setData(json)
         }
       } catch { /* */ }
       setLoading(false)
@@ -220,31 +221,111 @@ function MemoryViewer({ title, color, endpoint }: { title: string; color: string
     load()
   }, [endpoint])
 
-  return (
-    <SectionCard color={color}>
-      <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color }}>{title}</p>
-      <p className="font-body text-sm italic mb-4" style={{ color: 'var(--text-muted)' }}>
-        This is the actual memory data being injected into chat sessions. It evolves as you interact.
-      </p>
-      {loading ? (
+  if (loading) {
+    return (
+      <SectionCard color={color}>
+        <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color }}>{title}</p>
         <div className="flex justify-center py-8">
           <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
             style={{ borderColor: `${color} transparent transparent transparent` }} />
         </div>
-      ) : (
-        <textarea
-          value={data}
-          readOnly
-          rows={10}
-          className="w-full p-4 rounded-xl resize-none font-mono focus:outline-none"
-          style={{
-            background: 'var(--bg-glass)', border: `1px solid ${color}25`,
-            color: 'var(--text-primary)', lineHeight: '1.5', fontSize: '11px',
-          }}
-        />
+      </SectionCard>
+    )
+  }
+
+  if (!data) {
+    return (
+      <SectionCard color={color}>
+        <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color }}>{title}</p>
+        <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>No memory data yet.</p>
+      </SectionCard>
+    )
+  }
+
+  const insights = data.insights || []
+  const settingsPrompt = data.settings_prompt || data.orion_settings_prompt || ''
+  const userContext = data.user_context || data.cognitive_context || data.user_memory || ''
+  const name = data.preferred_name || data.name || ''
+  const focusAreas = data.focus_areas || data.orion_focus_games || []
+
+  return (
+    <SectionCard color={color}>
+      <p className="font-jost text-xs tracking-widest uppercase mb-1" style={{ color }}>{title}</p>
+      <p className="font-body text-xs italic mb-4" style={{ color: 'var(--text-muted)' }}>
+        {isOrion ? "What Orion knows about your thinking and game performance." : "What Lumina remembers about your emotions and journey."}
+      </p>
+
+      {/* Quick Overview */}
+      {(name || focusAreas.length > 0) && (
+        <div className="mb-4 p-3 rounded-lg" style={{ background: `${color}10`, border: `1px solid ${color}20` }}>
+          {name && (
+            <p className="font-jost text-xs mb-2" style={{ color: 'var(--text-primary)' }}>
+              <span style={{ color }}>Name:</span> {name}
+            </p>
+          )}
+          {focusAreas.length > 0 && (
+            <div>
+              <p className="font-jost text-xs mb-1" style={{ color }}>Focus areas:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {focusAreas.slice(0, 5).map((area: string, i: number) => (
+                  <span key={i} className="px-2 py-0.5 rounded-full text-xs font-jost"
+                    style={{ background: `${color}18`, color: 'var(--text-primary)' }}>
+                    {area}
+                  </span>
+                ))}
+                {focusAreas.length > 5 && (
+                  <span className="text-xs font-jost" style={{ color: 'var(--text-muted)' }}>
+                    +{focusAreas.length - 5} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
-      <p className="font-jost text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-        Read-only. This updates automatically as you use Lumina and Orion.
+
+      {/* Insights */}
+      {insights.length > 0 && (
+        <div className="mb-4">
+          <p className="font-jost text-xs tracking-widest mb-2" style={{ color }}>Stored Insights</p>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: `${color}30 transparent` }}>
+            {insights.slice(0, 6).map((insight: any, i: number) => (
+              <div key={i} className="p-2.5 rounded-lg" style={{ background: 'var(--bg-glass)', border: `1px solid ${color}15` }}>
+                <p className="font-jost text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                  {insight.title}
+                </p>
+                <p className="font-body text-xs italic line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                  {insight.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expandable Raw Context */}
+      <div>
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 mb-2 font-jost text-xs"
+          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <span style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▶</span>
+          {expanded ? 'Hide' : 'Show'} context prompt ({userContext.length} chars)
+        </button>
+        {expanded && userContext && (
+          <textarea
+            readOnly
+            rows={6}
+            value={userContext.slice(0, 2000) + (userContext.length > 2000 ? '...' : '')}
+            className="w-full p-3 rounded-lg resize-none font-mono focus:outline-none"
+            style={{
+              background: 'var(--bg-glass)', border: `1px solid ${color}20`,
+              color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '10px',
+            }}
+          />
+        )}
+      </div>
+
+      <p className="font-jost text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+        Read-only. Grows as you interact with {isOrion ? 'Orion' : 'Lumina'}.
       </p>
     </SectionCard>
   )
@@ -914,7 +995,7 @@ export default function SettingsPage() {
                     These are the conclusions Lumina and Orion store about you from interactions. They evolve over time.
                   </p>
                   <MemoryViewer title="Lumina's Memory" color="#d4af37" endpoint="/api/chat/context" />
-                  <MemoryViewer title="Orion's Memory" color="#6ec6ff" endpoint="/api/orion/memory-view" />
+                  <MemoryViewer title="Orion's Memory" color="#6ec6ff" endpoint="/api/orion/memory-view" isOrion={true} />
                 </motion.div>
               )}
 

@@ -338,6 +338,7 @@ def _get_orion_user_memory(user_id: str, db: Session) -> str:
 class OrionMessageRequest(BaseModel):
     content: str
     history: list[dict] = []
+    right_panel_context: Optional[dict] = None
 
 
 class LiveEventRequest(BaseModel):
@@ -381,7 +382,46 @@ async def orion_stream(
     user_memory = _get_orion_user_memory(current_user.id, db)
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + cognitive_context + user_memory
+
+    # Build right panel context if available
+    right_panel_prompt = ""
+    if data.right_panel_context:
+        ctx = data.right_panel_context
+        panel_type = ctx.get("type", "unknown")
+        if panel_type == "scenario":
+            right_panel_prompt = f"""
+
+CURRENT INTERACTIVE EXERCISE CONTEXT:
+The user is working on a thinking scenario:
+- Scenario: {ctx.get('scenario', '')}
+- Options: {', '.join(ctx.get('options', []))}
+- Think about: {ctx.get('think_about', '')}
+
+When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided. Ask follow-up questions to deepen reflection.
+"""
+        elif panel_type == "exercise":
+            right_panel_prompt = f"""
+
+CURRENT EXERCISE CONTEXT:
+- Exercise: {ctx.get('title', '')}
+- Steps: {ctx.get('instructions', '')}
+- Why it works: {ctx.get('why', '')}
+
+Guide the user through this exercise. Ask them to try it and report back what they noticed.
+"""
+        elif panel_type == "daily_challenge":
+            right_panel_prompt = f"""
+
+CURRENT CHALLENGE CONTEXT:
+- Challenge: {ctx.get('challenge', '')}
+- Task: {ctx.get('task', '')}
+- Level: {ctx.get('level', '')}
+- Bonus: {ctx.get('bonus', '')}
+
+Encourage the user to try this challenge. Check in on their progress.
+"""
+
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -426,7 +466,45 @@ async def orion_message(
     user_memory = _get_orion_user_memory(current_user.id, db)
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + cognitive_context + user_memory
+
+    # Build right panel context if available
+    right_panel_prompt = ""
+    if data.right_panel_context:
+        ctx = data.right_panel_context
+        panel_type = ctx.get("type", "unknown")
+        if panel_type == "scenario":
+            right_panel_prompt = f"""
+
+CURRENT INTERACTIVE EXERCISE CONTEXT:
+The user is working on a thinking scenario:
+- Scenario: {ctx.get('scenario', '')}
+- Options: {', '.join(ctx.get('options', []))}
+- Think about: {ctx.get('think_about', '')}
+
+When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided.
+"""
+        elif panel_type == "exercise":
+            right_panel_prompt = f"""
+
+CURRENT EXERCISE CONTEXT:
+- Exercise: {ctx.get('title', '')}
+- Steps: {ctx.get('instructions', '')}
+- Why it works: {ctx.get('why', '')}
+
+Guide the user through this exercise. Ask them to try it and report back.
+"""
+        elif panel_type == "daily_challenge":
+            right_panel_prompt = f"""
+
+CURRENT CHALLENGE CONTEXT:
+- Challenge: {ctx.get('challenge', '')}
+- Task: {ctx.get('task', '')}
+- Level: {ctx.get('level', '')}
+
+Encourage the user to try this challenge.
+"""
+
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:

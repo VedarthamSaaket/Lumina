@@ -960,15 +960,19 @@ textarea {
   color: var(--text-primary);
 }
 
-/* FIXED: light mode active chat item — neutral stone instead of yellow */
+/* Light mode sidebar chat items - creamish brown */
+.light .chat-history-item {
+  background: transparent !important;
+}
+
 .light .chat-history-item.active {
-  background: rgba(100, 88, 72, 0.12) !important;
-  border-color: rgba(100, 88, 72, 0.24) !important;
+  background: rgba(255, 245, 220, 0.55) !important;
+  border-color: rgba(180, 150, 100, 0.22) !important;
 }
 
 .light .chat-history-item:hover {
-  background: rgba(100, 88, 72, 0.07) !important;
-  border-color: rgba(100, 88, 72, 0.14) !important;
+  background: rgba(255, 245, 220, 0.35) !important;
+  border-color: rgba(180, 150, 100, 0.15) !important;
 }
 
 .chat-history-title {

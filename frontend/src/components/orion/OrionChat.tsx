@@ -206,8 +206,8 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                     }}
                 >
  {/* Grain overlay */}
- <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', borderRadius: '20px', overflow: 'hidden' }}>
- <Grainient grainAmount={0.05} grainScale={2} grainAnimated={true} timeSpeed={0.12} colorBalance={isDark ? 0.18 : -0.08} warpStrength={0} rotationAmount={0} color1={isDark ? '#2d1a0a' : '#a8bfc8'} color2={isDark ? '#120a05' : '#d8d2c6'} color3={isDark ? '#080402' : '#ebe6de'} />
+ <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', borderRadius: '20px', overflow: 'hidden' }}>
+ <Grainient grainAmount={0.05} grainScale={2} grainAnimated={true} timeSpeed={0.12} colorBalance={isDark ? 0.18 : -0.08} warpStrength={0} rotationAmount={0} color1={isDark ? '#1a2a3a' : '#a8c8d8'} color2={isDark ? '#0a1520' : '#c8d8e8'} color3={isDark ? '#050a10' : '#e8f0f8'} />
  </div>
                     {/* Header */}
                     <div style={{
