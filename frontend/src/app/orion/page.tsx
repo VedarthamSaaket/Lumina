@@ -63,7 +63,12 @@ export default function OrionPage() {
 
     const handleCloseRightPanel = useCallback(() => {
         setRightContent(null)
+  setRightPanelActive(null)
         setShowInfo(true)
+
+const handleContentLoaded = useCallback((content: { type: string; data: Record<string, any> }) => {
+  setRightPanelActive(content)
+}, [])
     }, [])
 
     return (
@@ -135,6 +140,7 @@ export default function OrionPage() {
                     >
                         <OrionChatPanel
                             onRequestRightPanel={handleRightPanelRequest}
+        rightPanelContext={rightPanelActive}
                         />
                     </motion.div>
 
@@ -158,6 +164,7 @@ export default function OrionPage() {
                                     <OrionRightPanel
                                         contentType={rightContent}
                                         onClose={handleCloseRightPanel}
+        onContentLoaded={handleContentLoaded}
                                     />
                                 </motion.div>
                             ) : (
