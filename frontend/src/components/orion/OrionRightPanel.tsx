@@ -220,13 +220,9 @@ function pickRandom<T>(arr: T[]): T {
 return arr[Math.floor(Math.random() * arr.length)]
 }
 
-interface OrionRightPanelProps {
-contentType: string
-gameType?: string
-onClose: () => void
-}
+interface OrionRightPanelProps {\r\n  contentType: string\r\n  gameType?: string\r\n  onClose: () => void\r\n  onContentLoaded?: (content: { type: string; data: Record<string, any> }) => void\r\n}
 
-export default function OrionRightPanel({ contentType, gameType, onClose }: OrionRightPanelProps) {
+export default function OrionRightPanel({ contentType, gameType, onClose, onContentLoaded }: OrionRightPanelProps) {
 const { theme } = useThemeStore()
 const isDark = theme === 'dark'
 const color = '#5B9BD5'
@@ -260,16 +256,14 @@ headers: getAuthHeader(),
 })
 if (res.ok) {
 const data = await res.json()
-if (data && (data.hook || data.scenario || data.title || data.question || data.challenge)) {
-setContent(data)
-setLoading(false)
-return
-}
+if (data && (data.hook || data.scenario || data.title || data.question || data.challenge)) {\r\n          setContent(data)\r\n          setLoading(false)\r\n          if (onContentLoaded) onContentLoaded({ type: contentType, data })\r\n          return\r\n        }
 }
 } catch { /* use local */ }
 
-setContent(loadLocalContent())
+const localContent = loadLocalContent()
+setContent(localContent)
 setLoading(false)
+if (onContentLoaded) onContentLoaded({ type: contentType, data: localContent })
 }
 
 useEffect(() => { loadContent() }, [contentType, gameType])

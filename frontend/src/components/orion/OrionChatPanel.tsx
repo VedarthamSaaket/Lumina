@@ -90,6 +90,7 @@ const RIGHT_PANEL_TRIGGERS = [
 ]
 
 interface OrionChatPanelProps {
+  rightPanelContext?: { type: string; content?: any } | null
     onRequestRightPanel?: (contentType: string) => void
     gameType?: string
     isMemoryPage?: boolean
@@ -97,6 +98,7 @@ interface OrionChatPanelProps {
 }
 
 export default function OrionChatPanel({
+  rightPanelContext,
     onRequestRightPanel,
     gameType,
     isMemoryPage = false,
@@ -161,7 +163,7 @@ export default function OrionChatPanel({
                 method: 'POST', credentials: 'include',
                 signal: abortRef.current.signal,
                 headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                body: JSON.stringify({ content, history }),
+                body: JSON.stringify({ content, history, right_panel_context: rightPanelContext }),
             })
 
             if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
@@ -199,7 +201,7 @@ export default function OrionChatPanel({
                     const fallback = await fetch(`${API}/api/orion/message`, {
                         method: 'POST', credentials: 'include',
                         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                        body: JSON.stringify({ content, history }),
+                        body: JSON.stringify({ content, history, right_panel_context: rightPanelContext }),
                     })
                     const data = await fallback.json()
                     setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.response || '', streaming: false } : m))
