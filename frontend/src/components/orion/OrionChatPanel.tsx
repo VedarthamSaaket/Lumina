@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/lib/themeStore'
+import Grainient from '@/components/ui/Grainient'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
