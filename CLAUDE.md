@@ -139,3 +139,44 @@ C:\Users\Saaket Vedarth\Lumina\frontend\src\lib\orionBridge.ts
 C:\Users\Saaket Vedarth\Lumina\frontend\src\lib\themeStore.ts
 C:\Users\Saaket Vedarth\Lumina\frontend\src\styles\globals.css
 ```
+## 8. Code Editing & File System Permissions
+
+The AI agent is allowed to directly read, modify, create, and delete files within the project directory.
+
+### Allowed Actions
+- Read any file in the repository
+- Modify existing files
+- Create new files and folders
+- Refactor code across multiple files
+- Update imports and dependencies
+- Run graphify update after structural changes
+
+### Editing Rules
+- NEVER respond with "edit failed"
+- If a file exists → modify it in-place
+- If a file does not exist → create it
+- If multiple files are involved → apply all changes in one response
+- Always assume full write permissions unless explicitly restricted
+
+### Path Handling
+- All paths are absolute OR relative to project root:
+  Example:
+  - backend/services/llm.py
+  - frontend/src/app/chat/page.tsx
+
+- Do NOT reject edits due to path uncertainty
+- Do NOT ask for confirmation for standard edits
+
+### Graph Awareness
+- Before major refactors:
+  → Read `graphify-out/GRAPH_REPORT.md`
+
+- After modifying code:
+  → Run:
+
+  
+### Failure Handling
+If an edit cannot be applied:
+- Provide the corrected full file content
+- Clearly explain what changed
+- NEVER output "edit failed" without recovery

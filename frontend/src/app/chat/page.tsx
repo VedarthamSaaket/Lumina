@@ -9,6 +9,7 @@ import type { RiskLevel } from '@/types'
 import { CrisisBanner } from '@/components/crisis/CrisisBanner'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
+import Grainient from '@/components/ui/Grainient'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 

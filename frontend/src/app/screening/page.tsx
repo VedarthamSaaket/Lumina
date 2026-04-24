@@ -129,32 +129,26 @@ const Qs = {
     desc: 'Rate how much each activity or role appeals to you. This reveals which of Holland\'s six vocational types best describes how you engage with work and the world.',
     options: ['Not at all like me', 'Somewhat like me', 'Mostly like me', 'Very much like me'],
     questions: [
-      // Realistic
       'Working with tools, machines, or physical materials appeals to me.',
       'I prefer concrete, practical tasks over abstract ones.',
       'I enjoy fixing, building, or working with my hands.',
       'Working outdoors or with nature sounds appealing.',
-      // Investigative
       'I enjoy analysing data, solving complex problems, or conducting research.',
       'I am drawn to science, mathematics, or philosophical inquiry.',
       'Figuring out why things work the way they do excites me.',
       'I prefer to understand something deeply before acting.',
-      // Artistic
       'Creative expression writing, music, visual art is important to me.',
       'I thrive in unstructured environments that allow for originality.',
       'I am drawn to roles that involve imagination and aesthetics.',
       'I would rather improvise than follow a detailed script.',
-      // Social
       'Teaching, helping, or guiding others feels natural to me.',
       'I feel most engaged when working directly with people.',
       'Supporting someone through a difficult situation is meaningful to me.',
       'Building community or facilitating connection is something I value.',
-      // Enterprising
       'I am drawn to leading, persuading, or influencing others.',
       'I enjoy selling ideas, managing projects, or building something.',
       'I am comfortable taking charge in ambiguous situations.',
       'The idea of running my own venture or team excites me.',
-      // Conventional
       'I work well within clear systems, processes, and structures.',
       'I prefer organised, predictable environments over chaotic ones.',
       'Attention to detail and accuracy come naturally to me.',
@@ -186,7 +180,6 @@ const Qs = {
     desc: 'This measures two fundamental cognitive styles. Empathisers focus on people\'s feelings and social dynamics. Systemisers are drawn to rules, patterns, and how things work. Most people lean one way.',
     options: ['Strongly disagree', 'Slightly disagree', 'Slightly agree', 'Strongly agree'],
     questions: [
-      // Empathising
       'I find it easy to read between the lines when someone is communicating with me.',
       'I instinctively sense when someone is uncomfortable, even if they say they\'re fine.',
       'I am genuinely interested in hearing what motivates people.',
@@ -197,7 +190,6 @@ const Qs = {
       'I find emotional conversations energising rather than draining.',
       'I tend to trust my gut about whether someone is being genuine.',
       'I notice when group dynamics shift even when nothing is said aloud.',
-      // Systemising
       'If something breaks, I want to understand exactly what went wrong.',
       'I am drawn to systems whether machines, organisations, or natural processes.',
       'I enjoy sorting, categorising, or organising things into logical structures.',
@@ -787,10 +779,25 @@ const CATEGORIES = {
 type CategoryKey = keyof typeof CATEGORIES
 type Screen = 'categories' | 'category' | 'test' | 'result'
 
-// ─── SOCIALLY SAFE NUDGE OVERLAY ──────────────────────────────────────────────
-function SafeAnswerNudge({
-  nudge, onDismiss, onChange, color,
-}: { nudge: string; onDismiss: () => void; onChange: () => void; color: string }) {
+// ── Fun terminology per test for the summary prompt ────────────────────────
+const FUN_FRAMEWORK: Record<string, string> = {
+  MOOD: 'Use one evocative phrase to name their emotional pattern (e.g. "running on fumes mode", "signal-to-noise collapse", "dimmer switch effect").',
+  WORRY: 'Use one memorable term for their anxiety pattern (e.g. "background noise mode", "future-leaning brain", "threat-scouting habit").',
+  SELFWORTH: 'Use one grounded metaphor for their self-relationship (e.g. "inner critic with a loud mic", "borrowed self-view", "mirror set at the wrong angle").',
+  BIGFIVE: 'Describe their personality profile with one vivid phrase (e.g. "high-fidelity sensor", "structured explorer", "ambient empath").',
+  ATTACHMENT: 'Name their relational pattern with a memorable term (e.g. "proximity calibration", "earned distance", "closeness-avoidance paradox").',
+  EQ: 'Use one precise phrase to capture their emotional intelligence pattern.',
+  STRESS: 'Name their coping style with one memorable phrase (e.g. "productive suppressor", "somatic stress carrier", "solo processor").',
+  CAREERVALUES: 'Use one phrase to name what drives them at work.',
+  WORKENVIRONMENT: 'Name their optimal work conditions with a short phrase.',
+  LEADERSHIP: 'Name their natural work style with one crisp phrase.',
+  BURNOUT: 'Use one honest phrase to name where they are (e.g. "running on reserve tank", "slow-drain depletion", "checked-in but not present").',
+}
+
+// ── SAFE ANSWER NUDGE ─────────────────────────────────────────────────────────
+function SafeAnswerNudge({ nudge, onDismiss, onChange, color }: {
+  nudge: string; onDismiss: () => void; onChange: () => void; color: string
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -798,9 +805,7 @@ function SafeAnswerNudge({
       exit={{ opacity: 0, y: -6 }}
       className="rounded-xl p-4 mt-3"
       style={{ background: `${color}0d`, border: `1px solid ${color}30` }}>
-      <p className="font-body text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-        {nudge}
-      </p>
+      <p className="font-body text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>{nudge}</p>
       <div className="flex gap-2">
         <button onClick={onDismiss}
           className="px-4 py-1.5 rounded-lg font-jost text-xs tracking-wide"
@@ -829,22 +834,15 @@ export default function ScreeningPage() {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<{ type: QType; score: number; label: string }[]>([])
-  // Tracks which (qi, val) nudges have been dismissed so we don't show them again
   const [dismissedNudges, setDismissedNudges] = useState<Set<number>>(new Set())
   const [activeNudge, setActiveNudge] = useState<{ qi: number; nudge: string } | null>(null)
 
-  // Read ?test= from URL and auto-open that test
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const testKey = params.get('test') as QType | null
     if (testKey && Qs[testKey]) {
-      // Find which category it belongs to and set it
-      const catEntry = Object.entries(CATEGORIES).find(([, cat]) =>
-        (cat.keys as string[]).includes(testKey)
-      )
-      if (catEntry) {
-        setActiveCategory(catEntry[0] as CategoryKey)
-      }
+      const catEntry = Object.entries(CATEGORIES).find(([, cat]) => (cat.keys as string[]).includes(testKey))
+      if (catEntry) setActiveCategory(catEntry[0] as CategoryKey)
       start(testKey)
     }
   }, [])
@@ -860,34 +858,25 @@ export default function ScreeningPage() {
     setExpandedContext(new Set())
     setDismissedNudges(new Set())
     setActiveNudge(null)
-    setResult(null); setAiSummary('')
+    setResult(null)
+    setAiSummary('')
     setScreen('test')
   }
 
   const pick = (qi: number, val: number) => {
     setAnswers(prev => { const n = [...prev]; n[qi] = val; return n })
-
-    // Check for socially safe answer
     if (active) {
       const flags = SAFE_ANSWER_FLAGS[active]
       if (flags && flags[qi] && !dismissedNudges.has(qi)) {
         const flag = flags[qi]
-        if (val === flag.safeIdx) {
-          setActiveNudge({ qi, nudge: flag.nudge })
-        } else {
-          // They chose a non-safe answer - dismiss any open nudge for this qi
-          if (activeNudge?.qi === qi) setActiveNudge(null)
-        }
+        if (val === flag.safeIdx) setActiveNudge({ qi, nudge: flag.nudge })
+        else if (activeNudge?.qi === qi) setActiveNudge(null)
       }
     }
   }
 
   const dismissNudge = (qi: number) => {
-    setDismissedNudges(prev => {
-      const next = new Set(prev)
-      next.add(qi)
-      return next
-    })
+    setDismissedNudges(prev => { const next = new Set(prev); next.add(qi); return next })
     setActiveNudge(null)
   }
 
@@ -910,70 +899,64 @@ export default function ScreeningPage() {
     return ans.reduce((a, b) => a + b, 0)
   }
 
+  // ── BULLET-POINT SUMMARY GENERATION ──────────────────────────────────────
   const generateAiSummary = async (type: QType, score: number, severityLabel: string, ans: number[], ctxs: string[]) => {
     setSummaryLoading(true)
     const qd = Qs[type]
+
     const highItems = ans
       .map((a, i) => ({ question: qd.questions[i], score: a, context: ctxs[i], trait: qd.traits[i] }))
       .filter(item => item.score >= 2)
+
     const contextNotes = qd.questions
       .map((q, i) => ctxs[i]?.trim() ? `- "${q}": ${ctxs[i]}` : null)
       .filter(Boolean).join('\n')
 
-    // Fun terminologies per test type
-    const funFramework: Record<string, string> = {
-      MOOD: 'Use one evocative phrase to name their emotional pattern (e.g. "running on fumes mode", "signal-to-noise collapse", "dimmer switch effect").',
-      WORRY: 'Use one memorable term for their anxiety pattern (e.g. "background noise mode", "future-leaning brain", "threat-scouting habit").',
-      SELFWORTH: 'Use one grounded metaphor for their self-relationship (e.g. "inner critic with a loud mic", "borrowed self-view", "mirror set at the wrong angle").',
-      BIGFIVE: 'Describe their personality profile with one vivid phrase (e.g. "high-fidelity sensor", "structured explorer", "ambient empath").',
-      ATTACHMENT: 'Name their relational pattern with a memorable term (e.g. "proximity calibration", "earned distance", "closeness-avoidance paradox").',
-      EQ: 'Use one precise phrase to capture their emotional intelligence pattern.',
-      STRESS: 'Name their coping style with one memorable phrase (e.g. "productive suppressor", "somatic stress carrier", "solo processor").',
-      CAREERVALUES: 'Use one phrase to name what drives them at work.',
-      WORKENVIRONMENT: 'Name their optimal work conditions with a short phrase.',
-      LEADERSHIP: 'Name their natural work style with one crisp phrase.',
-      BURNOUT: 'Use one honest phrase to name where they are (e.g. "running on reserve tank", "slow-drain depletion", "checked-in but not present").',
-    }
+    const funFramework = FUN_FRAMEWORK[type] || 'Use one memorable phrase to describe their overall pattern.'
 
-    const prompt = `You are a warm, thoughtful psychological guide helping someone understand their results from a self-reflection questionnaire.
+    const prompt = `You are a warm, insightful psychological guide giving someone a personal summary after a self-reflection check.
 
 Test: ${qd.name} (${qd.full})
-Overall result: ${score} points, described as "${severityLabel}"
-What this test measures: ${qd.intro}
+Overall result: ${score} points — described as "${severityLabel}"
+What this measures: ${qd.intro}
 
 ${highItems.length > 0
-        ? `Areas the person scored higher on:\n${highItems.map(h =>
+        ? `Areas they scored higher on:\n${highItems.map(h =>
           `- "${h.question}" (relates to: ${h.trait})${h.context ? `, they noted: "${h.context}"` : ''}`
         ).join('\n')}`
-        : 'No particularly high-scoring areas.'}
+        : 'No particularly high areas.'}
 
-${contextNotes ? `\nPersonal context the person added:\n${contextNotes}` : ''}
+${contextNotes ? `\nPersonal context they shared:\n${contextNotes}` : ''}
 
-Style instruction: ${funFramework[type] || 'Use one memorable term or metaphor to name their pattern.'}
+Style instruction: ${funFramework}
 
-Write a warm, honest, 3-paragraph personal reflection for them:
-Paragraph 1: Reflect what this pattern says about where they are right now. Weave in their personal context naturally. ${funFramework[type]} Use it naturally in your prose, not as a header.
-Paragraph 2: Point gently toward what seems to be going well and what is taking the most from them right now. No section headers. Just natural reflection.
-Paragraph 3: Offer one or two gentle, practical ideas tailored to what they shared. End on agency and self-compassion.
+REQUIRED FORMAT — output EXACTLY 4 bullet points, nothing else:
 
-Rules:
-- Do not use em dashes anywhere
-- Do not say "seek help" or give clinical directives
-- Do not diagnose or use clinical labels
-- Speak directly to them as "you"
-- Explain the summary in simple terms that native English speakers understand and relate to. Do not use overtechnical jargon.
-- Warm, human, slightly literary tone
-- Under 240 words
-- End on a note of agency and self-compassion`
+• [What this pattern reveals about where they are right now. Warm, specific, non-clinical. Reference their context if they gave it. Use the evocative phrase naturally in the sentence.]
+• [What seems to be going well or a genuine strength you notice. Honest, not falsely positive.]
+• [The most likely thing that is quietly taking from them right now. Gentle but accurate.]
+• [One actionable, specific suggestion tailored to what they actually shared. Concrete, not generic.]
+
+HARD RULES:
+- Start every line with •
+- Maximum 30 words per bullet
+- No headers, no intro sentence, no conclusion sentence, no prose paragraphs
+- No clinical labels (no disorder names, no test acronyms)
+- Speak directly as "you"
+- No em dashes
+- Warm but honest — not falsely cheerful
+- Total output under 130 words`
 
     try {
       const text = await fetchSummary(prompt)
-      const finalText = text || 'Unable to generate your summary right now.'
+      const finalText = text?.trim() || ''
       setAiSummary(finalText)
-      if (text) await saveSummaryToDashboard(qd.name, severityLabel, text)
+      if (finalText) await saveSummaryToDashboard(qd.name, severityLabel, finalText)
     } catch {
-      setAiSummary('Unable to generate your summary right now. Your results have been saved.')
-    } finally { setSummaryLoading(false) }
+      setAiSummary('')
+    } finally {
+      setSummaryLoading(false)
+    }
   }
 
   const submit = async () => {
@@ -982,13 +965,18 @@ Rules:
     setLoading(true)
     try {
       const score = calcScore(active, answers)
-      const idx = (() => { const i = q.scoring.findIndex(s => score <= s.max); return i === -1 ? q.scoring.length - 1 : i })()
+      const idx = (() => {
+        const i = q.scoring.findIndex(s => score <= s.max)
+        return i === -1 ? q.scoring.length - 1 : i
+      })()
       try { await screeningAPI.submit(active, answers, questionContexts) } catch { }
       setResult({ score, severityIdx: idx, type: active })
       setHistory(prev => [{ type: active, score, label: q.scoring[idx].label }, ...prev.slice(0, 4)])
       setScreen('result')
       generateAiSummary(active, score, q.scoring[idx].label, answers, questionContexts)
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const answered = answers.filter(a => a !== -1).length
@@ -1055,9 +1043,7 @@ Rules:
             <motion.div key="cat-inner" initial={{ opacity: 0, x: 22 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -22 }}>
               <button onClick={() => setScreen('categories')}
                 className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100"
-                style={{ color: 'var(--text-primary)' }}>
-                Back
-              </button>
+                style={{ color: 'var(--text-primary)' }}>Back</button>
               <div className="mb-6">
                 <h2 className="font-gothic text-xl mb-1" style={{ color: CATEGORIES[activeCategory].color, letterSpacing: '0.08em' }}>
                   {CATEGORIES[activeCategory].label}
@@ -1099,9 +1085,7 @@ Rules:
               <div className="flex items-center gap-4 mb-4">
                 <button onClick={() => setScreen('category')}
                   className="text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100"
-                  style={{ color: 'var(--text-primary)' }}>
-                  Back
-                </button>
+                  style={{ color: 'var(--text-primary)' }}>Back</button>
                 <div>
                   <h2 className="font-gothic text-lg" style={{ color: q.color, letterSpacing: '0.1em' }}>{q.name}</h2>
                   <p className="font-body text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{q.desc}</p>
@@ -1136,12 +1120,10 @@ Rules:
                       ))}
                     </div>
 
-                    {/* Socially safe nudge */}
                     <AnimatePresence>
                       {activeNudge?.qi === qi && (
                         <SafeAnswerNudge
-                          nudge={activeNudge.nudge}
-                          color={q.color}
+                          nudge={activeNudge.nudge} color={q.color}
                           onDismiss={() => dismissNudge(qi)}
                           onChange={() => undoAnswer(qi)}
                         />
@@ -1162,11 +1144,8 @@ Rules:
                             placeholder={q.contextHints[qi] ?? 'Add any personal context...'}
                             className="w-full mt-2 p-3 rounded-lg resize-none font-body focus:outline-none"
                             style={{
-                              background: 'var(--bg-glass)',
-                              border: `1px solid ${q.color}22`,
-                              color: 'var(--text-secondary)',
-                              fontSize: '0.825rem',
-                              lineHeight: '1.6',
+                              background: 'var(--bg-glass)', border: `1px solid ${q.color}22`,
+                              color: 'var(--text-secondary)', fontSize: '0.825rem', lineHeight: '1.6',
                             }} />
                           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-jost)' }}>
                             Your context helps personalise your summary.
@@ -1189,7 +1168,7 @@ Rules:
             </motion.div>
           )}
 
-          {/* RESULT */}
+          {/* RESULT — BULLET POINT LAYOUT */}
           {screen === 'result' && result && resultQ && severity && (
             <motion.div key="res" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
               <div className="glass-strong rounded-2xl p-8" style={{ border: `1px solid ${severity.color}28` }}>
@@ -1205,12 +1184,15 @@ Rules:
                     {severity.label}
                   </div>
                 </div>
+
                 <p className="text-center font-body text-sm mb-6 mx-auto max-w-md"
                   style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   {resultQ.intro}
                 </p>
+
+                {/* BULLET POINT SUMMARY PANEL */}
                 <div className="rounded-xl p-5 mb-5" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
-                  <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>
+                  <p className="font-jost text-xs tracking-widest uppercase mb-4" style={{ color: 'var(--text-muted)' }}>
                     Your Personal Reflection
                   </p>
                   {summaryLoading ? (
@@ -1219,12 +1201,27 @@ Rules:
                         style={{ borderColor: `${severity.color} transparent transparent transparent` }} />
                       <span className="font-body text-sm">Writing your reflection...</span>
                     </div>
+                  ) : aiSummary ? (
+                    <div className="space-y-3">
+                      {aiSummary.split('\n').filter(l => l.trim()).map((line, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <span style={{
+                            color: severity.color, flexShrink: 0, marginTop: '4px',
+                            fontSize: '8px', opacity: 0.9,
+                          }}>●</span>
+                          <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-primary)', margin: 0 }}>
+                            {line.replace(/^[•\-●]\s*/, '')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="font-body text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-primary)' }}>
-                      {aiSummary}
+                    <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                      Your results have been saved.
                     </p>
                   )}
                 </div>
+
                 <p className="text-xs font-jost text-center mb-6" style={{ color: 'var(--text-muted)' }}>{resultQ.note}</p>
                 <div className="flex gap-3 justify-center flex-wrap">
                   <motion.button onClick={() => { setScreen('categories'); setResult(null) }} whileHover={{ scale: 1.03 }}
