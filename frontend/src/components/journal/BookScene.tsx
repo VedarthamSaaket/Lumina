@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface BookScene3DProps {
@@ -9,19 +9,46 @@ interface BookScene3DProps {
 declare global {
     interface Window {
         THREE: any
+        GLTFLoader: any
         __threeLoaded?: boolean
+        __gltfLoaded?: boolean
     }
 }
 
-function loadScript(src: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return }
-        const s = document.createElement('script')
-        s.src = src
-        s.onload = () => resolve()
-        s.onerror = reject
-        document.head.appendChild(s)
-    })
+// Pre-load Three.js and GLTFLoader scripts before component mounts
+function preloadScripts(): Promise<void> {
+    if (typeof window === 'undefined') return Promise.resolve()
+
+    const threeUrl = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
+    const gltfUrl = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'
+
+    const loadScript = (src: string, checkFn: () => boolean): Promise<void> => {
+        return new Promise((resolve) => {
+            if (checkFn()) { resolve(); return }
+            const existing = document.querySelector(`script[src="${src}"]`)
+            if (existing) {
+                // Script tag exists - wait for it
+                const checkInterval = setInterval(() => {
+                    if (checkFn()) { clearInterval(checkInterval); resolve() }
+                }, 50)
+                setTimeout(() => { clearInterval(checkInterval); resolve() }, 5000)
+                return
+            }
+            const s = document.createElement('script')
+            s.src = src
+            s.onload = () => resolve()
+            s.onerror = () => resolve() // resolve even on error, we'll handle it
+            document.head.appendChild(s)
+        })
+    }
+
+    return loadScript(threeUrl, () => !!(window as any).THREE)
+        .then(() => loadScript(gltfUrl, () => !!(window as any).THREE?.GLTFLoader))
+}
+
+// Start preloading immediately when this module loads
+if (typeof window !== 'undefined') {
+    preloadScripts()
 }
 
 export default function BookScene3D({ onBookClick }: BookScene3DProps) {
@@ -30,173 +57,201 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         renderer: any; scene: any; camera: any; model: any
         mixer: any; clock: any; raf: number
         rotY: number; clicking: boolean; clickT: number; zoomT: number
-        bobT: number; initScale: number
+        initScale: number; cancelled: boolean
     } | null>(null)
-    const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash' | 'done'>('loading')
+    const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
 
-    useEffect(() => {
-        let cancelled = false
+    const setupScene = useCallback(async () => {
+        if (!mountRef.current) return
+        const container = mountRef.current
 
-        const bootstrap = async () => {
-            try {
-                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
-                if (cancelled) return
-                const THREE = window.THREE
-                if (!THREE || !mountRef.current) return
-
-                const container = mountRef.current
-                const W = container.clientWidth || window.innerWidth
-                const H = container.clientHeight || window.innerHeight
-
-                const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-                renderer.setSize(W, H)
-                renderer.shadowMap.enabled = true
-                container.appendChild(renderer.domElement)
-
-                const scene = new THREE.Scene()
-                const camera = new THREE.PerspectiveCamera(45, W / H, 0.01, 500)
-                camera.position.set(0, 0.4, 4.5)
-                camera.lookAt(0, 0, 0)
-
-                scene.add(new THREE.AmbientLight(0xfff8e7, 1.4))
-                const key = new THREE.DirectionalLight(0xffd080, 3.8)
-                key.position.set(3, 5, 4)
-                scene.add(key)
-                const fill = new THREE.DirectionalLight(0xc8a060, 1.8)
-                fill.position.set(-4, 2, 3)
-                scene.add(fill)
-                const rim = new THREE.DirectionalLight(0xffe4b5, 2.0)
-                rim.position.set(0, -2, -5)
-                scene.add(rim)
-                const pt1 = new THREE.PointLight(0xd4af37, 5, 10)
-                pt1.position.set(1.5, 2, 3)
-                scene.add(pt1)
-                const pt2 = new THREE.PointLight(0xc9897a, 3, 8)
-                pt2.position.set(-2, 1, 1)
-                scene.add(pt2)
-                scene.add(new THREE.HemisphereLight(0xfff0cc, 0x3d2008, 0.9))
-
-                const clock = new THREE.Clock()
-
-                const s: typeof stateRef.current = {
-                    renderer, scene, camera, model: null,
-                    mixer: null, clock, raf: 0,
-                    rotY: 0, clicking: false, clickT: 0, zoomT: 0,
-                    bobT: 0, initScale: 1
-                }
-                stateRef.current = s
-
-                const glbUrl = '/Hitem3d-1776860930240.glb'
-
-                const loadGLB = async () => {
-                    const loaderSrc = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'
-                    await loadScript(loaderSrc)
-                    if (cancelled) return
-
-                    const Loader = (window as any).THREE?.GLTFLoader
-                    if (!Loader) {
-                        setPhase('idle')
-                        return
-                    }
-
-                    const loader = new Loader()
-                    loader.load(
-                        glbUrl,
-                        (gltf: any) => {
-                            if (cancelled || !s) return
-                            const model = gltf.scene
-
-                            const box = new THREE.Box3().setFromObject(model)
-                            const center = box.getCenter(new THREE.Vector3())
-                            const size = box.getSize(new THREE.Vector3())
-                            const maxDim = Math.max(size.x, size.y, size.z)
-                            const sc = 2.4 / maxDim
-                            model.scale.setScalar(sc)
-                            model.position.sub(center.multiplyScalar(sc))
-                            model.position.y -= 0.05
-
-                            s.initScale = sc
-                            s.model = model
-                            scene.add(model)
-
-                            if (gltf.animations?.length) {
-                                s.mixer = new THREE.AnimationMixer(model)
-                                gltf.animations.forEach((clip: any) => s.mixer.clipAction(clip).play())
-                            }
-
-                            if (!cancelled) setPhase('idle')
-                        },
-                        undefined,
-                        () => { if (!cancelled) setPhase('idle') }
-                    )
-                }
-
-                loadGLB()
-
-                const loop = () => {
-                    if (!s) return
-                    s.raf = requestAnimationFrame(loop)
-                    const dt = s.clock.getDelta()
-                    const el = s.clock.elapsedTime
-
-                    if (s.mixer) s.mixer.update(dt)
-
-                    if (s.model && !s.clicking) {
-                        s.rotY += dt * 0.5
-                        s.model.rotation.y = s.rotY
-                        s.model.position.y = -0.05 + Math.sin(el * 0.8) * 0.05
-                        s.model.rotation.x = Math.sin(el * 0.55) * 0.04
-                        s.model.rotation.z = Math.sin(el * 0.35) * 0.015
-                    }
-
-                    if (s.model && s.clicking) {
-                        s.clickT = Math.min(s.clickT + dt * 3, 1)
-                        s.zoomT = Math.min(s.zoomT + dt * 2.2, 1)
-                        const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-                        const tilt = ease(s.clickT)
-                        const zoom = ease(s.zoomT)
-                        s.model.rotation.x = tilt * 0.85
-                        const newScale = s.initScale * (1 + zoom * 2.2)
-                        s.model.scale.setScalar(newScale)
-                        s.camera.position.z = 4.5 - zoom * 3.8
-                        s.camera.lookAt(0, 0, 0)
-                    }
-
-                    renderer.render(scene, camera)
-                }
-                loop()
-
-                const resize = () => {
-                    if (!container || !s) return
-                    const w = container.clientWidth, h = container.clientHeight
-                    s.camera.aspect = w / h
-                    s.camera.updateProjectionMatrix()
-                    s.renderer.setSize(w, h)
-                }
-                window.addEventListener('resize', resize)
-
-                return () => { window.removeEventListener('resize', resize) }
-
-            } catch (e) {
-                if (!cancelled) setPhase('idle')
-            }
+        // Wait for THREE to be available
+        let attempts = 0
+        while (!(window as any).THREE && attempts < 100) {
+            await new Promise(r => setTimeout(r, 50))
+            attempts++
         }
 
-        const cleanup = bootstrap()
+        const THREE = (window as any).THREE
+        if (!THREE || stateRef.current?.cancelled) return
+
+        const W = container.clientWidth || window.innerWidth
+        const H = container.clientHeight || window.innerHeight
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(W, H)
+        renderer.shadowMap.enabled = false // Disabled for better mobile perf
+        renderer.outputEncoding = THREE.sRGBEncoding || 3001
+        container.appendChild(renderer.domElement)
+
+        const scene = new THREE.Scene()
+
+        // Camera tilted slightly to see book from above and in front
+        const camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 500)
+        camera.position.set(0, 0.6, 3.8)
+        camera.lookAt(0, 0, 0)
+
+        // Warm, moody lighting to make the book look aged and beautiful
+        scene.add(new THREE.AmbientLight(0xfff0d0, 0.9))
+
+        const key = new THREE.DirectionalLight(0xffc070, 2.8)
+        key.position.set(2, 4, 3)
+        scene.add(key)
+
+        const fill = new THREE.DirectionalLight(0xd09060, 1.4)
+        fill.position.set(-3, 1, 2)
+        scene.add(fill)
+
+        const rim = new THREE.DirectionalLight(0xffe0b0, 1.6)
+        rim.position.set(0, -1.5, -4)
+        scene.add(rim)
+
+        const warmPt = new THREE.PointLight(0xd4af37, 3, 8)
+        warmPt.position.set(1, 2, 2.5)
+        scene.add(warmPt)
+
+        const coolPt = new THREE.PointLight(0xc9897a, 1.8, 6)
+        coolPt.position.set(-1.5, 0.5, 0.5)
+        scene.add(coolPt)
+
+        scene.add(new THREE.HemisphereLight(0xffe8cc, 0x2a1000, 0.7))
+
+        const clock = new THREE.Clock()
+
+        const s = {
+            renderer, scene, camera,
+            model: null as any, mixer: null as any, clock,
+            raf: 0, rotY: -0.3, clicking: false, clickT: 0, zoomT: 0,
+            initScale: 1, cancelled: false,
+        }
+        stateRef.current = s
+
+        // Load GLTFLoader then GLB
+        let gltfAttempts = 0
+        while (!(window as any).THREE?.GLTFLoader && gltfAttempts < 100) {
+            await new Promise(r => setTimeout(r, 50))
+            gltfAttempts++
+        }
+
+        const Loader = THREE.GLTFLoader
+        if (!Loader) {
+            setPhase('idle')
+            return
+        }
+
+        const loader = new Loader()
+        loader.load(
+            '/Hitem3d-1776860930240.glb',
+            (gltf: any) => {
+                if (s.cancelled) return
+                const model = gltf.scene
+
+                // Normalize size
+                const box = new THREE.Box3().setFromObject(model)
+                const center = box.getCenter(new THREE.Vector3())
+                const size = box.getSize(new THREE.Vector3())
+                const maxDim = Math.max(size.x, size.y, size.z)
+                // Smaller scale — book should feel like it's resting on something
+                const sc = 1.6 / maxDim
+                model.scale.setScalar(sc)
+                model.position.sub(center.multiplyScalar(sc))
+
+                // Tilt backwards (around X axis) as if book is lying on a table
+                // and slightly angled, not left/right
+                model.rotation.x = 0.35  // tilt backwards
+                model.rotation.y = s.rotY
+                model.position.y -= 0.15
+
+                s.initScale = sc
+                s.model = model
+                scene.add(model)
+
+                if (gltf.animations?.length) {
+                    s.mixer = new THREE.AnimationMixer(model)
+                    gltf.animations.forEach((clip: any) => {
+                        const action = s.mixer.clipAction(clip)
+                        action.play()
+                    })
+                }
+
+                if (!s.cancelled) setPhase('idle')
+            },
+            undefined,
+            (err: any) => {
+                console.warn('[BookScene] GLB load error:', err)
+                if (!s.cancelled) setPhase('idle')
+            }
+        )
+
+        const loop = () => {
+            if (s.cancelled) return
+            s.raf = requestAnimationFrame(loop)
+            const dt = s.clock.getDelta()
+            const el = s.clock.elapsedTime
+
+            if (s.mixer) s.mixer.update(dt)
+
+            if (s.model && !s.clicking) {
+                // Slow, gentle rotation around Y, maintaining backward tilt
+                s.rotY += dt * 0.25
+                s.model.rotation.y = s.rotY
+                s.model.position.y = -0.15 + Math.sin(el * 0.6) * 0.04
+                // Very subtle rocking, no left/right tilt
+                s.model.rotation.x = 0.35 + Math.sin(el * 0.4) * 0.02
+            }
+
+            if (s.model && s.clicking) {
+                s.clickT = Math.min(s.clickT + dt * 2.5, 1)
+                s.zoomT = Math.min(s.zoomT + dt * 2, 1)
+                const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+                // Open the book animation — tilt forward as if it's opening
+                s.model.rotation.x = 0.35 - ease(s.clickT) * 0.55
+                s.model.scale.setScalar(s.initScale * (1 + ease(s.zoomT) * 2.0))
+                s.camera.position.z = 3.8 - ease(s.zoomT) * 3.2
+                s.camera.lookAt(0, 0, 0)
+            }
+
+            renderer.render(scene, camera)
+        }
+        loop()
+
+        const resize = () => {
+            if (!container) return
+            const w = container.clientWidth || window.innerWidth
+            const h = container.clientHeight || window.innerHeight
+            s.camera.aspect = w / h
+            s.camera.updateProjectionMatrix()
+            s.renderer.setSize(w, h)
+        }
+        window.addEventListener('resize', resize)
 
         return () => {
-            cancelled = true
-            if (stateRef.current) {
-                cancelAnimationFrame(stateRef.current.raf)
-                stateRef.current.renderer?.dispose()
-                const canvas = stateRef.current.renderer?.domElement
-                if (canvas?.parentNode) canvas.parentNode.removeChild(canvas)
-            }
-            cleanup.then(fn => fn?.())
+            window.removeEventListener('resize', resize)
         }
     }, [])
+
+    useEffect(() => {
+        let cleanupFn: (() => void) | undefined
+
+        setupScene().then(fn => {
+            cleanupFn = fn
+        })
+
+        return () => {
+            if (stateRef.current) {
+                stateRef.current.cancelled = true
+                cancelAnimationFrame(stateRef.current.raf)
+                try {
+                    stateRef.current.renderer?.dispose()
+                    const canvas = stateRef.current.renderer?.domElement
+                    if (canvas?.parentNode) canvas.parentNode.removeChild(canvas)
+                } catch { }
+            }
+            cleanupFn?.()
+        }
+    }, [setupScene])
 
     useEffect(() => {
         if (phase !== 'idle') return
@@ -206,17 +261,12 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
 
     const handleClick = useCallback(() => {
         if (phase !== 'idle') return
-        if (stateRef.current) {
-            stateRef.current.clicking = true
-        }
+        if (stateRef.current) stateRef.current.clicking = true
         setPhase('clicking')
 
         setTimeout(() => {
             setPhase('flash')
-            setTimeout(() => {
-                setPhase('done')
-                onBookClick()
-            }, 750)
+            setTimeout(() => onBookClick(), 750)
         }, 1100)
     }, [phase, onBookClick])
 
@@ -231,11 +281,13 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         >
             <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
 
+            {/* Ambient glow */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
                 background: 'radial-gradient(ellipse 60% 50% at 50% 55%, rgba(212,175,55,0.14) 0%, rgba(201,137,122,0.07) 45%, transparent 75%)',
             }} />
 
+            {/* Vignette */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
                 background: [
@@ -246,29 +298,17 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
 
             {/* Loading */}
             {phase === 'loading' && (
-                <div style={{
-                    position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', zIndex: 15,
-                }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 15 }}>
                     <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
-                        style={{
-                            width: '42px', height: '42px', borderRadius: '50%',
-                            border: '2px solid rgba(212,175,55,0.12)',
-                            borderTopColor: 'rgba(212,175,55,0.72)',
-                            marginBottom: '14px',
-                        }}
+                        style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid rgba(212,175,55,0.12)', borderTopColor: 'rgba(212,175,55,0.72)', marginBottom: '14px' }}
                     />
-                    <span style={{
-                        fontFamily: "'Cinzel', serif", fontSize: '9px',
-                        letterSpacing: '0.28em', textTransform: 'uppercase',
-                        color: 'rgba(212,175,55,0.35)',
-                    }}>Loading</span>
+                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.35)' }}>Opening the ledger...</span>
                 </div>
             )}
 
-            {/* Heading */}
+            {/* Heading rises up as book settles */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <motion.div
@@ -281,10 +321,10 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                             y: { duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] },
                         }}
                         style={{
-                            position: 'absolute', top: '50%', left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: 'center', zIndex: 20,
-                            pointerEvents: 'none', width: '100%', padding: '0 24px',
+                            position: 'absolute', top: '50%', left: 0, right: 0,
+                            transform: 'translateY(-50%)',
+                            textAlign: 'center', zIndex: 20, pointerEvents: 'none',
+                            padding: '0 24px',
                         }}
                     >
                         <motion.div
@@ -344,21 +384,17 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.8 }}
                         style={{
-                            position: 'absolute', bottom: '9%', left: '50%',
-                            transform: 'translateX(-50%)',
-                            pointerEvents: 'none', textAlign: 'center', zIndex: 20,
+                            position: 'absolute', bottom: '9%', left: 0, right: 0,
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            pointerEvents: 'none', zIndex: 20,
                         }}
                     >
                         <motion.div
                             animate={{ opacity: [0.4, 1, 0.4] }}
                             transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{
-                                fontFamily: "'Cinzel', serif", fontSize: '9px',
-                                letterSpacing: '0.32em', textTransform: 'uppercase',
-                                color: 'rgba(212,175,55,0.65)',
-                            }}
+                            style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.65)' }}
                         >
-                            Click to Open Your Journal
+                            Click to open your journal
                         </motion.div>
                         <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', gap: '5px' }}>
                             {[0, 0.4, 0.8].map((d, i) => (
@@ -373,7 +409,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                 )}
             </AnimatePresence>
 
-            {/* Flash */}
+            {/* Flash transition */}
             <AnimatePresence>
                 {phase === 'flash' && (
                     <>

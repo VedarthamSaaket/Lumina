@@ -8,6 +8,7 @@ import DarkVeil from '@/components/DarkVeil'
 import OrionButton from '@/components/orion/OrionButton'
 
 import OrionLiveObserver, { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
+import { orion } from '@/lib/orionBridge'
 import OrionDebrief from '@/components/orion/OrionDebrief'
 import OrionChatPanel from '@/components/orion/OrionChatPanel'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
@@ -756,6 +757,8 @@ function SequenceGame({
     const len = getSeqLen(3, 1, 0)
     const s = gameId === 'digit' ? randSeqUnique(len) : randLetterSeqUnique(len)
     setSeq(s); setShowIdx(0); setMode(getModeForRound(1, 0, availableModes)); setPhase('show')
+    orion.gameStart(GAMES[gameId].title, 1)
+ dispatchOrionLiveEvent('session_start', { game_type: gameId })
   }, [phase, countdown])
 
   const startRound = useCallback((lvl: number, ril: number) => {
