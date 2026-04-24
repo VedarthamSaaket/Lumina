@@ -222,6 +222,10 @@ export default function OrionChatPanel({
                 ? `0 8px 48px rgba(0,0,0,0.65), 0 0 0 1px ${color}08`
                 : `0 8px 40px rgba(30,60,120,0.12), 0 0 0 1px ${color}08`,
         }}>
+ {/* Grain overlay */}
+ <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', borderRadius: '20px', overflow: 'hidden' }}>
+ <Grainient grainAmount={0.05} grainScale={2} grainAnimated={true} timeSpeed={0.12} colorBalance={isDark ? 0.18 : -0.08} warpStrength={0} rotationAmount={0} color1={isDark ? '#2d1a0a' : '#a8bfc8'} color2={isDark ? '#120a05' : '#d8d2c6'} color3={isDark ? '#080402' : '#ebe6de'} />
+ </div>
             {/* Header */}
             <div style={{
                 padding: '14px 16px 12px',
