@@ -388,14 +388,15 @@ async def orion_stream(
     if data.right_panel_context:
         ctx = data.right_panel_context
         panel_type = ctx.get("type", "unknown")
+    panel_data = ctx.get("data", {})
         if panel_type == "scenario":
             right_panel_prompt = f"""
 
 CURRENT INTERACTIVE EXERCISE CONTEXT:
 The user is working on a thinking scenario:
-- Scenario: {ctx.get('scenario', '')}
-- Options: {', '.join(ctx.get('options', []))}
-- Think about: {ctx.get('think_about', '')}
+- Scenario: {panel_data.get('scenario', '')}
+- Options: {', '.join(panel_data.get('options', []))}
+- Think about: {panel_data.get('think_about', '')}
 
 When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided. Ask follow-up questions to deepen reflection.
 """
@@ -403,9 +404,9 @@ When the user shares their choice or answer, acknowledge it, discuss the thinkin
             right_panel_prompt = f"""
 
 CURRENT EXERCISE CONTEXT:
-- Exercise: {ctx.get('title', '')}
-- Steps: {ctx.get('instructions', '')}
-- Why it works: {ctx.get('why', '')}
+- Exercise: {panel_data.get('title', '')}
+- Steps: {panel_data.get('instructions', '')}
+- Why it works: {panel_data.get('why', '')}
 
 Guide the user through this exercise. Ask them to try it and report back what they noticed.
 """
@@ -413,12 +414,32 @@ Guide the user through this exercise. Ask them to try it and report back what th
             right_panel_prompt = f"""
 
 CURRENT CHALLENGE CONTEXT:
-- Challenge: {ctx.get('challenge', '')}
-- Task: {ctx.get('task', '')}
-- Level: {ctx.get('level', '')}
-- Bonus: {ctx.get('bonus', '')}
+- Challenge: {panel_data.get('challenge', '')}
+- Task: {panel_data.get('task', '')}
+- Level: {panel_data.get('level', '')}
+- Bonus: {panel_data.get('bonus', '')}
 
 Encourage the user to try this challenge. Check in on their progress.
+"""
+    elif panel_type == "fun_fact":
+        right_panel_prompt = f"""
+
+CURRENT FUN FACT CONTEXT:
+- Hook: {panel_data.get('hook', ''))}
+- Detail: {panel_data.get('detail', ''))}
+- Connection: {panel_data.get('connection', ''))}
+
+Discuss this brain fact with the user and encourage them to apply it.
+"""
+    elif panel_type == "curiosity_prompt":
+        right_panel_prompt = f"""
+
+CURRENT CURIOSITY PROMPT CONTEXT:
+- Question: {panel_data.get('question', ''))}
+- Explore: {panel_data.get('explore', ''))}
+- Your take: {panel_data.get('your_take', ''))}
+
+Encourage the user to think about this. Ask follow-up questions to get their perspective.
 """
 
     system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
@@ -472,14 +493,15 @@ async def orion_message(
     if data.right_panel_context:
         ctx = data.right_panel_context
         panel_type = ctx.get("type", "unknown")
+    panel_data = ctx.get("data", {})
         if panel_type == "scenario":
             right_panel_prompt = f"""
 
 CURRENT INTERACTIVE EXERCISE CONTEXT:
 The user is working on a thinking scenario:
-- Scenario: {ctx.get('scenario', '')}
-- Options: {', '.join(ctx.get('options', []))}
-- Think about: {ctx.get('think_about', '')}
+- Scenario: {panel_data.get('scenario', '')}
+- Options: {', '.join(panel_data.get('options', []))}
+- Think about: {panel_data.get('think_about', '')}
 
 When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided.
 """
@@ -487,9 +509,9 @@ When the user shares their choice or answer, acknowledge it, discuss the thinkin
             right_panel_prompt = f"""
 
 CURRENT EXERCISE CONTEXT:
-- Exercise: {ctx.get('title', '')}
-- Steps: {ctx.get('instructions', '')}
-- Why it works: {ctx.get('why', '')}
+- Exercise: {panel_data.get('title', '')}
+- Steps: {panel_data.get('instructions', '')}
+- Why it works: {panel_data.get('why', '')}
 
 Guide the user through this exercise. Ask them to try it and report back.
 """
@@ -497,11 +519,31 @@ Guide the user through this exercise. Ask them to try it and report back.
             right_panel_prompt = f"""
 
 CURRENT CHALLENGE CONTEXT:
-- Challenge: {ctx.get('challenge', '')}
-- Task: {ctx.get('task', '')}
-- Level: {ctx.get('level', '')}
+- Challenge: {panel_data.get('challenge', '')}
+- Task: {panel_data.get('task', '')}
+- Level: {panel_data.get('level', '')}
 
 Encourage the user to try this challenge.
+"""
+    elif panel_type == "fun_fact":
+        right_panel_prompt = f"""
+
+CURRENT FUN FACT CONTEXT:
+- Hook: {panel_data.get('hook', ')}
+- Detail: {panel_data.get('detail', ')}
+- Connection: {panel_data.get('connection', ')}
+
+Discuss this brain fact with the user and encourage them to apply it.
+"""
+    elif panel_type == "curiosity_prompt":
+        right_panel_prompt = f"""
+
+CURRENT CURIOSITY PROMPT CONTEXT:
+- Question: {panel_data.get('question', ')}
+- Explore: {panel_data.get('explore', ')}
+- Your take: {panel_data.get('your_take', ')}
+
+Encourage the user to think about this. Ask follow-up questions to get their perspective.
 """
 
     system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory

@@ -90,7 +90,7 @@ const RIGHT_PANEL_TRIGGERS = [
 ]
 
 interface OrionChatPanelProps {
-  rightPanelContext?: { type: string; content?: any } | null
+  rightPanelContext?: { type: string; data?: Record<string, any> } | null
     onRequestRightPanel?: (contentType: string) => void
     gameType?: string
     isMemoryPage?: boolean

@@ -1,0 +1,58 @@
+# Build right panel context if available
+right_panel_prompt = ""
+if data.right_panel_context:
+    ctx = data.right_panel_context
+    panel_type = ctx.get("type", "unknown")
+    panel_data = ctx.get("data", {})
+    if panel_type == "scenario":
+        right_panel_prompt = f"""
+
+CURRENT INTERACTIVE EXERCISE CONTEXT:
+The user is working on a thinking scenario:
+- Scenario: {panel_data.get('scenario', '')}
+- Options: {', '.join(panel_data.get('options', []))}
+- Think about: {panel_data.get('think_about', '')}
+
+When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided. Ask follow-up questions to deepen reflection.
+"""
+    elif panel_type == "exercise":
+        right_panel_prompt = f"""
+
+CURRENT EXERCISE CONTEXT:
+- Exercise: {panel_data.get('title', '')}
+- Steps: {panel_data.get('instructions', '')}
+- Why it works: {panel_data.get('why', '')}
+
+Guide the user through this exercise. Ask them to try it and report back what they noticed.
+"""
+    elif panel_type == "daily_challenge":
+        right_panel_prompt = f"""
+
+CURRENT CHALLENGE CONTEXT:
+- Challenge: {panel_data.get('challenge', '')}
+- Task: {panel_data.get('task', '')}
+- Level: {panel_data.get('level', '')}
+- Bonus: {panel_data.get('bonus', '')}
+
+Encourage the user to try this challenge. Check in on their progress.
+"""
+    elif panel_type == "fun_fact":
+        right_panel_prompt = f"""
+
+CURRENT FUN FACT CONTEXT:
+- Hook: {panel_data.get('hook', '')}
+- Detail: {panel_data.get('detail', '')}
+- Connection: {panel_data.get('connection', '')}
+
+Discuss this brain fact with the user and encourage them to apply it.
+"""
+    elif panel_type == "curiosity_prompt":
+        right_panel_prompt = f"""
+
+CURRENT CURIOSITY PROMPT CONTEXT:
+- Question: {panel_data.get('question', '')}
+- Explore: {panel_data.get('explore', '')}
+- Your take: {panel_data.get('your_take', '')}
+
+Encourage the user to think about this. Ask follow-up questions to get their perspective.
+"""
