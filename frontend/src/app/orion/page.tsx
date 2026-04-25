@@ -11,22 +11,22 @@ const ORION_COLOR = '#5B9BD5'
 
 const CAPABILITIES = [
   {
-    icon: '?',
+    icon: '✦',
     title: 'Memory Analysis',
     desc: 'Orion reads your actual game scores and gives you specific coaching based on what it sees in your results.',
   },
   {
-    icon: '?',
+    icon: '◈',
     title: 'Brain Science',
     desc: 'Deep knowledge of how memory, focus, and reasoning work, explained in plain everyday language.',
   },
   {
-    icon: '?',
+    icon: '◐',
     title: 'Thinking Skills',
     desc: 'Pattern spotting, analogical thinking, spatial reasoning, mental arithmetic, and more, all trainable.',
   },
   {
-    icon: '?',
+    icon: '◎',
     title: 'Personal Coaching',
     desc: 'Orion remembers your journey across sessions and adapts its advice to how you specifically think and improve.',
   },
@@ -228,7 +228,7 @@ export default function OrionPage() {
                           transition={{ delay: 0.3 + i * 0.05 }}
                           style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}
                         >
-                          <span style={{ color: ORION_COLOR, fontSize: '8px', marginTop: '5px', flexShrink: 0 }}>?</span>
+                          <span style={{ color: ORION_COLOR, fontSize: '8px', marginTop: '5px', flexShrink: 0 }}>✦</span>
                           <p style={{
                             fontFamily: 'var(--font-jost)', fontSize: '12px',
                             color: textSecondary, lineHeight: '1.6', margin: 0,

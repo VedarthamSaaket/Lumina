@@ -352,17 +352,17 @@ style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
 {content.options && (
 <div>
 <p style={{ fontFamily: 'var(--font-jost)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: textMuted, marginBottom: '8px' }}>Pick one</p>
-<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 {content.options.map((opt: string, i: number) => (
 <motion.button key={i}
 onClick={() => setSelectedOption(opt)}
 whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}
 style={{
-textAlign: 'left', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
+textAlign: 'left', padding: '14px 18px', borderRadius: '14px', cursor: 'pointer',
 background: selectedOption === opt ? `${color}18` : cardBg,
-border: selectedOption === opt ? `1px solid ${color}40` : cardBorder,
+border: selectedOption === opt ? `2px solid ${color}75` : `1px solid ${color}30`,
 fontFamily: 'var(--font-jost)', fontSize: '12px', color: textPrimary,
-lineHeight: '1.6', transition: 'all 0.18s',
+lineHeight: '1.6', transition: 'all 0.25s', boxShadow: selectedOption === opt ? `0 4px 20px ${color}30` : '0 2px 8px rgba(0,0,0,0.12)',
 }}
 >{opt}</motion.button>
 ))}
