@@ -70,6 +70,19 @@ export default function OrionPage() {
     setRightPanelActive(content)
   }, [])
 
+  const handleOptionSelected = useCallback((option: string) => {
+    // Store the selected option and update rightPanelActive so it gets sent to the AI
+    if (rightPanelActive) {
+      setRightPanelActive({
+        ...rightPanelActive,
+        data: {
+          ...rightPanelActive.data,
+          selected_option: option,
+        },
+      })
+    }
+  }, [rightPanelActive])
+
   return (
     <main className="bg-screening min-h-screen relative overflow-hidden">
       <div style={{ position: 'relative', zIndex: 1 }}></div>
@@ -92,7 +105,7 @@ export default function OrionPage() {
               fontSize: '18px', color: ORION_COLOR,
               boxShadow: `0 0 24px ${ORION_COLOR}30`,
             }}>
-              ?
+              ✦
             </div>
             <GoldHeading prefix="" gold="Orion" size="clamp(2rem, 5vw, 3.5rem)" />
           </div>
@@ -150,6 +163,7 @@ export default function OrionPage() {
                     contentType={rightContent}
                     onClose={handleCloseRightPanel}
                     onContentLoaded={handleContentLoaded}
+                    onOptionSelected={handleOptionSelected}
                   />
                 </motion.div>
               ) : (

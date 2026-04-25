@@ -225,9 +225,10 @@ interface OrionRightPanelProps {
   gameType?: string
   onClose: () => void
   onContentLoaded?: (content: { type: string; data: Record<string, any> }) => void
+  onOptionSelected?: (option: string) => void
 }
 
-export default function OrionRightPanel({ contentType, gameType, onClose, onContentLoaded }: OrionRightPanelProps) {
+export default function OrionRightPanel({ contentType, gameType, onClose, onContentLoaded, onOptionSelected }: OrionRightPanelProps) {
 const { theme } = useThemeStore()
 const isDark = theme === 'dark'
 const color = '#5B9BD5'
@@ -355,7 +356,7 @@ style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 {content.options.map((opt: string, i: number) => (
 <motion.button key={i}
-onClick={() => setSelectedOption(opt)}
+onClick={() => { setSelectedOption(opt); if (onOptionSelected) onOptionSelected(opt); }}
 whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}
 style={{
 textAlign: 'left', padding: '14px 18px', borderRadius: '14px', cursor: 'pointer',

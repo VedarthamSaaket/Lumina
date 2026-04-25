@@ -7,7 +7,6 @@ import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import Cookies from 'js-cookie'
 import { authAPI } from '@/lib/api'
-import Grainient from '@/components/ui/Grainient'
 import toast from 'react-hot-toast'
 
 interface FormData { email: string; password: string }
@@ -44,10 +43,46 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="bg-chat min-h-screen flex items-center justify-center px-4 sm:px-6 relative overflow-hidden">
+    <main className="bg-chat min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 relative overflow-hidden"
+      style={{ background: isDark ? '#0f0805' : '#f0e6cc' }}>
+
+      {/* Theme-aware Grainient background */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-<Grainient color1="#fef4e4" color2="#f0d9b5" color3="#e8c878" timeSpeed={0.08} grainAmount={0.04} grainScale={2} grainAnimated={true} contrast={1.1} saturation={0.6} zoom={1} warpStrength={0} warpFrequency={3} warpSpeed={0.8} />
-</div>
+        {isDark ? (
+          <Grainient
+            color1="#c4a882"
+            color2="#3a1e08"
+            color3="#0f0805"
+            timeSpeed={0.08}
+            grainAmount={0.055}
+            grainScale={2.2}
+            grainAnimated={true}
+            contrast={1.35}
+            saturation={0.65}
+            zoom={0.92}
+            warpStrength={0.6}
+            warpFrequency={3.2}
+            warpSpeed={0.9}
+            blendAngle={38}
+          />
+        ) : (
+          <Grainient
+            color1="#fef4e4"
+            color2="#f0d9b5"
+            color3="#e8c878"
+            timeSpeed={0.08}
+            grainAmount={0.04}
+            grainScale={2}
+            grainAnimated={true}
+            contrast={1.1}
+            saturation={0.6}
+            zoom={1}
+            warpStrength={0}
+            warpFrequency={3}
+            warpSpeed={0.8}
+          />
+        )}
+      </div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
@@ -64,7 +99,6 @@ export default function SignInPage() {
           >
             Welcome back
           </h1>
-          {/* Cormorant Garamond italic subtitle */}
           <p
             className="font-display italic"
             style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 300 }}

@@ -129,16 +129,14 @@ GAME_NAMES = {
     "analogy": "Visual Analogy", "paperfold": "Paper Folding",
 }
 
-# Shared Groq client (reuse instead of creating per-request)
 from groq import Groq
 from config import settings as _app_settings
 _groq_client = Groq(api_key=_app_settings.GROQ_API_KEY)
 
 
-# ── Orion settings helpers ────────────────────────────────────────────────────
+# ── Settings helpers ──────────────────────────────────────────────────────────
 
 def _get_orion_settings(user_id: str, db: Session) -> dict:
-    """Load Orion-specific settings from the user's settings_json."""
     user = db.query(User).filter(User.id == user_id).first()
     raw = getattr(user, "settings_json", None) if user else None
     defaults = {
@@ -163,7 +161,6 @@ def _get_orion_settings(user_id: str, db: Session) -> dict:
 
 
 def _build_orion_settings_prompt(s: dict) -> str:
-    """Turn user's Orion settings into a system-prompt block."""
     lines = ["\n\n═══════════════════════════════════════════════"]
     lines.append("ORION USER PREFERENCES (follow these carefully)")
     lines.append("═══════════════════════════════════════════════")
@@ -172,14 +169,9 @@ def _build_orion_settings_prompt(s: dict) -> str:
     use_name = s.get("orion_use_user_name", True)
     if name:
         if use_name:
-            lines.append(
-                f"- This user prefers to be called '{name}'. Use their name occasionally "
-                "in conversation, naturally, the way a friend would."
-            )
+            lines.append(f"- This user prefers to be called '{name}'. Use their name occasionally in conversation, naturally, the way a friend would.")
         else:
-            lines.append(
-                f"- The user's preferred name is '{name}' but they prefer you NOT use it in chat."
-            )
+            lines.append(f"- The user's preferred name is '{name}' but they prefer you NOT use it in chat.")
 
     about = s.get("orion_about_me", "").strip()
     if about:
@@ -281,9 +273,7 @@ def _get_cognitive_context(user_id: str, db: Session) -> str:
 
             scores = latest.get("scores", {})
             stat_str = ", ".join(f"{k}: {v}" for k, v in scores.items() if v is not None)
-            lines.append(
-                f"\n[{name}] - {len(sessions)} session(s) | Accuracy: {accuracy_pct}% ({correct}/{total_rounds}) | Max level: {max_level}"
-            )
+            lines.append(f"\n[{name}] - {len(sessions)} session(s) | Accuracy: {accuracy_pct}% ({correct}/{total_rounds}) | Max level: {max_level}")
             if stat_str:
                 lines.append(f"  Stats: {stat_str}")
 
@@ -335,10 +325,119 @@ def _get_orion_user_memory(user_id: str, db: Session) -> str:
         return ""
 
 
+def _build_right_panel_prompt(right_panel_context: Optional[dict]) -> str:
+    """Build right panel context prompt from structured data."""
+    if not right_panel_context:
+        return ""
+    ctx = right_panel_context
+    panel_type = ctx.get("type", "unknown")
+    panel_data = ctx.get("data", {}) or {}
+
+    if panel_type == "scenario":
+        selected = panel_data.get("selected_option", "")
+        return f"""
+
+CURRENT INTERACTIVE EXERCISE CONTEXT:
+The user is working on a thinking scenario:
+- Scenario: {panel_data.get('scenario', '')}
+- Options: {', '.join(panel_data.get('options', []))}
+- User's choice: {selected if selected else 'Not yet selected'}
+- Think about: {panel_data.get('think_about', '')}
+
+When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided. Ask follow-up questions to deepen reflection.
+"""
+    elif panel_type == "exercise":
+        return f"""
+
+CURRENT EXERCISE CONTEXT:
+- Exercise: {panel_data.get('title', '')}
+- Steps: {panel_data.get('instructions', '')}
+- Why it works: {panel_data.get('why', '')}
+
+Guide the user through this exercise. Ask them to try it and report back what they noticed.
+"""
+    elif panel_type == "daily_challenge":
+        return f"""
+
+CURRENT CHALLENGE CONTEXT:
+- Challenge: {panel_data.get('challenge', '')}
+- Task: {panel_data.get('task', '')}
+- Level: {panel_data.get('level', '')}
+- Bonus: {panel_data.get('bonus', '')}
+
+Encourage the user to try this challenge. Check in on their progress.
+"""
+    elif panel_type == "fun_fact":
+        return f"""
+
+CURRENT FUN FACT CONTEXT:
+- Hook: {panel_data.get('hook', '')}
+- Detail: {panel_data.get('detail', '')}
+- Connection: {panel_data.get('connection', '')}
+
+Discuss this brain fact with the user and encourage them to apply it.
+"""
+    elif panel_type == "curiosity_prompt":
+        return f"""
+
+CURRENT CURIOSITY PROMPT CONTEXT:
+- Question: {panel_data.get('question', '')}
+- Explore: {panel_data.get('explore', '')}
+- Your take: {panel_data.get('your_take', '')}
+
+Encourage the user to think about this. Ask follow-up questions to get their perspective.
+"""
+    return ""
+
+
+def _call_groq(messages: list[dict], max_tokens: int = 900, temperature: float = 0.68):
+    return _groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
+
+def _get_or_create_conversation(conversation_id: Optional[str], user_id: str, first_message: str, db: Session) -> str:
+    """Get existing conversation or create a new one. Returns conversation_id."""
+    if conversation_id:
+        conv = db.query(OrionConversation).filter(
+            OrionConversation.id == conversation_id,
+            OrionConversation.user_id == user_id,
+        ).first()
+        if conv:
+            conv.updated_at = datetime.utcnow()
+            db.commit()
+            return conversation_id
+    # Create new conversation, title from first message
+    title = first_message[:60] + ("..." if len(first_message) > 60 else "")
+    conv = OrionConversation(user_id=user_id, title=title)
+    db.add(conv)
+    db.commit()
+    db.refresh(conv)
+    return conv.id
+
+
+def _save_orion_message(conversation_id: str, user_id: str, role: str, content: str, db: Session):
+    """Save a message to an Orion conversation."""
+    msg = OrionMessage(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        role=role,
+        content=content,
+    )
+    db.add(msg)
+    db.commit()
+
+
+# ── Request models ────────────────────────────────────────────────────────────
+
 class OrionMessageRequest(BaseModel):
     content: str
     history: list[dict] = []
     right_panel_context: Optional[dict] = None
+    conversation_id: Optional[str] = None
 
 
 class LiveEventRequest(BaseModel):
@@ -360,14 +459,7 @@ class SaveOrionNoteRequest(BaseModel):
     source: str = "orion_memory"
 
 
-def _call_groq(messages: list[dict], max_tokens: int = 900, temperature: float = 0.68):
-    return _groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
-
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/stream")
 async def orion_stream(
@@ -382,65 +474,7 @@ async def orion_stream(
     user_memory = _get_orion_user_memory(current_user.id, db)
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
-
-    # Build right panel context if available
-    right_panel_prompt = ""
-    if data.right_panel_context:
-        ctx = data.right_panel_context
-        panel_type = ctx.get("type", "unknown")
-        panel_data = ctx.get("data", {})
-        if panel_type == "scenario":
-            right_panel_prompt = f"""
-
-CURRENT INTERACTIVE EXERCISE CONTEXT:
-The user is working on a thinking scenario:
-- Scenario: {panel_data.get('scenario', '')}
-- Options: {', '.join(panel_data.get('options', []))}
-- Think about: {panel_data.get('think_about', '')}
-
-When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided. Ask follow-up questions to deepen reflection.
-"""
-        elif panel_type == "exercise":
-            right_panel_prompt = f"""
-
-CURRENT EXERCISE CONTEXT:
-- Exercise: {panel_data.get('title', '')}
-- Steps: {panel_data.get('instructions', '')}
-- Why it works: {panel_data.get('why', '')}
-
-Guide the user through this exercise. Ask them to try it and report back what they noticed.
-"""
-        elif panel_type == "daily_challenge":
-            right_panel_prompt = f"""
-
-CURRENT CHALLENGE CONTEXT:
-- Challenge: {panel_data.get('challenge', '')}
-- Task: {panel_data.get('task', '')}
-- Level: {panel_data.get('level', '')}
-- Bonus: {panel_data.get('bonus', '')}
-
-Encourage the user to try this challenge. Check in on their progress.
-"""
-    elif panel_type == "fun_fact":
-        right_panel_prompt = """
-
-CURRENT FUN FACT CONTEXT:
-- Hook: {panel_data.get('hook', '')}}
-- Detail: {panel_data.get('detail', '')}}
-- Connection: {panel_data.get('connection', '')}}
-
-Discuss this brain fact with the user and encourage them to apply it.
-"""
-    elif panel_type == "curiosity_prompt":
-        right_panel_prompt = """
-
-CURRENT CURIOSITY PROMPT CONTEXT:
-- Question: {panel_data.get('question', ''))}
-- Explore: {panel_data.get('explore', ''))}
-- Your take: {panel_data.get('your_take', ''))}
-
-Encourage the user to think about this. Ask follow-up questions to get their perspective.
-"""
+    right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
 
     system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
 
@@ -449,7 +483,12 @@ Encourage the user to think about this. Ask follow-up questions to get their per
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": data.content})
 
+    # Conversation management
+    conversation_id = _get_or_create_conversation(data.conversation_id, current_user.id, data.content, db)
+    _save_orion_message(conversation_id, current_user.id, "user", data.content, db)
+
     async def generate():
+        accumulated = ""
         try:
             stream = _groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -461,10 +500,20 @@ Encourage the user to think about this. Ask follow-up questions to get their per
             for chunk in stream:
                 token = chunk.choices[0].delta.content
                 if token:
+                    accumulated += token
                     yield f"data: {json.dumps({'text': token})}\n\n"
         except Exception as e:
             print(f"[Orion stream error] {type(e).__name__}: {e}")
-            yield f"data: {json.dumps({'text': 'Something went wrong. Please try again.'})}\n\n"
+            error_msg = "Something went wrong. Please try again."
+            accumulated = accumulated or error_msg
+            if not accumulated:
+                yield f"data: {json.dumps({'text': error_msg})}\n\n"
+
+        # Save assistant response after streaming
+        if accumulated:
+            _save_orion_message(conversation_id, current_user.id, "assistant", accumulated, db)
+
+        yield f"data: {json.dumps({'conversation_id': conversation_id})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
@@ -487,64 +536,7 @@ async def orion_message(
     user_memory = _get_orion_user_memory(current_user.id, db)
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
-
-    # Build right panel context if available
-    right_panel_prompt = ""
-    if data.right_panel_context:
-        ctx = data.right_panel_context
-        panel_type = ctx.get("type", "unknown")
-        panel_data = ctx.get("data", {})
-        if panel_type == "scenario":
-            right_panel_prompt = f"""
-
-CURRENT INTERACTIVE EXERCISE CONTEXT:
-The user is working on a thinking scenario:
-- Scenario: {panel_data.get('scenario', '')}
-- Options: {', '.join(panel_data.get('options', []))}
-- Think about: {panel_data.get('think_about', '')}
-
-When the user shares their choice or answer, acknowledge it, discuss the thinking behind it, and connect it to the insight provided.
-"""
-        elif panel_type == "exercise":
-            right_panel_prompt = f"""
-
-CURRENT EXERCISE CONTEXT:
-- Exercise: {panel_data.get('title', '')}
-- Steps: {panel_data.get('instructions', '')}
-- Why it works: {panel_data.get('why', '')}
-
-Guide the user through this exercise. Ask them to try it and report back.
-"""
-        elif panel_type == "daily_challenge":
-            right_panel_prompt = f"""
-
-CURRENT CHALLENGE CONTEXT:
-- Challenge: {panel_data.get('challenge', '')}
-- Task: {panel_data.get('task', '')}
-- Level: {panel_data.get('level', '')}
-
-Encourage the user to try this challenge.
-"""
-    elif panel_type == "fun_fact":
-        right_panel_prompt = """
-
-CURRENT FUN FACT CONTEXT:
-- Hook: {panel_data.get('hook', ')}
-- Detail: {panel_data.get('detail', ')}
-- Connection: {panel_data.get('connection', ')}
-
-Discuss this brain fact with the user and encourage them to apply it.
-"""
-    elif panel_type == "curiosity_prompt":
-        right_panel_prompt = """
-
-CURRENT CURIOSITY PROMPT CONTEXT:
-- Question: {panel_data.get('question', ')}
-- Explore: {panel_data.get('explore', ')}
-- Your take: {panel_data.get('your_take', ')}
-
-Encourage the user to think about this. Ask follow-up questions to get their perspective.
-"""
+    right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
 
     system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
 
@@ -553,12 +545,18 @@ Encourage the user to think about this. Ask follow-up questions to get their per
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": data.content})
 
+    # Conversation management
+    conversation_id = _get_or_create_conversation(data.conversation_id, current_user.id, data.content, db)
+    _save_orion_message(conversation_id, current_user.id, "user", data.content, db)
+
     try:
         response = _call_groq(messages)
-        return {"response": response.choices[0].message.content}
+        reply = response.choices[0].message.content
+        _save_orion_message(conversation_id, current_user.id, "assistant", reply, db)
+        return {"response": reply, "conversation_id": conversation_id}
     except Exception as e:
         print(f"[Orion error] {type(e).__name__}: {e}")
-        return {"response": "Having trouble connecting. Please try again."}
+        return {"response": "Having trouble connecting. Please try again.", "conversation_id": conversation_id}
 
 
 @router.post("/live-event")
@@ -585,7 +583,7 @@ Data: {json.dumps(d)}"""
         "level_up": f"The user just advanced to level {d.get('level', '?')}!",
         "streak": f"The user has a streak of {d.get('streak', 0)} correct in a row.",
         "time_taken": f"The user took {d.get('time_ms', 0)}ms to answer. Average so far: {d.get('avg_ms', 0)}ms.",
-        "session_start": f"The user just started a new game session.",
+        "session_start": "The user just started a new game session.",
         "consecutive_fails": f"The user has had {d.get('count', 0)} consecutive wrong answers.",
     }
 
@@ -724,7 +722,6 @@ def orion_memory_view(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return Orion's stored memory about this user (for the memory viewer in settings)."""
     cognitive_context = _get_cognitive_context(current_user.id, db)
     user_memory = _get_orion_user_memory(current_user.id, db)
     orion_settings = _get_orion_settings(current_user.id, db)
@@ -741,7 +738,12 @@ def orion_memory_view(
         .all()
     )
     insights = [
-        {"title": s.title, "content": s.content[:300], "source": s.source, "created_at": s.created_at.isoformat() if s.created_at else None}
+        {
+            "title": s.title,
+            "content": s.content[:300],
+            "source": s.source,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
         for s in summaries
     ]
 
@@ -787,7 +789,7 @@ async def get_right_panel_content(
         "scenario": f"""Generate a short "what would you do?" thinking scenario for someone practising {game_name}. 
 Make it relatable, fun, and connected to pattern recognition, memory, or reasoning. 
 Format: SCENARIO: [2-3 sentence situation] OPTIONS: A) [option] B) [option] C) [option] THINK_ABOUT: [1 sentence hint without giving away the answer]
-Keep it simple and engaging. No jargon.""",
+Keep it simple and engaging. No jargon. Put each option on its own line.""",
 
         "exercise": f"""Generate a quick 2-minute brain exercise someone can try right now, relevant to {game_name} skills.
 Format: TITLE: [exercise name] INSTRUCTIONS: [3-4 clear steps] WHY_IT_HELPS: [1 sentence simple explanation]
@@ -817,35 +819,72 @@ Make it something achievable in a few minutes throughout the day.""",
     ]
 
     try:
-        response = _call_groq(messages, max_tokens=300, temperature=0.85)
+        response = _call_groq(messages, max_tokens=400, temperature=0.85)
         raw = response.choices[0].message.content.strip()
 
-        result = {"type": content_type, "raw": raw, "game_type": game_type}
+        result: dict = {"type": content_type, "raw": raw, "game_type": game_type}
 
         if content_type == "scenario":
-            scenario_match = raw.find("SCENARIO:")
-            options_match = raw.find("OPTIONS:")
-            think_match = raw.find("THINK_ABOUT:")
-            if scenario_match >= 0 and options_match >= 0:
-                result["scenario"] = raw[scenario_match + 9:options_match].strip()
-                options_text = raw[options_match + 8:think_match if think_match >= 0 else len(raw)].strip()
-                result["options"] = [o.strip() for o in options_text.split("\n") if o.strip()]
-                if think_match >= 0:
-                    result["think_about"] = raw[think_match + 12:].strip()
+            scenario_idx = raw.find("SCENARIO:")
+            options_idx = raw.find("OPTIONS:")
+            think_idx = raw.find("THINK_ABOUT:")
+
+            if scenario_idx >= 0 and options_idx >= 0:
+                result["scenario"] = raw[scenario_idx + 9:options_idx].strip()
+                options_end = think_idx if think_idx >= 0 else len(raw)
+                options_text = raw[options_idx + 8:options_end].strip()
+
+                # Parse each option - handle multiline format (each option on its own line)
+                import re
+                lines = [line.strip() for line in options_text.split('\n') if line.strip()]
+                option_lines = [l for l in lines if re.match(r'^[A-Da-d][\.\)]', l)]
+
+                if len(option_lines) >= 2:
+                    result["options"] = option_lines
+                else:
+                    # Fallback: try splitting on A) B) C) D) inline
+                    inline_matches = re.findall(r'[A-D][\.\)]\s*([^A-D\.\)]+?)(?=[A-D][\.\)]|$)', options_text)
+                    if inline_matches and len(inline_matches) >= 2:
+                        result["options"] = [f"{chr(65+i)}) {m.strip()}" for i, m in enumerate(inline_matches)]
+                    else:
+                        result["options"] = lines[:4] if lines else []
+
+                if think_idx >= 0:
+                    result["think_about"] = raw[think_idx + 12:].strip()
 
         elif content_type == "exercise":
             for key, label in [("title", "TITLE:"), ("instructions", "INSTRUCTIONS:"), ("why", "WHY_IT_HELPS:")]:
                 idx = raw.find(label)
                 if idx >= 0:
-                    next_label_positions = [raw.find(l, idx + len(label)) for l in ["TITLE:", "INSTRUCTIONS:", "WHY_IT_HELPS:"] if raw.find(l, idx + len(label)) > 0]
-                    end = min(next_label_positions) if next_label_positions else len(raw)
+                    other_labels = [l for l in ["TITLE:", "INSTRUCTIONS:", "WHY_IT_HELPS:"] if l != label]
+                    next_positions = [raw.find(l, idx + len(label)) for l in other_labels if raw.find(l, idx + len(label)) > 0]
+                    end = min(next_positions) if next_positions else len(raw)
                     result[key] = raw[idx + len(label):end].strip()
 
         elif content_type == "fun_fact":
             for key, label in [("hook", "HOOK:"), ("detail", "DETAIL:"), ("connection", "CONNECTION:")]:
                 idx = raw.find(label)
                 if idx >= 0:
-                    next_positions = [raw.find(l, idx + len(label)) for l in ["HOOK:", "DETAIL:", "CONNECTION:"] if raw.find(l, idx + len(label)) > 0]
+                    other_labels = [l for l in ["HOOK:", "DETAIL:", "CONNECTION:"] if l != label]
+                    next_positions = [raw.find(l, idx + len(label)) for l in other_labels if raw.find(l, idx + len(label)) > 0]
+                    end = min(next_positions) if next_positions else len(raw)
+                    result[key] = raw[idx + len(label):end].strip()
+
+        elif content_type == "curiosity_prompt":
+            for key, label in [("question", "QUESTION:"), ("explore", "EXPLORE:"), ("your_take", "YOUR_TAKE:")]:
+                idx = raw.find(label)
+                if idx >= 0:
+                    other_labels = [l for l in ["QUESTION:", "EXPLORE:", "YOUR_TAKE:"] if l != label]
+                    next_positions = [raw.find(l, idx + len(label)) for l in other_labels if raw.find(l, idx + len(label)) > 0]
+                    end = min(next_positions) if next_positions else len(raw)
+                    result[key] = raw[idx + len(label):end].strip()
+
+        elif content_type == "daily_challenge":
+            for key, label in [("challenge", "CHALLENGE:"), ("task", "TASK:"), ("level", "LEVEL:"), ("bonus", "BONUS:")]:
+                idx = raw.find(label)
+                if idx >= 0:
+                    other_labels = [l for l in ["CHALLENGE:", "TASK:", "LEVEL:", "BONUS:"] if l != label]
+                    next_positions = [raw.find(l, idx + len(label)) for l in other_labels if raw.find(l, idx + len(label)) > 0]
                     end = min(next_positions) if next_positions else len(raw)
                     result[key] = raw[idx + len(label):end].strip()
 
@@ -853,3 +892,98 @@ Make it something achievable in a few minutes throughout the day.""",
     except Exception as e:
         print(f"[Orion right panel error] {type(e).__name__}: {e}")
         return {"type": content_type, "raw": "Could not generate content right now.", "game_type": game_type}
+
+
+# ── Conversation History Routes ───────────────────────────────────────────────
+
+@router.get("/conversations")
+async def orion_list_conversations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all Orion conversations for this user."""
+    conversations = (
+        db.query(OrionConversation)
+        .filter(OrionConversation.user_id == current_user.id)
+        .order_by(desc(OrionConversation.updated_at))
+        .limit(30)
+        .all()
+    )
+    return [
+        {
+            "id": c.id,
+            "title": c.title,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+        }
+        for c in conversations
+    ]
+
+
+@router.get("/conversations/{conversation_id}")
+async def orion_get_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a specific Orion conversation with its messages."""
+    conversation = (
+        db.query(OrionConversation)
+        .filter(
+            OrionConversation.id == conversation_id,
+            OrionConversation.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    messages = (
+        db.query(OrionMessage)
+        .filter(
+            OrionMessage.conversation_id == conversation_id,
+            OrionMessage.user_id == current_user.id,
+        )
+        .order_by(OrionMessage.created_at)
+        .all()
+    )
+
+    return {
+        "id": conversation.id,
+        "title": conversation.title,
+        "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+        "updated_at": conversation.updated_at.isoformat() if conversation.updated_at else None,
+        "messages": [
+            {
+                "id": m.id,
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in messages
+        ],
+    }
+
+
+@router.delete("/conversations/{conversation_id}")
+async def orion_delete_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete an Orion conversation."""
+    conversation = (
+        db.query(OrionConversation)
+        .filter(
+            OrionConversation.id == conversation_id,
+            OrionConversation.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    db.query(OrionMessage).filter(OrionMessage.conversation_id == conversation_id).delete()
+    db.delete(conversation)
+    db.commit()
+    return {"ok": True}

@@ -82,6 +82,8 @@ const QUICK_PROMPTS_GAMES = [
   "Show me a thinking challenge",
 ]
 
+const QUICK_PROMPTS_TOGGLE_KEY = 'orion_show_quick_prompts'
+
 const RIGHT_PANEL_TRIGGERS = [
   { phrase: "thinking challenge", type: "scenario", label: "Open a thinking challenge" },
   { phrase: "brain exercise", type: "exercise", label: "Show me an exercise" },
@@ -121,10 +123,18 @@ export default function OrionChatPanel({
   const bottomRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const msgsContainerRef = useRef<HTMLDivElement>(null)
 
   const quickPrompts = isMemoryPage ? QUICK_PROMPTS_GAMES : QUICK_PROMPTS_GENERAL
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
+  useEffect(() => {
+    // Scroll to bottom when messages change - with a small delay to allow DOM to update
+    if (bottomRef.current) {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }, 10)
+    }
+  }, [msgs])
 
   const resize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
@@ -297,7 +307,7 @@ export default function OrionChatPanel({
 
         {/* Messages */}
         <div style={{
-          flex: 1, overflowY: 'auto', padding: '12px',
+          flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '12px',
           scrollbarWidth: 'thin', scrollbarColor: `${color}18 transparent`,
           position: 'relative', zIndex: 1,
         }}>

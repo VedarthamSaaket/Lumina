@@ -4,12 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import dynamic from 'next/dynamic'
-import { GoldHeading } from '@/components/ui/GoldHeading'
 import { journalAPI, moodAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
 
-// Dynamic import of OpenBook (heavy component)
 const OpenBook = dynamic(() => import('@/components/journal/OpenBook'), { ssr: false })
 
 type Stage = 'scene' | 'open'
@@ -23,8 +21,8 @@ interface JournalEntry {
     stickers?: (Sticker & { x: number; y: number; scale: number; stickerId: string })[]
 }
 
-// ── Inline 3D book scene using Three.js via CDN ───────────────────────────────
-// Replaces the previous BookScene3D component so the GLB actually loads
+// ─── BOOK SCENE ──────────────────────────────────────────────────────────────
+// Fixed: book is smaller, tilted backward (X axis), heading rises UP above the book
 function BookScene({ onBookClick }: { onBookClick: () => void }) {
     const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
@@ -62,34 +60,33 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 container.appendChild(renderer.domElement)
 
                 const scene = new THREE.Scene()
-                const camera = new THREE.PerspectiveCamera(45, W / H, 0.01, 500)
-                camera.position.set(0, 0.4, 4.5)
-                camera.lookAt(0, 0, 0)
+                // Camera positioned to see book from above and front (resting on table look)
+                const camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 500)
+                camera.position.set(0, 1.2, 5.5)
+                camera.lookAt(0, -0.2, 0)
 
-                scene.add(new THREE.AmbientLight(0xfff8e7, 1.4))
-                const key = new THREE.DirectionalLight(0xffd080, 3.8)
-                key.position.set(3, 5, 4); scene.add(key)
-                const fill = new THREE.DirectionalLight(0xc8a060, 1.8)
-                fill.position.set(-4, 2, 3); scene.add(fill)
-                const rim = new THREE.DirectionalLight(0xffe4b5, 2.0)
+                // Warm amber/gold lighting for aged book look
+                scene.add(new THREE.AmbientLight(0xfff0d0, 1.2))
+                const key = new THREE.DirectionalLight(0xffc070, 3.2)
+                key.position.set(2, 5, 4); scene.add(key)
+                const fill = new THREE.DirectionalLight(0xd09060, 1.6)
+                fill.position.set(-3, 1, 2); scene.add(fill)
+                const rim = new THREE.DirectionalLight(0xffe0b0, 1.8)
                 rim.position.set(0, -2, -5); scene.add(rim)
-                const pt1 = new THREE.PointLight(0xd4af37, 5, 10)
-                pt1.position.set(1.5, 2, 3); scene.add(pt1)
-                const pt2 = new THREE.PointLight(0xc9897a, 3, 8)
-                pt2.position.set(-2, 1, 1); scene.add(pt2)
-                scene.add(new THREE.HemisphereLight(0xfff0cc, 0x3d2008, 0.9))
+                const warmPt = new THREE.PointLight(0xd4af37, 4, 10)
+                warmPt.position.set(1.5, 3, 2.5); scene.add(warmPt)
+                scene.add(new THREE.HemisphereLight(0xffe8cc, 0x2a1000, 0.8))
 
                 const clock = new THREE.Clock()
                 let model: any = null
                 let mixer: any = null
-                let rotY = 0
+                let rotY = -0.15  // slight angle, not centered
                 let clicking = false
                 let clickT = 0
                 let zoomT = 0
                 let initScale = 1
                 let raf = 0
 
-                // Load GLTFLoader then the GLB
                 const loadGLB = async () => {
                     try {
                         await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js')
@@ -107,10 +104,14 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                                 const center = box.getCenter(new THREE.Vector3())
                                 const size = box.getSize(new THREE.Vector3())
                                 const maxDim = Math.max(size.x, size.y, size.z)
-                                const sc = 2.4 / maxDim
+                                // SMALLER scale — book looks like it's resting on a table
+                                const sc = 1.4 / maxDim
                                 m.scale.setScalar(sc)
                                 m.position.sub(center.multiplyScalar(sc))
-                                m.position.y -= 0.05
+                                // Tilt backward on X axis — lying on table look
+                                m.rotation.x = 0.52   // ~30 degrees backward
+                                m.rotation.y = rotY
+                                m.position.y -= 0.35  // lower center point
                                 initScale = sc
                                 model = m
                                 scene.add(model)
@@ -135,19 +136,22 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                     const el = clock.elapsedTime
                     if (mixer) mixer.update(dt)
                     if (model && !clicking) {
-                        rotY += dt * 0.5
+                        // Very slow gentle Y rotation, maintaining backward tilt
+                        rotY += dt * 0.18
                         model.rotation.y = rotY
-                        model.position.y = -0.05 + Math.sin(el * 0.8) * 0.05
-                        model.rotation.x = Math.sin(el * 0.55) * 0.04
-                        model.rotation.z = Math.sin(el * 0.35) * 0.015
+                        // Gentle floating on Y, no left/right tilt
+                        model.position.y = -0.35 + Math.sin(el * 0.55) * 0.04
+                        model.rotation.x = 0.52 + Math.sin(el * 0.38) * 0.018
                     }
                     if (model && clicking) {
-                        clickT = Math.min(clickT + dt * 3, 1)
-                        zoomT = Math.min(zoomT + dt * 2.2, 1)
+                        clickT = Math.min(clickT + dt * 2.8, 1)
+                        zoomT = Math.min(zoomT + dt * 2.0, 1)
                         const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-                        model.rotation.x = ease(clickT) * 0.85
-                        model.scale.setScalar(initScale * (1 + ease(zoomT) * 2.2))
-                        camera.position.z = 4.5 - ease(zoomT) * 3.8
+                        // Rises and comes toward camera
+                        model.rotation.x = 0.52 - ease(clickT) * 0.65
+                        model.scale.setScalar(initScale * (1 + ease(zoomT) * 1.8))
+                        camera.position.z = 5.5 - ease(zoomT) * 4.2
+                        camera.position.y = 1.2 + ease(zoomT) * 0.8
                         camera.lookAt(0, 0, 0)
                     }
                     renderer.render(scene, camera)
@@ -180,9 +184,10 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
         }
     }, [])
 
+    // Heading rises UP when book settles - after 1.5s idle
     useEffect(() => {
         if (phase !== 'idle') return
-        const t = setTimeout(() => setHeadingRisen(true), 1800)
+        const t = setTimeout(() => setHeadingRisen(true), 1400)
         return () => clearTimeout(t)
     }, [phase])
 
@@ -192,30 +197,29 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
         setTimeout(() => {
             setPhase('flash')
             setTimeout(() => onBookClick(), 750)
-        }, 1100)
+        }, 1000)
     }
 
     return (
         <div onClick={handleClick} style={{
             position: 'fixed', inset: 0, zIndex: 100, overflow: 'hidden',
             cursor: phase === 'idle' ? 'pointer' : 'default',
-            background: 'radial-gradient(ellipse 80% 70% at 50% 52%, #1c0e04 0%, #0d0501 55%, #050200 100%)',
+            background: 'radial-gradient(ellipse 80% 70% at 50% 60%, #1c0e04 0%, #0d0501 55%, #050200 100%)',
         }}>
-            {/* Three.js mount target */}
             <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
 
-            {/* Ambient glow */}
+            {/* Ambient warm glow under the book */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-                background: 'radial-gradient(ellipse 60% 50% at 50% 55%, rgba(212,175,55,0.14) 0%, rgba(201,137,122,0.07) 45%, transparent 75%)',
+                background: 'radial-gradient(ellipse 60% 30% at 50% 72%, rgba(212,175,55,0.12) 0%, rgba(201,137,122,0.06) 55%, transparent 80%)',
             }} />
 
             {/* Vignette */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
                 background: [
-                    'linear-gradient(to bottom, rgba(5,2,0,0.78) 0%, rgba(5,2,0,0.14) 18%, transparent 35%, transparent 68%, rgba(5,2,0,0.65) 100%)',
-                    'linear-gradient(to right, rgba(5,2,0,0.55) 0%, transparent 13%, transparent 87%, rgba(5,2,0,0.55) 100%)',
+                    'linear-gradient(to bottom, rgba(5,2,0,0.82) 0%, rgba(5,2,0,0.08) 22%, transparent 40%, transparent 62%, rgba(5,2,0,0.70) 100%)',
+                    'linear-gradient(to right, rgba(5,2,0,0.55) 0%, transparent 18%, transparent 82%, rgba(5,2,0,0.55) 100%)',
                 ].join(', '),
             }} />
 
@@ -227,28 +231,33 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 }}>
                     <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
                         style={{
-                            width: '42px', height: '42px', borderRadius: '50%',
+                            width: '40px', height: '40px', borderRadius: '50%',
                             border: '2px solid rgba(212,175,55,0.12)',
-                            borderTopColor: 'rgba(212,175,55,0.72)', marginBottom: '14px',
+                            borderTopColor: 'rgba(212,175,55,0.65)', marginBottom: '14px',
                         }} />
-                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.35)' }}>Loading</span>
+                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.32)' }}>Loading</span>
                 </div>
             )}
 
-            {/* HEADING - centered on the full page, rises upward */}
+            {/* HEADING — rises UPWARD above the book */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <motion.div
                         key="heading"
-                        initial={{ opacity: 0, y: 0 }}
-                        animate={{ opacity: 1, y: headingRisen ? '-28vh' : 0 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{
+                            opacity: 1,
+                            // Rises to upper third of screen
+                            y: headingRisen ? '-18vh' : 0,
+                        }}
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{
-                            opacity: { duration: 1.0, delay: 0.3 },
-                            y: { duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] },
+                            opacity: { duration: 0.9, delay: 0.4 },
+                            y: { duration: 1.6, ease: [0.22, 0.9, 0.36, 1] },
                         }}
                         style={{
                             position: 'absolute',
+                            // Start at vertical center, then move up
                             top: '50%',
                             left: 0,
                             right: 0,
@@ -256,28 +265,28 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                             textAlign: 'center',
                             zIndex: 20,
                             pointerEvents: 'none',
-                            width: '100%',
                             padding: '0 24px',
                         }}
                     >
+                        {/* Decorative rule */}
                         <motion.div
                             initial={{ opacity: 0, scaleX: 0 }}
                             animate={{ opacity: 1, scaleX: 1 }}
-                            transition={{ delay: 0.8, duration: 0.9 }}
+                            transition={{ delay: 0.9, duration: 0.8 }}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}
                         >
-                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.5))' }} />
-                            <span style={{ color: 'rgba(212,175,55,0.6)', fontSize: '12px' }}>✦</span>
-                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to left, transparent, rgba(212,175,55,0.5))' }} />
+                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.48))' }} />
+                            <span style={{ color: 'rgba(212,175,55,0.55)', fontSize: '11px' }}>✦</span>
+                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to left, transparent, rgba(212,175,55,0.48))' }} />
                         </motion.div>
 
                         <h1 style={{
                             fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
                             fontWeight: 400, fontStyle: 'italic',
-                            fontSize: 'clamp(3rem, 7vw, 5.5rem)',
-                            margin: '0 0 12px', letterSpacing: '0.02em',
+                            fontSize: 'clamp(2.8rem, 6vw, 5rem)',
+                            margin: '0 0 10px', letterSpacing: '0.02em',
                             color: 'rgba(254,244,228,0.95)', lineHeight: 1.1,
-                            textShadow: '0 2px 60px rgba(0,0,0,0.85)',
+                            textShadow: '0 2px 60px rgba(0,0,0,0.9)',
                         }}>
                             The Inner{' '}
                             <span style={{
@@ -292,14 +301,14 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                         <motion.p
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: 1.1, duration: 0.9 }}
+                            transition={{ delay: 1.2, duration: 0.8 }}
                             style={{
                                 fontFamily: "'Cormorant Garamond', serif",
                                 fontStyle: 'italic', fontWeight: 300,
-                                fontSize: 'clamp(1rem, 2vw, 1.3rem)',
-                                color: 'rgba(212,175,55,0.65)',
+                                fontSize: 'clamp(0.95rem, 1.8vw, 1.2rem)',
+                                color: 'rgba(212,175,55,0.60)',
                                 letterSpacing: '0.06em', margin: 0,
-                                textShadow: '0 1px 28px rgba(0,0,0,0.75)',
+                                textShadow: '0 1px 24px rgba(0,0,0,0.8)',
                             }}
                         >
                             A sanctuary for the examined life
@@ -308,7 +317,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 )}
             </AnimatePresence>
 
-            {/* Click hint */}
+            {/* Click hint — appears below the book */}
             <AnimatePresence>
                 {phase === 'idle' && headingRisen && (
                     <motion.div
@@ -317,7 +326,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.8 }}
                         style={{
-                            position: 'absolute', bottom: '9%', left: 0, right: 0,
+                            position: 'absolute', bottom: '8%', left: 0, right: 0,
                             display: 'flex', flexDirection: 'column', alignItems: 'center',
                             pointerEvents: 'none', zIndex: 20,
                         }}
@@ -328,7 +337,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                             style={{
                                 fontFamily: "'Cinzel', serif", fontSize: '9px',
                                 letterSpacing: '0.32em', textTransform: 'uppercase',
-                                color: 'rgba(212,175,55,0.65)',
+                                color: 'rgba(212,175,55,0.60)',
                             }}
                         >
                             Click to Open Your Journal
@@ -338,7 +347,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                                 <motion.div key={i}
                                     animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
                                     transition={{ duration: 1.6, delay: d, repeat: Infinity }}
-                                    style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(212,175,55,0.55)' }}
+                                    style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(212,175,55,0.52)' }}
                                 />
                             ))}
                         </div>
@@ -455,7 +464,7 @@ export default function JournalPage() {
                         {/* Centered heading over the full page width */}
                         <div style={{
                             position: 'absolute',
-                            top: '68px',
+                            top: '0px',
                             left: 0,
                             right: 0,
                             zIndex: 60,
