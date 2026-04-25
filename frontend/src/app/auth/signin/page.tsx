@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import Cookies from 'js-cookie'
 import { authAPI } from '@/lib/api'
-import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import Grainient from '@/components/ui/Grainient'
 import toast from 'react-hot-toast'
 
 interface FormData { email: string; password: string }
@@ -45,7 +45,9 @@ export default function SignInPage() {
 
   return (
     <main className="bg-chat min-h-screen flex items-center justify-center px-4 sm:px-6 relative overflow-hidden">
-      <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={30} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+<Grainient color1="#fef4e4" color2="#f0d9b5" color3="#e8c878" timeSpeed={0.08} grainAmount={0.04} grainScale={2} grainAnimated={true} contrast={1.1} saturation={0.6} zoom={1} warpStrength={0} warpFrequency={3} warpSpeed={0.8} />
+</div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 from typing import Optional, Any
-from models.database import get_db, User, CognitiveTestResult, InsightSummary
+from models.database import get_db, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
 from utils.auth import get_current_user
 import json
 from datetime import datetime
