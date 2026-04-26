@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
+import { useThemeStore } from '@/lib/themeStore'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import dynamic from 'next/dynamic'
 import { journalAPI, moodAPI } from '@/lib/api'
@@ -204,7 +205,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
         <div onClick={handleClick} style={{
             position: 'fixed', inset: 0, zIndex: 100, overflow: 'hidden',
             cursor: phase === 'idle' ? 'pointer' : 'default',
-            background: 'radial-gradient(ellipse 80% 70% at 50% 60%, #1c0e04 0%, #0d0501 55%, #050200 100%)',
+            background: 'radial-gradient(ellipse 80% 70% at 50% 60%, var(--bg-journal-dark, #1c0e04) 0%, var(--bg-journal-darker, #0d0501) 55%, var(--bg-journal-deep, #050200) 100%)',
         }}>
             <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
 
@@ -217,10 +218,10 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
             {/* Vignette */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
-                background: [
-                    'linear-gradient(to bottom, rgba(5,2,0,0.82) 0%, rgba(5,2,0,0.08) 22%, transparent 40%, transparent 62%, rgba(5,2,0,0.70) 100%)',
-                    'linear-gradient(to right, rgba(5,2,0,0.55) 0%, transparent 18%, transparent 82%, rgba(5,2,0,0.55) 100%)',
-                ].join(', '),
+                            background: [
+                                    'linear-gradient(to bottom, var(--bg-journal-vignette-top, rgba(5,2,0,0.82)) 0%, var(--bg-journal-vignette-mid, rgba(5,2,0,0.08)) 22%, transparent 40%, transparent 62%, var(--bg-journal-vignette-bot, rgba(5,2,0,0.70)) 100%)',
+                                    'linear-gradient(to right, var(--bg-journal-vignette-side, rgba(5,2,0,0.55)) 0%, transparent 18%, transparent 82%, var(--bg-journal-vignette-side, rgba(5,2,0,0.55)) 100%)',
+                                ].join(', '),
             }} />
 
             {/* Loading spinner */}
@@ -247,8 +248,8 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{
                             opacity: 1,
-                            // Rises to upper third of screen
-                            y: headingRisen ? '-18vh' : 0,
+                            // Rises to the very top of screen
+                            y: headingRisen ? '-100vh' : 0,
                         }}
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{
@@ -261,7 +262,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                             top: '50%',
                             left: 0,
                             right: 0,
-                            transform: 'translateY(-50%)',
+                            transform: headingRisen ? 'translateY(-100vh)' : 'translateY(-50%)',
                             textAlign: 'center',
                             zIndex: 20,
                             pointerEvents: 'none',
@@ -385,6 +386,8 @@ export default function JournalPage() {
     const [stage, setStage] = useState<Stage>('scene')
     const [entries, setEntries] = useState<JournalEntry[]>([])
     const [isSaving, setIsSaving] = useState(false)
+    const { theme } = useThemeStore()
+    const isDark = theme === 'dark'
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -411,7 +414,7 @@ export default function JournalPage() {
         setIsSaving(true)
         try {
             await Promise.all([
-                journalAPI.create(content, mood, tags),
+                journalAPI.create(content, mood, tags, stickers),
                 moodAPI.log(mood, '', tags),
             ])
             toast.success('Entry saved ✦', {
@@ -434,7 +437,10 @@ export default function JournalPage() {
     }
 
     return (
-        <main style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }} className="bg-journal">
+        <main 
+            style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }} 
+            className={isDark ? "bg-journal" : "bg-journal light"}
+        >
             <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={stage === 'open' ? 18 : 0} />
 
             <AnimatePresence mode="wait">
@@ -461,10 +467,10 @@ export default function JournalPage() {
                     >
                         <Navigation />
 
-                        {/* Centered heading over the full page width */}
+                        {/* Centered heading - properly positioned below Navigation */}
                         <div style={{
                             position: 'absolute',
-                            top: '0px',
+                            top: '12px',
                             left: 0,
                             right: 0,
                             zIndex: 60,

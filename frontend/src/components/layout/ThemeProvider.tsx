@@ -16,7 +16,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       setTheme(theme)
     }
-  }, []) // eslint-disable-line
+  }, []) 
 
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'light')

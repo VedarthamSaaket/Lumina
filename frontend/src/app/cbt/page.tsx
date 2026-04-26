@@ -514,7 +514,7 @@ Rules:
   // ── COMPLETION SCREEN ────────────────────────────────────────────────────────
   if (completedMod) {
     return (
-      <main className="bg-screening min-h-screen relative overflow-hidden">
+      <main className="bg-chat min-h-screen relative overflow-hidden">
         {/* Grainient background */}
         <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
           <Grainient
@@ -609,7 +609,7 @@ Rules:
   }
 
   return (
-    <main className="bg-screening min-h-screen relative overflow-hidden">
+    <main className="bg-chat min-h-screen relative overflow-hidden">
       {/* Grainient background */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <Grainient

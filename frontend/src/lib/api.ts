@@ -77,8 +77,8 @@ export const chatAPI = {
 
 // ── Journal ───────────────────────────────────────────────────────────────
 export const journalAPI = {
-  create: (content: string, moodScore: number, tags: string[]) =>
-    api.post('/api/journal', { content, mood_score: moodScore, tags }),
+  create: (content: string, moodScore: number, tags: string[], stickers?: Record<string, any>[]) =>
+    api.post('/api/journal', { content, mood_score: moodScore, tags, stickers: stickers || [] }),
   list:   () => api.get('/api/journal'),
   delete: (id: string) => api.delete(`/api/journal/${id}`),
 }

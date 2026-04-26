@@ -456,7 +456,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="bg-screening min-h-screen relative overflow-hidden">
+    <main className="bg-chat min-h-screen relative overflow-hidden">
         <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={14} />
         <Navigation />
         <div className="flex items-center justify-center min-h-screen">
@@ -469,7 +469,7 @@ export default function DashboardPage() {
 
   if (notAuthed) {
     return (
-      <main className="bg-screening min-h-screen relative overflow-hidden">
+    <main className="bg-chat min-h-screen relative overflow-hidden">
         <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={14} />
         <Navigation />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-5 text-center">
@@ -486,7 +486,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="bg-screening min-h-screen relative overflow-hidden">
+    <main className="bg-chat min-h-screen relative overflow-hidden">
       {/* Grainient background */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <Grainient

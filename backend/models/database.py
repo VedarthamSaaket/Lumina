@@ -29,6 +29,7 @@ def run_migrations():
         ("users", "age", "INTEGER"),
         ("users", "gender", "VARCHAR"),
         ("users", "settings_json", "TEXT"), # ← settings storage
+        ("journal_entries", "stickers", "JSON"),
     ]
     with engine.connect() as conn:
         inspector = sa_inspect(engine)
@@ -67,6 +68,7 @@ class JournalEntry(Base):
     content = Column(Text, nullable=False)
     mood_score = Column(Integer, nullable=True)
     tags = Column(JSON, default=list)
+    stickers = Column(JSON, default=list)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

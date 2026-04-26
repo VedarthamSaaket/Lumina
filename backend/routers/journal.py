@@ -14,6 +14,7 @@ class JournalCreate(BaseModel):
     content: str
     mood_score: Optional[int] = None
     tags: list[str] = []
+    stickers: list[dict] = []
 
 
 @router.post("")
@@ -27,6 +28,7 @@ def create_entry(
         content    = data.content,
         mood_score = data.mood_score,
         tags       = data.tags,
+        stickers   = data.stickers,
     )
     db.add(entry)
 

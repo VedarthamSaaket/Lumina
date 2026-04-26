@@ -48,6 +48,15 @@
 
   --divider-color: #d4af37;
 
+  /* Journal inner-ledger themed vars */
+  --bg-journal-dark: #1c0e04;
+  --bg-journal-darker: #0d0501;
+  --bg-journal-deep: #050200;
+  --bg-journal-vignette-top: rgba(5,2,0,0.82);
+  --bg-journal-vignette-mid: rgba(5,2,0,0.08);
+  --bg-journal-vignette-bot: rgba(5,2,0,0.70);
+  --bg-journal-vignette-side: rgba(5,2,0,0.55);
+
   --particle-a: #d4af37;
   --particle-b: #c9897a;
   --particle-c: #c9897a;
@@ -105,6 +114,15 @@
   --bubble-user-bg: rgba(60, 35, 8, 0.12);
   --bubble-user-border: rgba(130, 95, 30, 0.25);
   --chat-input-bg: rgba(240, 225, 190, 0.42);
+
+  /* Journal inner-ledger themed vars — LIGHT MODE */
+  --bg-journal-dark: #f0e6cc;
+  --bg-journal-darker: #ece0c4;
+  --bg-journal-deep: #e6d8b8;
+  --bg-journal-vignette-top: rgba(240, 230, 204, 0.78);
+  --bg-journal-vignette-mid: rgba(240, 230, 204, 0.08);
+  --bg-journal-vignette-bot: rgba(240, 230, 204, 0.65);
+  --bg-journal-vignette-side: rgba(240, 230, 204, 0.50);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

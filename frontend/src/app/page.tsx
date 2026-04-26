@@ -868,11 +868,31 @@ function InnerWork() {
               </div>
             ))}
           </div>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 30% 30%, #c4a882 0%, #ede0c4 70%)' }}>
-            <Grainient color1="#c4a882" color2="#f0dfc0" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} style={{ width: '100%', height: '100%' }} />
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 28, color: T.ink, letterSpacing: '-0.01em' }}>The Inner Ledger</div>
-              <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.5)' }}>3D Journal · Mood Stickers · Emotional Timeline</div>
+          <div style={{ position: 'relative', zIndex: 1, background: 'rgba(245,230,200,0.92)', border: '1px solid rgba(28,20,16,0.12)', boxShadow: '0 4px 24px rgba(28,20,16,0.08)', padding: 36, borderRadius: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 22, color: T.ink, letterSpacing: '-0.01em' }}>The Inner Ledger</div>
+              <span style={{ fontFamily: T.mono, fontSize: 7, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.umber, border: '1px solid rgba(92,61,40,0.3)', padding: '3px 10px' }}>Coming Soon</span>
+            </div>
+            <div style={{ fontFamily: T.mono, fontSize: 7, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(28,20,16,0.5)', marginBottom: 20 }}>3D Journal · Mood Stickers · Emotional Timeline</div>
+            <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10, lineHeight: 1.85, letterSpacing: '0.04em', color: 'rgba(28,20,16,0.6)', marginBottom: 20 }}>
+              A tactile journaling experience rendered as a 3D hardbound book. Open it, flip pages, and pour your thoughts into a space that feels physical, not digital. Your entries are private, local, and never synced to any cloud.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Mood stickers to capture how you feel without typing a word — a quick visual anchor for each entry.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Emotional timeline that maps your entries over days and weeks, revealing patterns you might miss in the moment.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Orion-linked pattern detection — your journal entries feed into the same engine that tracks your cognitive health.</span>
+              </div>
+            </div>
+            <div style={{ fontFamily: T.script, fontStyle: 'italic', fontSize: 18, color: 'rgba(28,20,16,0.35)', lineHeight: 1.2 }}>
+              "Write. Reflect. Remember. Your story, your space."
             </div>
           </div>
         </div>

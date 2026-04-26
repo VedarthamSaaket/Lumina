@@ -744,6 +744,28 @@ function EntryContent({ entry, writingFont, fontStyle, pageNum }: {
     const moodInfo = entry.mood_score ? MOOD_LABELS[entry.mood_score] : null
     return (
         <>
+            {/* Saved stickers — rendered on top of the page */}
+            {entry.stickers && entry.stickers.length > 0 && (
+                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, overflow: 'hidden' }}>
+                    {entry.stickers.map((s: any) => (
+                        <img key={s.stickerId || s.id + '-' + Math.random()}
+                            src={s.url} alt={s.label || ''}
+                            style={{
+                                position: 'absolute',
+                                left: `${s.x}%`, top: `${s.y}%`,
+                                width: `${60 * (s.scale || 1)}px`,
+                                height: `${60 * (s.scale || 1)}px`,
+                                objectFit: 'contain',
+                                transform: `rotate(${s.rotation || 0}deg)`,
+                                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 3px white)',
+                                pointerEvents: 'none',
+                                userSelect: 'none',
+                            }}
+                            draggable={false}
+                        />
+                    ))}
+                </div>
+            )}
             <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
                 <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
                     {format(new Date(entry.created_at), 'EEEE, MMMM d yyyy')}

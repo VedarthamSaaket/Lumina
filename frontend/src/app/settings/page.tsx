@@ -49,6 +49,9 @@ interface Settings {
   about_me: string
   ai_tone: string
   response_length: string
+  empathy: string
+  humor: string
+  formality: string
   use_name_in_chat: boolean
   use_mood_context: boolean
   use_screening_context: boolean
@@ -85,6 +88,9 @@ const DEFAULT_SETTINGS: Settings = {
   about_me: '',
   ai_tone: 'warm',
   response_length: 'medium',
+  empathy: 'medium',
+  humor: 'light',
+  formality: 'neutral',
   use_name_in_chat: true,
   use_mood_context: true,
   use_screening_context: true,
@@ -750,10 +756,10 @@ export default function SettingsPage() {
                       How much should Lumina mirror your emotional tone? Adjust for more or less emotional attunement.
                     </p>
                     <div className="space-y-3">
-                      {EMPATHY_OPTIONS.map(opt => {
-                        const active = settings.ai_tone + '_empathy' === settings.ai_tone + '_empathy' // placeholder - uses a simple index approach
-                        return (
-                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                                          {EMPATHY_OPTIONS.map(opt => {
+                                            const active = settings.empathy === opt.id
+                                            return (
+                                              <motion.button key={opt.id} onClick={() => update({ empathy: opt.id })}
                             whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
                             className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
                             style={{
@@ -785,9 +791,9 @@ export default function SettingsPage() {
                     </p>
                     <div className="space-y-3">
                       {HUMOR_OPTIONS.map(opt => {
-                        const active = settings.ai_tone + '_humor' === settings.ai_tone + '_humor'
-                        return (
-                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                                              const active = settings.humor === opt.id
+                                              return (
+                                                <motion.button key={opt.id} onClick={() => update({ humor: opt.id })}
                             whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
                             className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
                             style={{
@@ -819,9 +825,9 @@ export default function SettingsPage() {
                     </p>
                     <div className="space-y-3">
                       {FORMALITY_OPTIONS.map(opt => {
-                        const active = settings.ai_tone + '_formality' === settings.ai_tone + '_formality'
-                        return (
-                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                                              const active = settings.formality === opt.id
+                                              return (
+                                                <motion.button key={opt.id} onClick={() => update({ formality: opt.id })}
                             whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
                             className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
                             style={{
@@ -986,48 +992,25 @@ export default function SettingsPage() {
                     </div>
                   </SectionCard>
 
-                  {/* Research Study Section */}
-                  <SectionCard color="#5b9bd5">
-                    <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#5b9bd5' }}>Research Knowledge</p>
+                  {/* Target Areas Section */}
+                  <SectionCard color="#7a9e7e">
+                    <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#7a9e7e' }}>Target Areas</p>
                     <p className="font-body text-sm italic mb-5" style={{ color: 'var(--text-muted)' }}>
-                      Lumina can study research papers to deepen its understanding of psychology, cognitive science, and mental health. This helps it generate more informed, evidence-backed insights.
+                      Tell Lumina which areas of your life you'd like to focus on. This helps guide conversations toward what matters most to you right now.
                     </p>
-                    
-                    <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(91,155,213,0.06)', border: '1px solid rgba(91,155,213,0.18)' }}>
-                      <div className="flex items-center justify-between gap-4 mb-3">
-                        <div>
-                          <p className="font-jost text-sm" style={{ color: 'var(--text-primary)' }}>Enable Paper Study</p>
-                          <p className="font-body text-xs italic mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            When enabled, Lumina studies relevant research papers across psychology and cognitive science fields.
-                          </p>
-                        </div>
-                        <Toggle on={settings.research_paper_mode} color="#5b9bd5"
-                          onToggle={() => update({ research_paper_mode: !settings.research_paper_mode })} />
-                      </div>
-                      {settings.research_paper_mode && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <span style={{ color: '#5b9bd5', fontSize: '10px' }}>●</span>
-                          <span className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {settings.research_papers_count > 0 
-                              ? `${settings.research_papers_count} papers studied`
-                              : 'Papers will be ingested on next sync'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
 
                     <div className="rounded-xl p-4" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
-                      <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Research Fields</p>
+                      <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Focus Areas</p>
                       <p className="font-body text-xs italic mb-3" style={{ color: 'var(--text-muted)' }}>
-                        Lumina will study papers from these foundational and modern fields:
+                        Pick what you'd like Lumina to focus on during conversations:
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {[
-                          'Cognitive Psychology', 'Behavioral Neuroscience', 'Clinical Psychology', 
-                          'Positive Psychology', 'Developmental Psychology', 'Neuroplasticity',
-                          'Memory Research', 'Emotion Regulation', 'Cognitive Behavioral Therapy',
-                          'Attachment Theory', 'Personality Psychology', 'Social Psychology',
-                          'Psychometrics', 'Executive Function', 'Mindfulness Research',
+                          'Self-Awareness', 'Emotional Balance', 'Building Habits',
+                          'Stress & Overwhelm', 'Relationships', 'Identity & Growth',
+                          'Confidence & Self-Esteem', 'Purpose & Meaning', 'Navigating Change',
+                          'Sleep & Rest', 'Mindfulness & Presence', 'Creativity & Expression',
+                          'Work & Productivity', 'Gratitude & Perspective', 'Letting Go',
                         ].map(field => {
                           const active = settings.research_focus_fields?.includes(field) ?? false
                           return (
@@ -1038,9 +1021,9 @@ export default function SettingsPage() {
                             }}
                               className="px-3 py-1.5 rounded-full font-jost text-xs transition-all"
                               style={{
-                                background: active ? 'rgba(91,155,213,0.18)' : 'var(--bg-glass)',
-                                border: active ? '1px solid rgba(91,155,213,0.45)' : '1px solid var(--border-subtle)',
-                                color: active ? '#5b9bd5' : 'var(--text-muted)',
+                                background: active ? 'rgba(122,158,126,0.18)' : 'var(--bg-glass)',
+                                border: active ? '1px solid rgba(122,158,126,0.45)' : '1px solid var(--border-subtle)',
+                                color: active ? '#7a9e7e' : 'var(--text-muted)',
                               }}>
                               {active ? '✓ ' : ''}{field}
                             </button>
@@ -1049,9 +1032,9 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(91,155,213,0.08)', border: '1px solid rgba(91,155,213,0.18)' }}>
+                    <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(122,158,126,0.08)', border: '1px solid rgba(122,158,126,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                        Papers span from historical foundational work (James, Freud, Jung, Piaget, Vygotsky, Bowlby) through modern research (Kahneman, Dweck, Siegel, Davidson, Gross). New papers are added automatically as fields evolve.
+                        These are starting points — you can always add custom focus areas in the Lumina Tone section below.
                       </p>
                     </div>
                   </SectionCard>

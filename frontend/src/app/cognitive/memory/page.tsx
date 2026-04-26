@@ -3228,7 +3228,7 @@ export default function MemoryPage() {
   ]
 
   return (
-    <main className="bg-screening min-h-screen relative overflow-hidden">
+    <main className="bg-chat min-h-screen relative overflow-hidden">
       <ParticleCanvas colors={['#d4af37', '#c9897a', '#c4913a', '#b8860b']} count={22} />
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
