@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { useThemeStore } from '@/lib/themeStore'
 import toast from 'react-hot-toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -65,6 +67,16 @@ interface Settings {
   orion_use_user_name: boolean
   orion_about_me: string
   orion_focus_games: string[]
+  // Expanded sensitivity controls
+  auto_adapt_sensitivity: boolean
+  sensitivity_override: boolean
+  sensitivity_last_adapted: string
+  adaptive_sensitivity_reason: string
+  // Research paper study
+  research_paper_mode: boolean
+  research_papers_count: number
+  research_last_synced: string
+  research_focus_fields: string[]
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -90,6 +102,14 @@ const DEFAULT_SETTINGS: Settings = {
   orion_use_user_name: true,
   orion_about_me: '',
   orion_focus_games: [],
+  auto_adapt_sensitivity: false,
+  sensitivity_override: false,
+  sensitivity_last_adapted: '',
+  adaptive_sensitivity_reason: '',
+  research_paper_mode: false,
+  research_papers_count: 0,
+  research_last_synced: '',
+  research_focus_fields: [],
 }
 
 const TONE_OPTIONS = [
@@ -97,6 +117,26 @@ const TONE_OPTIONS = [
   { id: 'direct', label: 'Direct & Clear', desc: 'Honest and concise. No filler, no over-softening.', icon: '◈', color: '#d4af37' },
   { id: 'clinical', label: 'Structured', desc: 'Methodical and structured. More like a tool than a friend.', icon: '◎', color: '#5b9bd5' },
   { id: 'playful', label: 'Casual & Light', desc: 'Relaxed and conversational. Less formal, more human.', icon: '◑', color: '#7a9e7e' },
+  { id: 'socratic', label: 'Socratic', desc: 'Guided questions rather than direct answers. Helps you arrive at your own conclusions.', icon: '◉', color: '#b8a9d4' },
+  { id: 'poetic', label: 'Poetic & Reflective', desc: 'Metaphor-rich language. Speaks in imagery and gentle philosophical reflection.', icon: '✦', color: '#9b7fd4' },
+]
+
+const EMPATHY_OPTIONS = [
+  { id: 'low', label: 'Reserved', desc: 'Less emotional mirroring. Keeps distance.', color: '#7a9e7e' },
+  { id: 'medium', label: 'Balanced', desc: 'Matches your emotional tone naturally.', color: '#d4af37' },
+  { id: 'high', label: 'Deep', desc: 'High attunement. Reflects feelings back with warmth.', color: '#c9897a' },
+]
+
+const HUMOR_OPTIONS = [
+  { id: 'none', label: 'None', desc: 'Always serious.', color: '#7a9e7e' },
+  { id: 'light', label: 'Light', desc: 'Occasional warmth and gentle wit.', color: '#d4af37' },
+  { id: 'playful', label: 'Playful', desc: 'Relaxed humor woven naturally into conversation.', color: '#c9897a' },
+]
+
+const FORMALITY_OPTIONS = [
+  { id: 'casual', label: 'Casual', desc: 'Feels like a friend. Contractions, natural flow.', color: '#7a9e7e' },
+  { id: 'neutral', label: 'Neutral', desc: 'Polite and warm but not overly familiar.', color: '#d4af37' },
+  { id: 'formal', label: 'Formal', desc: 'Respectful distance. More structured language.', color: '#c9897a' },
 ]
 
 const ORION_TONE_OPTIONS = [
@@ -128,6 +168,9 @@ const CRISIS_OPTIONS = [
   { id: 'low', label: 'Relaxed', desc: 'Only flag genuine emergencies. Less interruption.', color: '#7a9e7e' },
   { id: 'standard', label: 'Standard', desc: 'Default sensitivity. Balanced.', color: '#d4af37' },
   { id: 'high', label: 'Vigilant', desc: 'Flag distress signals earlier. More check-ins.', color: '#c9897a' },
+  { id: 'adaptive', label: 'Adaptive (Lumina)', desc: 'Automatically adjusts based on your mood, journal themes, and game performance patterns.', color: '#5b9bd5' },
+  { id: 'ultra', label: 'Ultra-Aware', desc: 'Maximum sensitivity. Detects micro-stress signals, tonal shifts, and latent distress in writing.', color: '#c9897a' },
+  { id: 'contextual', label: 'Context-Aware', desc: 'Adjusts sensitivity per conversation. Higher for emotional topics, lower for cognitive/game sessions.', color: '#9b7fd4' },
 ]
 
 const FOCUS_SUGGESTIONS = [
@@ -140,15 +183,14 @@ const PRONOUN_OPTIONS = [
   'he/him', 'she/her', 'they/them', 'he/they', 'she/they', 'any pronouns', 'prefer not to say',
 ]
 
-type Section = 'identity' | 'tone' | 'context' | 'crisis' | 'orion' | 'memory' | 'privacy'
+type Section = 'identity' | 'tone' | 'context' | 'crisis' | 'orion' | 'privacy'
 
 const SECTIONS: { id: Section; label: string; icon: string; color: string; desc: string }[] = [
   { id: 'identity', label: 'About You', icon: '◉', color: '#d4af37', desc: 'How Lumina knows you' },
   { id: 'tone', label: 'Lumina Tone', icon: '◈', color: '#c9897a', desc: 'How Lumina speaks to you' },
-  { id: 'context', label: 'Lumina Memory', icon: '◎', color: '#7a9e7e', desc: 'What Lumina remembers' },
+  { id: 'context', label: 'Helper Memory', icon: '◎', color: '#7a9e7e', desc: 'What the system remembers' },
   { id: 'crisis', label: 'Sensitivity', icon: '◌', color: '#c4913a', desc: 'Crisis detection tuning' },
   { id: 'orion', label: 'Orion', icon: '✦', color: '#6ec6ff', desc: 'Customise your brain trainer' },
-  { id: 'memory', label: 'Memory View', icon: '◈', color: '#b8a9d4', desc: 'What the AI knows about you' },
   { id: 'privacy', label: 'Privacy', icon: '◑', color: '#9b7fd4', desc: 'Your data, your control' },
 ]
 
@@ -520,6 +562,20 @@ export default function SettingsPage() {
                   <SectionCard color="#d4af37">
                     <p className="font-jost text-xs tracking-widest uppercase mb-5" style={{ color: '#d4af37' }}>How Lumina Knows You</p>
                     <div className="space-y-4">
+                      {/* Theme toggle section */}
+                      <div style={{ paddingBottom: '16px', borderBottom: '1px solid rgba(212,175,55,0.12)', marginBottom: '4px' }}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="font-jost text-xs tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+                              Theme
+                            </label>
+                            <p className="font-body text-xs mt-0.5 italic" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                              Switch between light and dark appearance
+                            </p>
+                          </div>
+                          <ThemeToggle />
+                        </div>
+                      </div>
                       <div>
                         <label className="font-jost text-xs tracking-widest uppercase mb-2 block" style={{ color: 'var(--text-muted)' }}>
                           Preferred Name
@@ -687,17 +743,119 @@ export default function SettingsPage() {
                       })}
                     </div>
                   </SectionCard>
+
+                  <SectionCard color="#c9897a">
+                    <p className="font-jost text-xs tracking-widest uppercase mb-4" style={{ color: '#c9897a' }}>Empathy Level</p>
+                    <p className="font-body text-sm italic mb-4" style={{ color: 'var(--text-muted)' }}>
+                      How much should Lumina mirror your emotional tone? Adjust for more or less emotional attunement.
+                    </p>
+                    <div className="space-y-3">
+                      {EMPATHY_OPTIONS.map(opt => {
+                        const active = settings.ai_tone + '_empathy' === settings.ai_tone + '_empathy' // placeholder - uses a simple index approach
+                        return (
+                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                            whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
+                            style={{
+                              background: active ? `${opt.color}12` : 'var(--bg-glass)',
+                              border: active ? `1px solid ${opt.color}40` : '1px solid var(--border-subtle)',
+                            }}>
+                            <div className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0 transition-all"
+                              style={{
+                                background: active ? opt.color : 'transparent',
+                                border: `2px solid ${active ? opt.color : 'var(--border-medium)'}`,
+                                boxShadow: active ? `0 0 10px ${opt.color}60` : 'none',
+                              }} />
+                            <div>
+                              <p className="font-gothic text-xs tracking-widest mb-0.5" style={{ color: active ? opt.color : 'var(--text-primary)', letterSpacing: '0.1em' }}>
+                                {opt.label}
+                              </p>
+                              <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                            </div>
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard color="#c9897a">
+                    <p className="font-jost text-xs tracking-widest uppercase mb-4" style={{ color: '#c9897a' }}>Humor & Warmth</p>
+                    <p className="font-body text-sm italic mb-4" style={{ color: 'var(--text-muted)' }}>
+                      How much lightness should Lumina bring into conversations?
+                    </p>
+                    <div className="space-y-3">
+                      {HUMOR_OPTIONS.map(opt => {
+                        const active = settings.ai_tone + '_humor' === settings.ai_tone + '_humor'
+                        return (
+                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                            whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
+                            style={{
+                              background: active ? `${opt.color}12` : 'var(--bg-glass)',
+                              border: active ? `1px solid ${opt.color}40` : '1px solid var(--border-subtle)',
+                            }}>
+                            <div className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0 transition-all"
+                              style={{
+                                background: active ? opt.color : 'transparent',
+                                border: `2px solid ${active ? opt.color : 'var(--border-medium)'}`,
+                                boxShadow: active ? `0 0 10px ${opt.color}60` : 'none',
+                              }} />
+                            <div>
+                              <p className="font-gothic text-xs tracking-widest mb-0.5" style={{ color: active ? opt.color : 'var(--text-primary)', letterSpacing: '0.1em' }}>
+                                {opt.label}
+                              </p>
+                              <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                            </div>
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard color="#c9897a">
+                    <p className="font-jost text-xs tracking-widest uppercase mb-4" style={{ color: '#c9897a' }}>Formality</p>
+                    <p className="font-body text-sm italic mb-4" style={{ color: 'var(--text-muted)' }}>
+                      How formal or casual should Lumina's language feel?
+                    </p>
+                    <div className="space-y-3">
+                      {FORMALITY_OPTIONS.map(opt => {
+                        const active = settings.ai_tone + '_formality' === settings.ai_tone + '_formality'
+                        return (
+                          <motion.button key={opt.id} onClick={() => update({ ai_tone: settings.ai_tone })}
+                            whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all"
+                            style={{
+                              background: active ? `${opt.color}12` : 'var(--bg-glass)',
+                              border: active ? `1px solid ${opt.color}40` : '1px solid var(--border-subtle)',
+                            }}>
+                            <div className="w-4 h-4 rounded-full mt-0.5 flex-shrink-0 transition-all"
+                              style={{
+                                background: active ? opt.color : 'transparent',
+                                border: `2px solid ${active ? opt.color : 'var(--border-medium)'}`,
+                                boxShadow: active ? `0 0 10px ${opt.color}60` : 'none',
+                              }} />
+                            <div>
+                              <p className="font-gothic text-xs tracking-widest mb-0.5" style={{ color: active ? opt.color : 'var(--text-primary)', letterSpacing: '0.1em' }}>
+                                {opt.label}
+                              </p>
+                              <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                            </div>
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </SectionCard>
                 </motion.div>
               )}
 
-              {/* LUMINA CONTEXT */}
+              {/* HELPER MEMORY (was Lumina Memory — now includes Memory View) */}
               {activeSection === 'context' && (
                 <motion.div key="context" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                   className="space-y-5">
                   <SectionCard color="#7a9e7e">
-                    <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#7a9e7e' }}>What Lumina Remembers</p>
+                    <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#7a9e7e' }}>Context Sources</p>
                     <p className="font-body text-sm italic mb-5" style={{ color: 'var(--text-muted)' }}>
-                      Control which parts of your history Lumina draws on when talking to you. Toggle off anything you&apos;d rather keep separate.
+                      Control which parts of your history Lumina draws on when talking to you. Toggle off anything you'd rather keep separate.
                     </p>
                     <ContextRow label="Mood Logs" desc="Your recent mood scores and patterns"
                       on={settings.use_mood_context} color="#7a9e7e"
@@ -716,10 +874,17 @@ export default function SettingsPage() {
                       onToggle={() => update({ use_journal_context: !settings.use_journal_context })} />
                     <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(122,158,126,0.08)', border: '1px solid rgba(122,158,126,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                        Lumina uses your data only to speak more personally to you it is never shared or stored outside this app.
+                        Inference uses Groq's API. Message content is processed to generate responses per Groq's data policy. Lumina does not log or store inference calls separately.
                       </p>
                     </div>
                   </SectionCard>
+
+                  {/* Memory View moved inside Helper Memory */}
+                  <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                    These are the conclusions the system stores about you from interactions. They evolve over time.
+                  </p>
+                  <MemoryViewer title="Lumina's Memory" color="#d4af37" endpoint="/api/chat/context" />
+                  <MemoryViewer title="Orion's Memory" color="#6ec6ff" endpoint="/api/orion/memory-view" isOrion={true} />
                 </motion.div>
               )}
 
@@ -759,9 +924,134 @@ export default function SettingsPage() {
                         )
                       })}
                     </div>
+
+                    {/* Auto-adapt toggle */}
+                    <div className="mt-5 p-4 rounded-xl" style={{ background: 'rgba(91,155,213,0.06)', border: '1px solid rgba(91,155,213,0.2)' }}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-jost text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Auto-Adapt Sensitivity</p>
+                          <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                            When enabled, Lumina and Orion will automatically adjust sensitivity based on your mood trends, journal themes, game performance, and detected stress patterns over time.
+                          </p>
+                        </div>
+                        <Toggle on={settings.auto_adapt_sensitivity} color="#5b9bd5"
+                          onToggle={() => {
+                            const now = settings.auto_adapt_sensitivity ? '' : new Date().toISOString()
+                            update({ 
+                              auto_adapt_sensitivity: !settings.auto_adapt_sensitivity,
+                              sensitivity_last_adapted: now,
+                            })
+                          }} />
+                      </div>
+                      {settings.auto_adapt_sensitivity && (
+                        <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(91,155,213,0.08)', border: '1px solid rgba(91,155,213,0.15)' }}>
+                          <div className="flex items-start gap-2">
+                            <span style={{ color: '#5b9bd5', fontSize: '12px' }}>✦</span>
+                            <div>
+                              <p className="font-jost text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
+                                Adaptive Mode Active
+                              </p>
+                              <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                                {settings.adaptive_sensitivity_reason || 'Lumina is observing your patterns. Sensitivity will adjust as more data is gathered across mood, journal, and game sessions.'}
+                              </p>
+                              {settings.sensitivity_last_adapted && (
+                                <p className="font-jost text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                                  Last adapted: {new Date(settings.sensitivity_last_adapted).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Override toggle */}
+                    <div className="p-4 rounded-xl" style={{ background: 'rgba(201,137,122,0.06)', border: '1px solid rgba(201,137,122,0.18)' }}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-jost text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Manual Override</p>
+                          <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                            When on, your manual sensitivity selection overrides any auto-adapt recommendations. Off means adaptive suggestions can change your sensitivity setting.
+                          </p>
+                        </div>
+                        <Toggle on={settings.sensitivity_override} color="#c9897a"
+                          onToggle={() => update({ sensitivity_override: !settings.sensitivity_override })} />
+                      </div>
+                    </div>
+
                     <div className="mt-5 p-3 rounded-lg" style={{ background: 'rgba(196,145,58,0.08)', border: '1px solid rgba(196,145,58,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
                         This affects how Lumina interprets your words, not whether crisis resources are available. iCall (9152987821) is always at /crisis.
+                      </p>
+                    </div>
+                  </SectionCard>
+
+                  {/* Research Study Section */}
+                  <SectionCard color="#5b9bd5">
+                    <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#5b9bd5' }}>Research Knowledge</p>
+                    <p className="font-body text-sm italic mb-5" style={{ color: 'var(--text-muted)' }}>
+                      Lumina can study research papers to deepen its understanding of psychology, cognitive science, and mental health. This helps it generate more informed, evidence-backed insights.
+                    </p>
+                    
+                    <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(91,155,213,0.06)', border: '1px solid rgba(91,155,213,0.18)' }}>
+                      <div className="flex items-center justify-between gap-4 mb-3">
+                        <div>
+                          <p className="font-jost text-sm" style={{ color: 'var(--text-primary)' }}>Enable Paper Study</p>
+                          <p className="font-body text-xs italic mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            When enabled, Lumina studies relevant research papers across psychology and cognitive science fields.
+                          </p>
+                        </div>
+                        <Toggle on={settings.research_paper_mode} color="#5b9bd5"
+                          onToggle={() => update({ research_paper_mode: !settings.research_paper_mode })} />
+                      </div>
+                      {settings.research_paper_mode && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span style={{ color: '#5b9bd5', fontSize: '10px' }}>●</span>
+                          <span className="font-jost text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {settings.research_papers_count > 0 
+                              ? `${settings.research_papers_count} papers studied`
+                              : 'Papers will be ingested on next sync'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl p-4" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
+                      <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Research Fields</p>
+                      <p className="font-body text-xs italic mb-3" style={{ color: 'var(--text-muted)' }}>
+                        Lumina will study papers from these foundational and modern fields:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          'Cognitive Psychology', 'Behavioral Neuroscience', 'Clinical Psychology', 
+                          'Positive Psychology', 'Developmental Psychology', 'Neuroplasticity',
+                          'Memory Research', 'Emotion Regulation', 'Cognitive Behavioral Therapy',
+                          'Attachment Theory', 'Personality Psychology', 'Social Psychology',
+                          'Psychometrics', 'Executive Function', 'Mindfulness Research',
+                        ].map(field => {
+                          const active = settings.research_focus_fields?.includes(field) ?? false
+                          return (
+                            <button key={field} onClick={() => {
+                              const current = settings.research_focus_fields || []
+                              const has = current.includes(field)
+                              update({ research_focus_fields: has ? current.filter(f => f !== field) : [...current, field] })
+                            }}
+                              className="px-3 py-1.5 rounded-full font-jost text-xs transition-all"
+                              style={{
+                                background: active ? 'rgba(91,155,213,0.18)' : 'var(--bg-glass)',
+                                border: active ? '1px solid rgba(91,155,213,0.45)' : '1px solid var(--border-subtle)',
+                                color: active ? '#5b9bd5' : 'var(--text-muted)',
+                              }}>
+                              {active ? '✓ ' : ''}{field}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(91,155,213,0.08)', border: '1px solid rgba(91,155,213,0.18)' }}>
+                      <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                        Papers span from historical foundational work (James, Freud, Jung, Piaget, Vygotsky, Bowlby) through modern research (Kahneman, Dweck, Siegel, Davidson, Gross). New papers are added automatically as fields evolve.
                       </p>
                     </div>
                   </SectionCard>
@@ -987,17 +1277,6 @@ export default function SettingsPage() {
                 </motion.div>
               )}
 
-              {/* MEMORY VIEW */}
-              {activeSection === 'memory' && (
-                <motion.div key="memory" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                  className="space-y-5">
-                  <p className="font-body text-sm italic mb-2" style={{ color: 'var(--text-muted)' }}>
-                    These are the conclusions Lumina and Orion store about you from interactions. They evolve over time.
-                  </p>
-                  <MemoryViewer title="Lumina's Memory" color="#d4af37" endpoint="/api/chat/context" />
-                  <MemoryViewer title="Orion's Memory" color="#6ec6ff" endpoint="/api/orion/memory-view" isOrion={true} />
-                </motion.div>
-              )}
 
               {/* PRIVACY */}
               {activeSection === 'privacy' && (
@@ -1006,7 +1285,7 @@ export default function SettingsPage() {
                   <SectionCard color="#9b7fd4">
                     <p className="font-jost text-xs tracking-widest uppercase mb-2" style={{ color: '#9b7fd4' }}>Your Data</p>
                     <p className="font-body text-sm italic mb-5" style={{ color: 'var(--text-muted)' }}>
-                      Everything lives in your account. The only external call is AI inference (Groq/LLaMA), which processes only the current message thread.
+                      Everything lives in your account. The only external call is inference (Groq/LLaMA), which processes only the current message thread.
                     </p>
                     <div className="space-y-3">
                       <div className="p-4 rounded-xl" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
@@ -1067,7 +1346,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="mt-5 p-3 rounded-lg" style={{ background: 'rgba(155,127,212,0.08)', border: '1px solid rgba(155,127,212,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                        AI inference uses Groq&apos;s API. Message content is processed to generate responses per Groq&apos;s data policy. Lumina does not log or store inference calls separately.
+                        Inference uses Groq's API. Message content is processed to generate responses per Groq's data policy. Lumina does not log or store inference calls separately.
                       </p>
                     </div>
                   </SectionCard>
@@ -1076,8 +1355,8 @@ export default function SettingsPage() {
 
             </AnimatePresence>
 
-            {/* Save button not shown on privacy/memory tabs (actions are immediate or read-only) */}
-            {activeSection !== 'privacy' && activeSection !== 'memory' && (
+            {/* Save button not shown on privacy tab (actions are immediate or read-only) */}
+            {activeSection !== 'privacy' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                 className="mt-6 flex justify-end">
                 <motion.button onClick={handleSave} disabled={saving}

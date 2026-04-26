@@ -354,7 +354,7 @@ function Nav() {
 // ─── TICKER ───────────────────────────────────────────────────────────────────
 
 function Ticker() {
-  const items = ['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger', 'Orion Engine', 'Local AI', 'Zero Data Leakage', 'The Mirror', 'Thinking Companion', 'Cognitive Threading', 'Crisis Safe', 'Mood Tracking']
+  const items = ['Self Reflection', 'Inner Work', 'Memory Games', 'Inner Ledger', 'Orion Engine', 'Local Processing', 'Zero Data Leakage', 'The Mirror', 'Thinking Companion', 'Cognitive Threading', 'Crisis Safe', 'Mood Tracking']
   const doubled = [...items, ...items]
   return (
     <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '10px 0', position: 'relative', zIndex: 5 }}>
@@ -444,7 +444,7 @@ function Hero() {
         Lumina<br />Cognitive Sanctuary<br />Protocol I
       </div>
       <div style={{ position: 'absolute', right: 52, top: '50%', transform: 'translateY(-50%) rotate(90deg)', transformOrigin: 'center center', fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.25)', whiteSpace: 'nowrap', zIndex: 4, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-        Self Reflection · Inner Work · Memory Games · Inner Ledger · Orion · Local AI
+        Self Reflection · Inner Work · Memory Games · Inner Ledger · Orion · Local Processing
       </div>
 
       {/* FIXED ORION ONLINE BADGE */}
@@ -923,7 +923,7 @@ function Privacy() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {[
-              { n: '01', body: 'Local AI inference via Ollama. Your Inner Ledger never leaves your device.' },
+              { n: '01', body: 'Local inference via Ollama. Your Inner Ledger never leaves your device.' },
               { n: '02', body: 'No data sold to advertisers. No third-party access to your reflection results.' },
               { n: '03', body: 'Support resources are triggered locally. Nothing flags a server.' },
               { n: '04', body: 'Open architecture. You can inspect everything that runs, everything that is stored.' },
@@ -939,7 +939,7 @@ function Privacy() {
           <div style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 20, color: T.cream, letterSpacing: '-0.01em', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(250,243,232,0.1)' }}>Privacy Manifest</div>
           {[
             ['Data Location', 'Your device only'],
-            ['AI Runtime', 'Ollama, local inference'],
+            ['Runtime', 'Ollama, local inference'],
             ['Reflection Scoring', 'On-device'],
             ['Inner Ledger', 'Never transmitted'],
             ['Third-Party Sharing', 'None, ever'],
@@ -1031,7 +1031,7 @@ function CTA() {
       <div style={{ position: 'relative', zIndex: 4, padding: '0 52px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(250,243,232,0.06)', paddingTop: 20 }}>
         <div style={{ fontFamily: T.mono, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.3)' }}>2026 Lumina. Your mind stays yours.</div>
         <div style={{ display: 'flex', gap: 18, fontFamily: T.mono, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(196,168,130,0.5)' }}>
-          <span>Local AI</span><span>No Ads</span><span>Open Source</span>
+          <span>Local Processing</span><span>No Ads</span><span>Open Source</span>
         </div>
       </div>
     </section>

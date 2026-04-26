@@ -166,52 +166,7 @@ export function Navigation() {
         gap: '7px', flexShrink: 0, marginLeft: 'auto',
       }}>
 
-        {/* THEME TOGGLE — pill switch */}
-        <motion.button
-          onClick={toggleTheme}
-          whileTap={{ scale: 0.94 }}
-          title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-          style={{
-            position: 'relative',
-            width: '52px', height: '28px', borderRadius: '14px',
-            cursor: 'pointer',
-            border: 'none', outline: 'none',
-            background: isDark
-              ? 'rgba(212,175,55,0.18)'
-              : 'rgba(139,100,16,0.15)',
-            boxShadow: isDark
-              ? 'inset 0 0 0 1px rgba(212,175,55,0.28)'
-              : 'inset 0 0 0 1px rgba(139,100,16,0.25)',
-            transition: 'background 0.25s',
-            flexShrink: 0,
-          }}
-        >
-          <motion.div
-            animate={{ x: isDark ? 26 : 2 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            style={{
-              position: 'absolute', top: '3px',
-              width: '22px', height: '22px', borderRadius: '50%',
-              background: isDark
-                ? 'radial-gradient(circle at 38% 35%, #ffe484, #d4af37)'
-                : 'radial-gradient(circle at 38% 35%, #ffe97a, #c9960a)',
-              boxShadow: isDark
-                ? '0 0 8px rgba(212,175,55,0.6)'
-                : '0 0 6px rgba(180,130,0,0.4)',
-            }}
-          />
-          <span style={{
-            position: 'absolute',
-            left: isDark ? '5px' : '30px',
-            top: '50%', transform: 'translateY(-50%)',
-            fontSize: '9px',
-            color: isDark ? 'rgba(254,244,228,0.4)' : 'rgba(42,26,8,0.4)',
-            pointerEvents: 'none',
-            transition: 'left 0.25s',
-          }}>
-            {isDark ? '☽' : '☀'}
-          </span>
-        </motion.button>
+        {/* Theme toggle removed — now in settings page */}
 
         {isAuthed && (
           <>

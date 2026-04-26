@@ -127,6 +127,10 @@ export default function OrionChatPanel({
 
   const quickPrompts = isMemoryPage ? QUICK_PROMPTS_GAMES : QUICK_PROMPTS_GENERAL
 
+  // Ref to always have latest rightPanelContext available for quick prompt button callbacks
+  const rightPanelContextRef = useRef(rightPanelContext)
+  useEffect(() => { rightPanelContextRef.current = rightPanelContext }, [rightPanelContext])
+
   useEffect(() => {
     // Scroll to bottom when messages change - with a small delay to allow DOM to update
     if (bottomRef.current) {
@@ -150,7 +154,7 @@ export default function OrionChatPanel({
     return null
   }
 
-  const send = useCallback(async (text?: string) => {
+    const send = useCallback(async (text?: string, contextOverride?: any) => {
     const content = (text ?? input).trim()
     if (!content || loading) return
     const rightPanelType = detectRightPanelTrigger(content)
@@ -169,13 +173,16 @@ export default function OrionChatPanel({
 
     const history = msgs.map(m => ({ role: m.role, content: m.content }))
 
+    // Use provided context override if available, otherwise use prop
+    const contextToSend = contextOverride !== undefined ? contextOverride : rightPanelContext
+
     try {
       const res = await fetch(`${API}/api/orion/stream`, {
         method: 'POST',
         credentials: 'include',
         signal: abortRef.current.signal,
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-        body: JSON.stringify({ content, history, right_panel_context: rightPanelContext }),
+        body: JSON.stringify({ content, history, right_panel_context: contextToSend }),
       })
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
@@ -214,7 +221,7 @@ export default function OrionChatPanel({
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-            body: JSON.stringify({ content, history, right_panel_context: rightPanelContext }),
+            body: JSON.stringify({ content, history, right_panel_context: contextToSend }),
           })
           const data = await fallback.json()
           setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.response || '', streaming: false } : m))
@@ -227,7 +234,7 @@ export default function OrionChatPanel({
     } finally {
       setLoading(false)
     }
-  }, [input, loading, msgs, onRequestRightPanel])
+  }, [input, loading, msgs, rightPanelContext, onRequestRightPanel])
 
   // Palette
   const bgPanel = isDark
@@ -305,18 +312,18 @@ export default function OrionChatPanel({
           </div>
         </div>
 
-        {/* Messages */}
+                {/* Messages */}
         <div style={{
           flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '12px',
           scrollbarWidth: 'thin', scrollbarColor: `${color}18 transparent`,
           position: 'relative', zIndex: 1,
         }}>
-          {msgs.length === 1 && (
+          {msgs.length <= 2 && (
             <div style={{ marginBottom: '12px' }}>
               <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: textMuted, textTransform: 'uppercase', marginBottom: '8px' }}>Quick questions</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
                 {quickPrompts.map(q => (
-                  <button key={q} onClick={() => send(q)}
+                  <button key={q} onClick={() => send(q, rightPanelContextRef.current)}
                     style={{
                       padding: '5px 10px', borderRadius: '18px', cursor: 'pointer',
                       fontFamily: 'var(--font-jost)', fontSize: '11px',
@@ -347,6 +354,29 @@ export default function OrionChatPanel({
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Persistent interactive triggers — always visible for re-accessing exercises */}
+          {msgs.length > 2 && onRequestRightPanel && (
+            <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '12px', background: isDark ? 'rgba(212,175,55,0.04)' : 'rgba(212,175,55,0.05)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.12)' : 'rgba(139,100,16,0.12)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(212,175,55,0.6)' : 'rgba(139,100,16,0.6)', textTransform: 'uppercase' }}>Try an exercise</span>
+                <div style={{ flex: 1, height: '1px', background: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(139,100,16,0.08)' }} />
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                {RIGHT_PANEL_TRIGGERS.map(t => (
+                  <button key={t.type} onClick={() => onRequestRightPanel(t.type)}
+                    style={{
+                      padding: '5px 10px', borderRadius: '18px', cursor: 'pointer',
+                      fontFamily: 'var(--font-jost)', fontSize: '11px',
+                      background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)',
+                      color: isDark ? 'rgba(212,175,55,0.7)' : 'rgba(139,100,16,0.7)',
+                      transition: 'all 0.15s',
+                    }}
+                  >{t.label}</button>
+                ))}
+              </div>
             </div>
           )}
 

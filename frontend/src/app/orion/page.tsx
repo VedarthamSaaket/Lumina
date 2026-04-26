@@ -6,6 +6,7 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import OrionChatPanel from '@/components/orion/OrionChatPanel'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
 import { useThemeStore } from '@/lib/themeStore'
+import Grainient from '@/components/ui/Grainient'
 
 const ORION_COLOR = '#5B9BD5'
 
@@ -85,6 +86,24 @@ export default function OrionPage() {
 
   return (
     <main className="bg-screening min-h-screen relative overflow-hidden">
+      {/* Grainient background */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Grainient
+          color1="#1a2a4a"
+          color2="#0a1528"
+          color3="#050a14"
+          timeSpeed={0.10}
+          grainAmount={0.04}
+          grainScale={2.5}
+          grainAnimated={true}
+          contrast={1.25}
+          saturation={0.75}
+          zoom={0.95}
+          warpStrength={0}
+          warpFrequency={3.5}
+          warpSpeed={1.0}
+        />
+      </div>
       <div style={{ position: 'relative', zIndex: 1 }}></div>
       <Navigation />
 

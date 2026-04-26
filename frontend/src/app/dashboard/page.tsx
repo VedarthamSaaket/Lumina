@@ -6,6 +6,8 @@ import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import { GoldHeading } from '@/components/ui/GoldHeading'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
+import { OrionInsightCard } from '@/components/orion/OrionInsightCard'
+import Grainient from '@/components/ui/Grainient'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -255,8 +257,31 @@ function MemoryTab({ memory }: { memory: MemoryRow[] }) {
           if (s['Best list length'] !== undefined) keyStats.push({ label: 'Best list', value: s['Best list length'] })
         }
 
-        keyStats.push({ label: 'Sessions', value: sessions.length })
+        // Live-observed Orion performance metrics
         if (totalRounds > 0) keyStats.push({ label: 'Accuracy', value: `${Math.round(correctRounds / totalRounds * 100)}%` })
+        keyStats.push({ label: 'Sessions', value: sessions.length })
+        if (totalRounds > 0) {
+          // Response time analysis
+          const timings = allRounds.map((r: any) => r.time_ms).filter(Boolean)
+          if (timings.length > 0) {
+            const avgTime = Math.round(timings.reduce((a: number, b: number) => a + b, 0) / timings.length)
+            keyStats.push({ label: 'Avg response', value: `${avgTime}ms` })
+          }
+          // Streak analysis 
+          let maxStreak = 0, currentStreak = 0
+          for (const r of allRounds) {
+            if (r.correct) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak) }
+            else currentStreak = 0
+          }
+          if (maxStreak > 0) keyStats.push({ label: 'Best streak', value: maxStreak })
+          // Fatigue pattern detection
+          const wrongCount = allRounds.filter((r: any) => !r.correct).length
+          const firstHalfWrong = allRounds.slice(0, Math.floor(totalRounds / 2)).filter((r: any) => !r.correct).length
+          const secondHalfWrong = wrongCount - firstHalfWrong
+          if (totalRounds > 4 && secondHalfWrong > firstHalfWrong * 1.5) {
+            keyStats.push({ label: 'Fatigue pattern', value: '⚠ detected' })
+          }
+        }
 
         return (
           <motion.div key={gameType} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: gi * 0.05 }}>
@@ -462,6 +487,24 @@ export default function DashboardPage() {
 
   return (
     <main className="bg-screening min-h-screen relative overflow-hidden">
+      {/* Grainient background */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Grainient
+          color1="#c9897a"
+          color2="#f0dfc0"
+          color3="#3a2a1e"
+          timeSpeed={0.08}
+          grainAmount={0.035}
+          grainScale={2.5}
+          grainAnimated={true}
+          contrast={1.25}
+          saturation={0.7}
+          zoom={0.92}
+          warpStrength={0}
+          warpFrequency={3.5}
+          warpSpeed={1.0}
+        />
+      </div>
       <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
@@ -711,8 +754,9 @@ export default function DashboardPage() {
 
           {/* MEMORY */}
           {activeTab === 'memory' && (
-            <motion.div key="mem" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.div key="mem" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
               <MemoryTab memory={memory} />
+              <OrionInsightCard />
             </motion.div>
           )}
 

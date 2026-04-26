@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
-import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 import { GoldHeading } from '@/components/ui/GoldHeading'
+import Grainient from '@/components/ui/Grainient'
 import { cbtAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -355,53 +355,53 @@ const MODULES: Mod[] = [
 ]
 
 const MODULE_SUMMARY_PROMPTS: Record<string, string> = {
-  distortion: `Someone just worked through an exercise about noticing their thought patterns. Write bullet points ONLY, no prose. Format:
-• What thinking pattern seems most active for them (use an evocative, non-clinical description like "the everything-or-nothing lens" or "the blame-first habit")
-• One specific thing the exercise revealed
-• One grounded, practical suggestion for next time this pattern shows up
-Under 80 words. Warm and direct. Speak as "you". No em dashes.`,
+  distortion: `You are a deep psychological guide, not a reporter. Someone just worked through a thought pattern exercise. Do NOT repeat what they wrote. Instead, use their responses to generate action-oriented insights. Based on their responses, write 3-4 bullet points that:
+• Name the specific cognitive pattern they seem caught in (give it a vivid name, e.g. "the mind-reader script" or "the all-or-nothing lens")
+• Reveal something they likely haven't noticed about how this pattern operates
+• Give one specific, actionable practice they can do when this pattern next activates
+Under 100 words. Speak as "you". Warm but incisive. No em dashes. No clinical labels.`,
 
-  reframing: `Someone completed a story-rewriting exercise. Write bullet points ONLY:
-• What they started with and how strongly it registered
-• What shifted (or started to) through the process
-• One small, honest next step
-Under 80 words. Warm, no clinical terms. Speak as "you". No em dashes.`,
+  reframing: `You are a psychological guide. Someone completed a story-rewriting exercise. Based on their responses, generate 3 action-oriented bullet points that:
+• Identify the core narrative they were carrying and what it reveals about their self-concept
+• Highlight what shifted (or began to) through their own exceptions
+• Give one concrete, one-sentence belief-rehearsal phrase they can use when the old story resurfaces
+Under 100 words. No em dashes. Speak as "you".`,
 
-  activation: `Someone planned a small reactivation step. Write bullet points ONLY:
-• What they are reconnecting with and why it matters
-• The specific small action they chose
-• Why starting small is the right move here
-Under 70 words. Warm. Speak as "you". No em dashes.`,
+  activation: `Someone planned a small reactivation step. Generate 3 bullet points:
+• What underlying need or value the chosen activity connects to
+• One insight about why this specific action (not the general idea) matters for their momentum
+• One specific way to lower the barrier even further if resistance shows up
+Under 80 words. Speak as "you". No em dashes.`,
 
-  esteem: `Someone explored their sense of self-worth. Write bullet points ONLY:
-• One real thing they uncovered about how others see them
-• One strength they named for themselves
-• A gentle note about their relationship with their inner critic
-Under 70 words. Grounded, warm. Speak as "you". No em dashes.`,
+  esteem: `Someone explored their sense of self-worth. Generate actionable insights:
+• One pattern in how they diminish themselves that the exercise surface
+• One genuine quality they possess that their inner critic hides from them
+• One specific sentence they can say to themselves when the critic gets loud
+Under 80 words. Speak as "you". No em dashes.`,
 
-  exposure: `Someone mapped out a gradual approach to something they have been avoiding. Write bullet points ONLY:
-• What they identified as the thing they have been steering around
-• Their first manageable step
-• What facing things gradually does for anxiety over time
-Under 70 words. Encouraging but not cheerful. No em dashes.`,
+  exposure: `Someone mapped out facing something they avoid. Generate 3 bullet points:
+• What underlying fear the avoidance is protecting
+• What their chosen first step reveals about their courage
+• One specific in-the-moment strategy for when anxiety spikes during the step
+Under 80 words. Speak as "you". No em dashes.`,
 
-  values: `Someone worked through a values clarification exercise. Write bullet points ONLY:
-• The core thing they identified as most important right now
-• The gap they noticed between that and their actual days
-• The small action they planned
-Under 75 words. Direct and warm. No em dashes.`,
+  values: `Someone worked through values. Generate 3 actionable bullet points:
+• The deeper need their chosen value reveals about this season of their life
+• The specific cost of the gap between their value and their current days
+• One measurable action they can take this week to close the gap by 10%
+Under 80 words. Speak as "you". No em dashes.`,
 
-  worrytime: `Someone worked through a worry-containing exercise. Write bullet points ONLY:
-• What the worry was circling around
-• What they sorted as actionable versus what to release
-• The worry window they set and what it gives them
-Under 75 words. No em dashes. Speak as "you".`,
+  worrytime: `Someone contained their worry. Generate 3 bullet points:
+• What the worry is ultimately protecting (what matters to them that feels threatened)
+• One specific release practice for the things outside their control
+• How to handle the worry when it arrives outside their scheduled window
+Under 80 words. Speak as "you". No em dashes.`,
 
-  habit: `Someone planned a small wellbeing habit. Write bullet points ONLY:
-• The habit they chose and what it serves
-• How they anchored it to an existing routine
-• The obstacle they named and their plan around it
-Under 70 words. No em dashes. Speak as "you".`,
+  habit: `Someone planned a small habit. Generate 3 bullet points:
+• What deeper desire this habit actually serves (not just the surface behavior)
+• Insight about why anchoring matters more than motivation
+• One specific commitment device they can use to follow through
+Under 80 words. Speak as "you". No em dashes.`,
 }
 
 export default function InnerWorkPage() {
@@ -456,7 +456,7 @@ export default function InnerWorkPage() {
 
   const generateCompletionSummary = async (modId: string, modTitle: string, responses: any[]) => {
     setSummaryLoading(true)
-    const promptNote = MODULE_SUMMARY_PROMPTS[modId] || `Someone completed an inner work exercise called ${modTitle}. Write bullet points only, 3 bullets, under 80 words, warm, speak as "you".`
+    const promptNote = MODULE_SUMMARY_PROMPTS[modId] || `Someone completed an inner work exercise called ${modTitle}. Based on their responses, generate 3 actionable insights that help them see something new about themselves. Do NOT restate their answers. Tell them something they likely didn't notice. Under 80 words. Bullet points. Speak as "you".`
     const responseSummary = responses
       .map((r, i) => `Step ${i + 1}: ${typeof r === 'string' ? r : JSON.stringify(r)}`)
       .filter(r => r.length > 10)
@@ -472,7 +472,9 @@ Rules:
 - No prose paragraphs
 - No em dashes
 - No clinical jargon
-- Under 80 words total`
+- DO NOT restate what they told you. Give them NEW insight.
+- Under 100 words total
+- Each bullet should be an actionable insight or practice they can use`
 
     try {
       const text = await fetchSummary(prompt)
@@ -513,7 +515,24 @@ Rules:
   if (completedMod) {
     return (
       <main className="bg-screening min-h-screen relative overflow-hidden">
-        <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
+        {/* Grainient background */}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <Grainient
+            color1="#c9897a"
+            color2="#f0dfc0"
+            color3="#3a2a1e"
+            timeSpeed={0.10}
+            grainAmount={0.04}
+            grainScale={2.5}
+            grainAnimated={true}
+            contrast={1.3}
+            saturation={0.7}
+            zoom={0.90}
+            warpStrength={0}
+            warpFrequency={3.5}
+            warpSpeed={1.0}
+          />
+        </div>
         <Navigation />
         <div className="relative z-10 pt-24 pb-20 px-5 max-w-2xl mx-auto">
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
@@ -535,13 +554,13 @@ Rules:
 
             <div className="rounded-xl p-5 mb-6" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
               <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>
-                What this session revealed
+                Actionable Insights
               </p>
               {summaryLoading ? (
                 <div className="flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
                   <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin flex-shrink-0"
                     style={{ borderColor: `${completedMod.color} transparent transparent transparent` }} />
-                  <span className="font-body text-sm">Writing your reflection...</span>
+                  <span className="font-body text-sm">Generating actionable insights...</span>
                 </div>
               ) : completionSummary ? (
                 <div className="space-y-2">
@@ -558,7 +577,7 @@ Rules:
                 </div>
               ) : (
                 <p className="font-body text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Your responses have been saved.
+                  Your responses have been saved and will generate insights.
                 </p>
               )}
             </div>
@@ -591,7 +610,24 @@ Rules:
 
   return (
     <main className="bg-screening min-h-screen relative overflow-hidden">
-      <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
+      {/* Grainient background */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Grainient
+          color1="#c9897a"
+          color2="#f0dfc0"
+          color3="#3a2a1e"
+          timeSpeed={0.10}
+          grainAmount={0.04}
+          grainScale={2.5}
+          grainAnimated={true}
+          contrast={1.3}
+          saturation={0.7}
+          zoom={0.90}
+          warpStrength={0}
+          warpFrequency={3.5}
+          warpSpeed={1.0}
+        />
+      </div>
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 

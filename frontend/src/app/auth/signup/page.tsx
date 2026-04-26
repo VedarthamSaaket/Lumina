@@ -164,9 +164,23 @@ export default function SignUpPage() {
 
   return (
     <main className="bg-landing min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 relative overflow-hidden">
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-<Grainient color1="#fef4e4" color2="#f0d9b5" color3="#e8c878" timeSpeed={0.08} grainAmount={0.04} grainScale={2} grainAnimated={true} contrast={1.1} saturation={0.6} zoom={1} warpStrength={0} warpFrequency={3} warpSpeed={0.8} />
-</div>
+      {/* Hero-style Grainient background */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <Grainient
+            color1="#c4a882"
+            color2="#f0dfc0"
+            color3="#3a2a1e"
+            timeSpeed={0.14}
+            warpStrength={0.9}
+            warpFrequency={3.5}
+            warpSpeed={1.2}
+            grainAmount={0.0}
+            contrast={1.4}
+            saturation={0.78}
+            zoom={0.85}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
