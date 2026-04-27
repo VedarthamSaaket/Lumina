@@ -6,6 +6,8 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import Grainient from '@/components/ui/Grainient'
 import { cbtAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { useThemeStore } from '@/lib/themeStore'
+import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -405,6 +407,8 @@ Under 80 words. Speak as "you". No em dashes.`,
 }
 
 export default function InnerWorkPage() {
+  const { theme } = useThemeStore()
+  const isLight = theme === 'light'
   const [active, setActive] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [started, setStarted] = useState(false)
@@ -515,24 +519,8 @@ Rules:
   if (completedMod) {
     return (
       <main className="bg-chat min-h-screen relative overflow-hidden">
-        {/* Grainient background */}
-        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-          <Grainient
-            color1="#c9897a"
-            color2="#f0dfc0"
-            color3="#3a2a1e"
-            timeSpeed={0.10}
-            grainAmount={0.04}
-            grainScale={2.5}
-            grainAnimated={true}
-            contrast={1.3}
-            saturation={0.7}
-            zoom={0.90}
-            warpStrength={0}
-            warpFrequency={3.5}
-            warpSpeed={1.0}
-          />
-        </div>
+        <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+        {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
         <Navigation />
         <div className="relative z-10 pt-24 pb-20 px-5 max-w-2xl mx-auto">
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
@@ -610,24 +598,8 @@ Rules:
 
   return (
     <main className="bg-chat min-h-screen relative overflow-hidden">
-      {/* Grainient background */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Grainient
-          color1="#c9897a"
-          color2="#f0dfc0"
-          color3="#3a2a1e"
-          timeSpeed={0.10}
-          grainAmount={0.04}
-          grainScale={2.5}
-          grainAnimated={true}
-          contrast={1.3}
-          saturation={0.7}
-          zoom={0.90}
-          warpStrength={0}
-          warpFrequency={3.5}
-          warpSpeed={1.0}
-        />
-      </div>
+      <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+      {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 

@@ -8,6 +8,7 @@ import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
 import { OrionInsightCard } from '@/components/orion/OrionInsightCard'
 import Grainient from '@/components/ui/Grainient'
+import { useThemeStore } from '@/lib/themeStore'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -371,6 +372,8 @@ function MemoryTab({ memory }: { memory: MemoryRow[] }) {
 type Tab = 'overview' | 'screening' | 'memory' | 'wellbeing' | 'cbt'
 
 export default function DashboardPage() {
+  const { theme } = useThemeStore()
+  const isLight = theme === 'light'
   const [loading, setLoading] = useState(true)
   const [notAuthed, setNotAuthed] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -457,7 +460,8 @@ export default function DashboardPage() {
   if (loading) {
     return (
     <main className="bg-chat min-h-screen relative overflow-hidden">
-        <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={14} />
+        <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+        {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
         <Navigation />
         <div className="flex items-center justify-center min-h-screen">
           <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
@@ -470,7 +474,8 @@ export default function DashboardPage() {
   if (notAuthed) {
     return (
     <main className="bg-chat min-h-screen relative overflow-hidden">
-        <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={14} />
+        <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+        {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
         <Navigation />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-5 text-center">
           <div className="mb-3">
@@ -487,25 +492,8 @@ export default function DashboardPage() {
 
   return (
     <main className="bg-chat min-h-screen relative overflow-hidden">
-      {/* Grainient background */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Grainient
-          color1="#c9897a"
-          color2="#f0dfc0"
-          color3="#3a2a1e"
-          timeSpeed={0.08}
-          grainAmount={0.035}
-          grainScale={2.5}
-          grainAnimated={true}
-          contrast={1.25}
-          saturation={0.7}
-          zoom={0.92}
-          warpStrength={0}
-          warpFrequency={3.5}
-          warpSpeed={1.0}
-        />
-      </div>
-      <ParticleCanvas colors={['#d4af37', '#c9897a', '#b8860b', '#fef4e4']} count={18} />
+      <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+      {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 

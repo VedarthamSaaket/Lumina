@@ -8,6 +8,8 @@ import { screeningAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
+import { useThemeStore } from '@/lib/themeStore'
+import Grainient from '@/components/ui/Grainient'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -823,6 +825,8 @@ function SafeAnswerNudge({ nudge, onDismiss, onChange, color }: {
 }
 
 export default function ScreeningPage() {
+  const { theme } = useThemeStore()
+  const isLight = theme === 'light'
   const [screen, setScreen] = useState<Screen>('categories')
   const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null)
   const [active, setActive] = useState<QType | null>(null)
@@ -984,8 +988,9 @@ HARD RULES:
   const severity = result && resultQ ? resultQ.scoring[result.severityIdx] : null
 
   return (
-    <main className="bg-screening min-h-screen relative overflow-hidden">
-      <ParticleCanvas colors={['#d4af37', '#c9897a', '#c4913a', '#b8860b']} count={22} />
+    <main className="bg-chat min-h-screen relative overflow-hidden">
+      <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+      {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 

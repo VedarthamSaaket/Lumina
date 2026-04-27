@@ -11,6 +11,8 @@ import OrionLiveObserver, { dispatchOrionLiveEvent } from '@/components/orion/Or
 import { orion } from '@/lib/orionBridge'
 import OrionDebrief from '@/components/orion/OrionDebrief'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
+import { useThemeStore } from '@/lib/themeStore'
+import Grainient from '@/components/ui/Grainient'
 
 function OrionBanner() {
   return (
@@ -3184,6 +3186,8 @@ function PuzzleResultScreen({ gameId, rounds, onRetake, onBack }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function MemoryPage() {
+  const { theme } = useThemeStore()
+  const isLight = theme === 'light'
   const [phase, setPhase] = useState<GamePhase>('selector')
   const [selected, setSelected] = useState<GameId | null>(null)
   const [rounds, setRounds] = useState<AnyRound[]>([])
@@ -3229,7 +3233,8 @@ export default function MemoryPage() {
 
   return (
     <main className="bg-chat min-h-screen relative overflow-hidden">
-      <ParticleCanvas colors={['#d4af37', '#c9897a', '#c4913a', '#b8860b']} count={22} />
+      <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
+      {isLight && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
       <Navigation />
       <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto">
 
