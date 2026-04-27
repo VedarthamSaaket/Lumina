@@ -9,6 +9,7 @@ import { journalAPI, moodAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
 import Grainient from '@/components/ui/Grainient'
+import { GoldHeading } from '@/components/ui/GoldHeading'
 
 const OpenBook = dynamic(() => import('@/components/journal/OpenBook'), { ssr: false })
 
@@ -28,6 +29,8 @@ interface JournalEntry {
 function BookScene({ onBookClick }: { onBookClick: () => void }) {
     const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
+    const [isHovered, setIsHovered] = useState(false)
+    const isHoveredRef = useRef(false)
     const mountRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -110,8 +113,8 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                                 const sc = 1.4 / maxDim
                                 m.scale.setScalar(sc)
                                 m.position.sub(center.multiplyScalar(sc))
-                                // Tilt backward on X axis — lying on table look
-                                m.rotation.x = 0.52   // ~30 degrees backward
+                                // Tilt backward on X axis
+                                m.rotation.x = 25 * (Math.PI / 180)
                                 m.rotation.y = rotY
                                 m.position.y -= 0.35  // lower center point
                                 initScale = sc
@@ -138,22 +141,30 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                     const el = clock.elapsedTime
                     if (mixer) mixer.update(dt)
                     if (model && !clicking) {
-                        // Very slow gentle Y rotation, maintaining backward tilt
-                        rotY += dt * 0.18
+                        rotY += dt * 0.35 // Slightly increased rotation speed
+
+                        const targetX = isHoveredRef.current ? (29 * Math.PI / 180) : (25 * Math.PI / 180)
+                        const targetScale = isHoveredRef.current ? initScale * 1.04 : initScale * 1.02
+
+                        // Smooth lerp for responsive hover
+                        model.rotation.x += (targetX - model.rotation.x) * dt * 6.0
                         model.rotation.y = rotY
-                        // Gentle floating on Y, no left/right tilt
                         model.position.y = -0.35 + Math.sin(el * 0.55) * 0.04
-                        model.rotation.x = 0.52 + Math.sin(el * 0.38) * 0.018
+
+                        const currentScale = model.scale.x
+                        const nextScale = currentScale + (targetScale - currentScale) * dt * 6.0
+                        model.scale.setScalar(nextScale)
                     }
                     if (model && clicking) {
                         clickT = Math.min(clickT + dt * 2.8, 1)
                         zoomT = Math.min(zoomT + dt * 2.0, 1)
                         const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-                        // Rises and comes toward camera
-                        model.rotation.x = 0.52 - ease(clickT) * 0.65
-                        model.scale.setScalar(initScale * (1 + ease(zoomT) * 1.8))
-                        camera.position.z = 5.5 - ease(zoomT) * 4.2
-                        camera.position.y = 1.2 + ease(zoomT) * 0.8
+                        // Rises and comes toward camera significantly
+                        const startX = isHoveredRef.current ? (29 * Math.PI / 180) : (25 * Math.PI / 180)
+                        model.rotation.x = startX - ease(clickT) * startX
+                        model.scale.setScalar(initScale * (1 + ease(zoomT) * 4.2))
+                        camera.position.z = 5.5 - ease(zoomT) * 4.6
+                        camera.position.y = 1.2 + ease(zoomT) * 1.5
                         camera.lookAt(0, 0, 0)
                     }
                     renderer.render(scene, camera)
@@ -203,26 +214,29 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
     }
 
     return (
-        <div onClick={handleClick} style={{
-            position: 'fixed', inset: 0, zIndex: 100, overflow: 'hidden',
-            cursor: phase === 'idle' ? 'pointer' : 'default',
-            background: 'radial-gradient(ellipse 80% 70% at 50% 60%, var(--bg-journal-dark, #1c0e04) 0%, var(--bg-journal-darker, #0d0501) 55%, var(--bg-journal-deep, #050200) 100%)',
-        }}>
+        <div 
+            onClick={handleClick} 
+            onMouseEnter={() => { setIsHovered(true); isHoveredRef.current = true; }}
+            onMouseLeave={() => { setIsHovered(false); isHoveredRef.current = false; }}
+            style={{
+                position: 'fixed', inset: 0, zIndex: 100, overflow: 'hidden',
+                cursor: phase === 'idle' ? 'pointer' : 'default',
+                perspective: '1000px',
+                transformStyle: 'preserve-3d',
+            }}
+        >
             <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
 
-            {/* Ambient warm glow under the book */}
+            {/* Dynamic soft shadow shift beneath the book */}
             <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-                background: 'radial-gradient(ellipse 60% 30% at 50% 72%, rgba(212,175,55,0.12) 0%, rgba(201,137,122,0.06) 55%, transparent 80%)',
-            }} />
-
-            {/* Vignette */}
-            <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
-                            background: [
-                                    'linear-gradient(to bottom, var(--bg-journal-vignette-top, rgba(5,2,0,0.82)) 0%, var(--bg-journal-vignette-mid, rgba(5,2,0,0.08)) 22%, transparent 40%, transparent 62%, var(--bg-journal-vignette-bot, rgba(5,2,0,0.70)) 100%)',
-                                    'linear-gradient(to right, var(--bg-journal-vignette-side, rgba(5,2,0,0.55)) 0%, transparent 18%, transparent 82%, var(--bg-journal-vignette-side, rgba(5,2,0,0.55)) 100%)',
-                                ].join(', '),
+                position: 'absolute', left: '50%', top: '65%',
+                width: '340px', height: '40px',
+                transform: `translate(-50%, -50%) scale(${isHovered ? 1.05 : 1})`,
+                background: 'radial-gradient(ellipse at center, rgba(10,5,0,0.6) 0%, rgba(10,5,0,0) 70%)',
+                pointerEvents: 'none', zIndex: 1,
+                opacity: phase === 'idle' ? (isHovered ? 0.8 : 0.4) : 0,
+                transition: 'all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                willChange: 'transform, opacity'
             }} />
 
             {/* Loading spinner */}
@@ -241,81 +255,34 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 </div>
             )}
 
-            {/* HEADING — rises UPWARD above the book */}
+            {/* HEADING — displays at top and animates down */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
-                    <motion.div
-                        key="heading"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{
-                            opacity: 1,
-                            // Rises to the very top of screen
-                            y: headingRisen ? '-100vh' : 0,
-                        }}
-                        exit={{ opacity: 0, scale: 0.96 }}
-                        transition={{
-                            opacity: { duration: 0.9, delay: 0.4 },
-                            y: { duration: 1.6, ease: [0.22, 0.9, 0.36, 1] },
-                        }}
-                        style={{
-                            position: 'absolute',
-                            // Start at vertical center, then move up
-                            top: '50%',
-                            left: 0,
-                            right: 0,
-                            transform: headingRisen ? 'translateY(-100vh)' : 'translateY(-50%)',
-                            textAlign: 'center',
-                            zIndex: 20,
-                            pointerEvents: 'none',
-                            padding: '0 24px',
-                        }}
-                    >
-                        {/* Decorative rule */}
+                    <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto pointer-events-none">
                         <motion.div
-                            initial={{ opacity: 0, scaleX: 0 }}
-                            animate={{ opacity: 1, scaleX: 1 }}
-                            transition={{ delay: 0.9, duration: 0.8 }}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}
+                            key="heading"
+                            initial={{ opacity: 0, y: 28 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="text-center mb-12 pointer-events-auto"
                         >
-                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.48))' }} />
-                            <span style={{ color: 'rgba(212,175,55,0.55)', fontSize: '11px' }}>✦</span>
-                            <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to left, transparent, rgba(212,175,55,0.48))' }} />
+                            <GoldHeading prefix="The Inner" gold="Ledger" size="clamp(2.5rem,6vw,5rem)" />
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 1.2, duration: 0.8 }}
+                                className="font-display italic text-lg mt-3"
+                                style={{
+                                    color: 'var(--text-secondary)', 
+                                    fontWeight: 300,
+                                    textShadow: '0 1px 24px rgba(0,0,0,0.8)',
+                                }}
+                            >
+                                A sanctuary for the examined life
+                            </motion.p>
                         </motion.div>
-
-                        <h1 style={{
-                            fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
-                            fontWeight: 400, fontStyle: 'italic',
-                            fontSize: 'clamp(2.8rem, 6vw, 5rem)',
-                            margin: '0 0 10px', letterSpacing: '0.02em',
-                            color: 'rgba(254,244,228,0.95)', lineHeight: 1.1,
-                            textShadow: '0 2px 60px rgba(0,0,0,0.9)',
-                        }}>
-                            The Inner{' '}
-                            <span style={{
-                                background: 'linear-gradient(90deg, #b8860b 0%, #d4af37 30%, #f9e07a 55%, #d4af37 78%, #b8860b 100%)',
-                                backgroundSize: '220% auto',
-                                WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                animation: 'textShimmer 4s linear infinite',
-                            }}>Ledger</span>
-                        </h1>
-
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1.2, duration: 0.8 }}
-                            style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontStyle: 'italic', fontWeight: 300,
-                                fontSize: 'clamp(0.95rem, 1.8vw, 1.2rem)',
-                                color: 'rgba(212,175,55,0.60)',
-                                letterSpacing: '0.06em', margin: 0,
-                                textShadow: '0 1px 24px rgba(0,0,0,0.8)',
-                            }}
-                        >
-                            A sanctuary for the examined life
-                        </motion.p>
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -362,19 +329,19 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 {phase === 'flash' && (
                     <>
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.2 }}
-                            animate={{ opacity: [0, 0.85, 1], scale: [0.2, 1.5, 2.5] }}
-                            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: [0, 1, 1], scale: [0.5, 2.5, 4] }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
                             style={{
-                                position: 'absolute', inset: 0, zIndex: 30, pointerEvents: 'none',
-                                background: 'radial-gradient(ellipse 45% 40% at 50% 52%, #ffffff 0%, rgba(255,255,255,0.88) 38%, rgba(255,255,255,0) 72%)',
+                                position: 'absolute', inset: 0, zIndex: 998, pointerEvents: 'none',
+                                background: 'radial-gradient(circle at 50% 50%, #ffffff 0%, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0) 80%)',
                             }}
                         />
                         <motion.div
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: [0, 0, 0.92, 1] }}
-                            transition={{ duration: 0.75, times: [0, 0.45, 0.82, 1] }}
-                            style={{ position: 'absolute', inset: 0, zIndex: 31, background: '#ffffff', pointerEvents: 'none' }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            style={{ position: 'fixed', inset: 0, zIndex: 999, background: '#ffffff', pointerEvents: 'none' }}
                         />
                     </>
                 )}
@@ -439,7 +406,7 @@ export default function JournalPage() {
 
     return (
         <main className="bg-chat min-h-screen relative overflow-hidden">
-            <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={stage === 'open' ? 18 : 0} />
+            <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
             {!isDark && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
 
             <AnimatePresence mode="wait">
