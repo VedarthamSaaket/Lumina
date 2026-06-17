@@ -634,7 +634,31 @@ async def orion_debrief(
         secs = (data.session_duration_ms % 60000) // 1000
         duration_note = f"Session duration: {mins}m {secs}s."
 
-    system = f"""You are Orion, a warm and sharp brain training companion. Write a personalised post-game debrief for this session. Use simple friendly language. No psychological jargon. No em dashes.
+    # Situational frame, given to the LLM so it interprets the same numbers
+    # differently for strong vs weak vs uneven sessions instead of defaulting
+    # to a generic "you struggled" template.
+    if accuracy >= 90:
+        tone_frame = "Strong session. Lead with what worked. Do not invent struggle. Avoid the word 'fatigue' unless wrong answers cluster in the final third AND accuracy is under 80%."
+    elif accuracy >= 75:
+        tone_frame = "Solid session. Acknowledge competence first, then name one specific friction point you can see in the round log."
+    elif accuracy >= 50:
+        tone_frame = "Mixed session. Be honest about the misses but stay encouraging. Look at which levels or modes the errors clustered on."
+    else:
+        tone_frame = "Tough session. Be kind, not critical. Find one bright spot in the log. Suggest a gentler restart, not a harder push."
+
+    # Tell the LLM explicitly what the back-half pattern looks like so it does
+    # not infer fatigue from a few late errors in an otherwise strong run.
+    back_half_note = ""
+    if total >= 4:
+        front = sum(1 for r in data.rounds[: total // 2] if not r.get("correct"))
+        back = sum(1 for r in data.rounds[total // 2 :] if not r.get("correct"))
+        back_half_note = f"Errors front-half: {front}. Errors back-half: {back}."
+
+    system = f"""You are Orion, a warm and sharp brain training companion. Write a personalised post-game debrief for this session. Use simple friendly language. No psychological jargon. No em dashes. No emojis. No exclamation marks unless the session genuinely warrants one.
+
+{tone_frame}
+
+Reference the actual numbers (accuracy, max level, where the errors landed). Do not contradict the data. If accuracy is high, say so and explain what that means. If errors are spread evenly, do not call it fatigue. Only call it fatigue when the back half clearly degraded.
 
 Structure your response in this exact format (use these exact section labels):
 
@@ -642,15 +666,16 @@ HEADLINE: [one sentence that captures the session in a specific, memorable way]
 
 WHAT HAPPENED: [2-3 sentences describing the actual pattern of this session, referencing specific numbers and moments]
 
-WHAT THIS TELLS YOU: [2-3 sentences explaining in simple terms what their performance reveals about how their brain handled this task today, use a "fun fact" format for any interesting insight]
+WHAT THIS TELLS YOU: [2-3 sentences explaining in simple terms what their performance reveals about how their brain handled this task today]
 
 ONE THING TO TRY: [1-2 sentences giving a specific, actionable strategy for next time, connected to what you actually observed]
 
-Keep the whole thing under 200 words. Be specific, warm, and personal. Vary your language so each debrief feels fresh.
+Keep the whole thing under 200 words. Vary your language so each debrief feels fresh.
 
 Game: {game_name}
 Accuracy: {accuracy}% ({correct_count}/{total} correct)
 Max level reached: {max_level}
+{back_half_note}
 {duration_note}
 Stats: {json.dumps(data.stats)}
 Round by round:

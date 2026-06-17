@@ -10,11 +10,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get('lumina_token')?.value
 
-  // Landing page: show to unauthenticated, redirect authenticated to /chat
+  // Landing page: always show, regardless of auth state
   if (pathname === '/') {
-    if (token) {
-      return NextResponse.redirect(new URL('/chat', request.url))
-    }
     return NextResponse.next()
   }
 

@@ -15,7 +15,7 @@ export interface Message {
 export interface MoodEntry {
   id: string
   userId: string
-  score: number // 1–10
+  score: number // 1-10
   note?: string
   tags: string[]
   createdAt: Date

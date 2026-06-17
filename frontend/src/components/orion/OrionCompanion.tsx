@@ -88,7 +88,7 @@ NUTRITION & COGNITION:
 
 STRESS & ANXIETY:
 - Yerkes & Dodson (1908): Inverted-U, moderate arousal optimises performance; both too low and too high impairs it.
-- Arnsten (2009, Nature Reviews Neuroscience): Acute uncontrollable stress impairs prefrontal cortex (PFC) function → impairs working memory and executive control.
+- Arnsten (2009, Nature Reviews Neuroscience): Acute uncontrollable stress impairs prefrontal cortex (PFC) function -> impairs working memory and executive control.
 
 METACOGNITION:
 - Flavell (1979): Metacognitive awareness predicts learning efficiency. Knowing HOW you think lets you train smarter.
@@ -375,7 +375,7 @@ export function OrionCompanion() {
                     color: p.accent, fontStyle: 'italic',
                     filter: `drop-shadow(0 0 8px ${p.accentGlow})`,
                     userSelect: 'none',
-                }}>✦</span>
+                }}>*</span>
             </motion.button>
 
             {/* ── CHAT PANEL ─────────────────────────────────────────── */}
@@ -422,7 +422,7 @@ export function OrionCompanion() {
                                 fontSize: '14px', color: p.accent,
                                 boxShadow: `0 0 12px ${p.accentGlow}`,
                             }}>
-                                ✦
+                                *
                             </div>
 
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -525,7 +525,7 @@ export function OrionCompanion() {
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     fontSize: '9px', color: p.accent, flexShrink: 0,
                                                     marginRight: '7px', marginTop: '2px',
-                                                }}>✦</div>
+                                                }}>*</div>
                                             )}
                                             <div style={{
                                                 maxWidth: '82%',

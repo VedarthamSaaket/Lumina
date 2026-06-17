@@ -28,7 +28,7 @@ api.interceptors.response.use(
       const isAuthRoute = window.location.pathname.startsWith('/auth')
       if (!isAuthRoute) {
         localStorage.removeItem('access_token')
-        window.location.href = '/auth'
+        window.location.href = '/'
       }
     }
     return Promise.reject(err)

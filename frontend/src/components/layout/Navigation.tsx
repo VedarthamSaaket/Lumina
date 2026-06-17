@@ -28,16 +28,16 @@ export function Navigation() {
     try { await authAPI.signout() } catch { }
     localStorage.removeItem('access_token')
     document.cookie = 'lumina_token=; Max-Age=0; path=/'
-    window.location.href = '/auth/signin'
+    window.location.href = '/'
   }
 
   const navLinks = [
-    { href: '/chat', label: 'LUMINA', icon: '✦', orion: false },
+    { href: '/chat', label: 'LUMINA', icon: '*', orion: false },
     { href: '/journal', label: 'JOURNAL', icon: '◈', orion: false },
     { href: '/screening', label: 'REFLECT', icon: '◎', orion: false },
     { href: '/cbt', label: 'INNER WORK', icon: '❋', orion: false },
     { href: '/cognitive/memory', label: 'MEMORY', icon: '◐', orion: false },
-    { href: '/orion', label: 'ORION', icon: '✦', orion: true },
+    { href: '/orion', label: 'ORION', icon: '*', orion: true },
   ]
 
   const isActive = (href: string) =>
@@ -100,7 +100,7 @@ export function Navigation() {
           fontStyle: 'italic', fontWeight: 400,
           fontSize: '20px',
           color: isDark ? 'rgba(254,244,228,0.92)' : 'rgba(42,24,4,0.88)',
-          letterSpacing: '0.30em',             // ← wide spaced as in screenshot
+          letterSpacing: '0.30em',             // <- wide spaced as in screenshot
           textTransform: 'uppercase',
         }}>
           LUMINA
@@ -170,36 +170,6 @@ export function Navigation() {
 
         {isAuthed && (
           <>
-            {/* CRISIS BUTTON */}
-            <Link href="/crisis" style={{ textDecoration: 'none' }}>
-              <motion.div
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '5px 14px', borderRadius: '20px',
-                  background: isDark
-                    ? 'rgba(220, 60, 60, 0.13)'
-                    : 'rgba(220, 60, 60, 0.10)',
-                  border: isDark
-                    ? '1px solid rgba(220,80,80,0.30)'
-                    : '1px solid rgba(200,50,50,0.25)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-jost)', fontSize: '11px',
-                  fontWeight: 600, letterSpacing: '0.14em',
-                  color: isDark ? 'rgba(255,120,120,0.85)' : 'rgba(180,30,30,0.80)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span style={{
-                  width: '7px', height: '7px', borderRadius: '50%',
-                  background: isDark ? '#ff6060' : '#cc2222',
-                  boxShadow: '0 0 6px rgba(255,60,60,0.6)',
-                  display: 'inline-block', flexShrink: 0,
-                }} />
-                CRISIS
-              </motion.div>
-            </Link>
-
             {/* SETTINGS gear */}
             <Link href="/settings" style={{ textDecoration: 'none' }}>
               <motion.button

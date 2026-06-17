@@ -44,7 +44,7 @@ export function FoldedPaperSVG({ folds, holeDot, color = GOLD2 }:
               fold {fi + 1}
             </text>
             {fi < folds.length - 1 && (
-              <text x={x + 78} y={42} fill={color} fillOpacity={0.6} fontSize="16">→</text>
+              <text x={x + 78} y={42} fill={color} fillOpacity={0.6} fontSize="16">-></text>
             )}
           </g>
         )

@@ -174,12 +174,12 @@ export function SpatialGame({
           </div>
           {phase === 'feedback' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-              <div className="text-4xl mb-1" style={{ color: lastCorrect ? SAGE : '#f87171' }}>{lastCorrect ? '✓' : '✗'}</div>
+              <div className="text-4xl mb-1" style={{ color: lastCorrect ? SAGE : '#f87171' }}>{lastCorrect ? '+' : 'x'}</div>
               <p className="font-jost text-xs tracking-widest uppercase" style={{ color: lastCorrect ? SAGE : 'var(--text-muted)' }}>
                 {lastCorrect ? 'Correct!' : 'Incorrect sequence'}
               </p>
               {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-                <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up →</p>
+                <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up -></p>
               )}
             </motion.div>
           )}

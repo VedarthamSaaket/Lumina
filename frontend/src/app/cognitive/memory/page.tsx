@@ -163,7 +163,7 @@ export default function MemoryPage() {
 
           {phase === 'intro' && game && (
             <motion.div key="intro" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
-              <button onClick={back} className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-primary)' }}>← Back</button>
+              <button onClick={back} className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-primary)' }}>Back</button>
               <div className="glass-strong rounded-2xl p-7" style={{ border: `1px solid ${game.color}18` }}>
                 <div className="flex items-center gap-4 mb-5">
                   <div className="text-4xl" style={{ color: game.color, filter: `drop-shadow(0 0 10px ${game.color}55)` }}>{game.icon}</div>
@@ -196,7 +196,7 @@ export default function MemoryPage() {
                 <motion.button onClick={startGame} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   className="w-full py-4 rounded-xl font-jost font-semibold text-sm tracking-widest uppercase"
                   style={{ background: `linear-gradient(135deg,${game.color}22,${game.color}0d)`, border: `1px solid ${game.color}38`, color: 'var(--text-primary)' }}>
-                  Begin Game
+                  Begin Game →
                 </motion.button>
               </div>
             </motion.div>
@@ -217,7 +217,13 @@ export default function MemoryPage() {
           )}
 
           {phase === 'result' && selected && (
-            <motion.div key="result">
+            <motion.div
+              key="result"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35 }}
+            >
               <OrionDebrief
                 gameId={selected}
                 gameTitle={GAMES[selected as keyof typeof GAMES]?.title || selected}
@@ -232,14 +238,14 @@ export default function MemoryPage() {
                 onBack={back}
                 onRetake={retake}
                 color={GAMES[selected as keyof typeof GAMES]?.color || GOLD}
-                icon={GAMES[selected as keyof typeof GAMES]?.icon || '◉'}
+                icon={GAMES[selected as keyof typeof GAMES]?.icon || 'O'}
               />
             </motion.div>
           )}
 
           {phase === 'puzzle-intro' && puzzleSelected && (
             <motion.div key="puzzle-intro" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
-              <button onClick={back} className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-primary)' }}>← Back</button>
+              <button onClick={back} className="mb-6 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-primary)' }}>Back</button>
               {(() => {
                 const g = PUZZLE_GAMES[puzzleSelected]
                 return (

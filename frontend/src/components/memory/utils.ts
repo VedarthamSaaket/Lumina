@@ -107,7 +107,7 @@ export function randLetterSeqUnique(len: number, maxAttempts = 40): string[] {
 export function getModeForRound(level: number, roundInLevel: number, availableModes: SeqMode[]): SeqMode {
   if (availableModes.length === 0) return 'forward'
   // Within a level, rounds progress through harder modes
-  // Level 1: all forward. Level 2: forward→reverse. Level 3+: all modes unlock gradually
+  // Level 1: all forward. Level 2: forward->reverse. Level 3+: all modes unlock gradually
   const modeProgression: SeqMode[] = ['forward', 'forward', 'reverse', 'ascending', 'descending', 'odd_only', 'even_only']
   const filtered = modeProgression.filter(m => availableModes.includes(m))
 
@@ -265,7 +265,7 @@ export function generateMathSeq(level: number, roundInLevel: number): { sequence
       const seq = Array.from({ length: seqLen }, (_, i) => Math.pow(base, i + 1))
       return { sequence: seq, answer: Math.pow(base, seqLen + 1), rule: `${base}^n` }
     }
-    // Differences of differences (quadratic): 0,1,4,9,16 → diffs 1,3,5,7 → diffs 2,2,2
+    // Differences of differences (quadratic): 0,1,4,9,16 -> diffs 1,3,5,7 -> diffs 2,2,2
     const seqLen = Math.min(len, 7)
     const seq = Array.from({ length: seqLen }, (_, i) => i * i)
     return { sequence: seq, answer: seqLen * seqLen, rule: 'quadratic' }

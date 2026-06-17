@@ -37,19 +37,35 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
         const container = mountRef.current
         if (!container) { setPhase('idle'); return }
 
-        const loadScript = (src: string): Promise<void> =>
-            new Promise((resolve, reject) => {
-                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return }
+        // loadScript polls the readiness check after onload / tag-exists,
+        // so we never proceed before the global it provides is actually defined.
+        // First-visit failures were caused by tag-exists-but-still-evaluating races.
+        const loadScript = (src: string, check: () => boolean): Promise<void> =>
+            new Promise((resolve) => {
+                const waitForGlobal = () => {
+                    if (check()) { resolve(); return }
+                    const poll = setInterval(() => {
+                        if (check()) { clearInterval(poll); resolve() }
+                    }, 50)
+                    // Safety bail after 8s so we surface idle state if CDN is dead.
+                    setTimeout(() => { clearInterval(poll); resolve() }, 8000)
+                }
+                if (check()) { resolve(); return }
+                const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null
+                if (existing) { waitForGlobal(); return }
                 const s = document.createElement('script')
                 s.src = src
-                s.onload = () => resolve()
-                s.onerror = reject
+                s.onload = () => waitForGlobal()
+                s.onerror = () => resolve()
                 document.head.appendChild(s)
             })
 
         const bootstrap = async () => {
             try {
-                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
+                await loadScript(
+                    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+                    () => !!(window as any).THREE,
+                )
                 if (cancelled) return
                 const THREE = (window as any).THREE
                 if (!THREE) { setPhase('idle'); return }
@@ -93,7 +109,10 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
 
                 const loadGLB = async () => {
                     try {
-                        await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js')
+                        await loadScript(
+                            'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',
+                            () => !!(window as any).THREE?.GLTFLoader,
+                        )
                         if (cancelled) return
                         const Loader = (window as any).THREE?.GLTFLoader
                         if (!Loader) { setPhase('idle'); return }
@@ -125,7 +144,19 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                                     mixer = new THREE.AnimationMixer(model)
                                     gltf.animations.forEach((clip: any) => mixer.clipAction(clip).play())
                                 }
-                                if (!cancelled) setPhase('idle')
+                                if (!cancelled) {
+                                    // First-visit fix: container size may not have been
+                                    // final when the renderer was constructed. Re-sync
+                                    // and force one render before the raf loop catches up.
+                                    const cw = container.clientWidth, ch = container.clientHeight
+                                    if (cw > 0 && ch > 0) {
+                                        camera.aspect = cw / ch
+                                        camera.updateProjectionMatrix()
+                                        renderer.setSize(cw, ch)
+                                    }
+                                    renderer.render(scene, camera)
+                                    setPhase('idle')
+                                }
                             },
                             undefined,
                             () => { if (!cancelled) setPhase('idle') }
@@ -407,7 +438,7 @@ export default function JournalPage() {
                 journalAPI.create(content, mood, tags, stickers),
                 moodAPI.log(mood, '', tags),
             ])
-            toast.success('Entry saved ✦', {
+            toast.success('Entry saved *', {
                 style: {
                     background: 'rgba(20,10,0,0.95)',
                     color: '#d4af37',

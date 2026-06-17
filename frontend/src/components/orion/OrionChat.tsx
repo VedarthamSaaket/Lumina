@@ -227,7 +227,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: '13px', color: accentColor,
                                 boxShadow: `0 0 12px ${accentGlow}`,
-                            }}>✦</div>
+                            }}>*</div>
                             <div>
                                 <p style={{
                                     fontFamily: "'Cinzel', serif", fontSize: '11px',
@@ -246,7 +246,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         }}
                             onMouseEnter={e => (e.currentTarget.style.color = textPrimary)}
                             onMouseLeave={e => (e.currentTarget.style.color = textMuted)}
-                        >✕</button>
+                        >x</button>
                     </div>
 
                     {/* Messages */}
@@ -312,7 +312,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                         border: `1px solid ${isDark ? 'rgba(196,146,58,0.32)' : 'rgba(122,140,110,0.32)'}`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: '9px', color: accentColor,
-                                    }}>✦</div>
+                                    }}>*</div>
                                 )}
                                 <div style={{
                                     maxWidth: '82%',

@@ -124,7 +124,7 @@ const TONE_OPTIONS = [
   { id: 'clinical', label: 'Structured', desc: 'Methodical and structured. More like a tool than a friend.', icon: '◎', color: '#5b9bd5' },
   { id: 'playful', label: 'Casual & Light', desc: 'Relaxed and conversational. Less formal, more human.', icon: '◑', color: '#7a9e7e' },
   { id: 'socratic', label: 'Socratic', desc: 'Guided questions rather than direct answers. Helps you arrive at your own conclusions.', icon: '◉', color: '#b8a9d4' },
-  { id: 'poetic', label: 'Poetic & Reflective', desc: 'Metaphor-rich language. Speaks in imagery and gentle philosophical reflection.', icon: '✦', color: '#9b7fd4' },
+  { id: 'poetic', label: 'Poetic & Reflective', desc: 'Metaphor-rich language. Speaks in imagery and gentle philosophical reflection.', icon: '*', color: '#9b7fd4' },
 ]
 
 const EMPATHY_OPTIONS = [
@@ -153,7 +153,7 @@ const ORION_TONE_OPTIONS = [
 ]
 
 const LENGTH_OPTIONS = [
-  { id: 'short', label: 'Concise', desc: '2–3 sentences max', icon: '–' },
+  { id: 'short', label: 'Concise', desc: '2-3 sentences max', icon: '-' },
   { id: 'medium', label: 'Balanced', desc: 'Short for simple things, longer for deeper ones', icon: '≡' },
   { id: 'long', label: 'Thorough', desc: 'Full reflections and detailed responses', icon: '≣' },
 ]
@@ -196,7 +196,7 @@ const SECTIONS: { id: Section; label: string; icon: string; color: string; desc:
   { id: 'tone', label: 'Lumina Tone', icon: '◈', color: '#c9897a', desc: 'How Lumina speaks to you' },
   { id: 'context', label: 'Helper Memory', icon: '◎', color: '#7a9e7e', desc: 'What the system remembers' },
   { id: 'crisis', label: 'Sensitivity', icon: '◌', color: '#c4913a', desc: 'Crisis detection tuning' },
-  { id: 'orion', label: 'Orion', icon: '✦', color: '#6ec6ff', desc: 'Customise your brain trainer' },
+  { id: 'orion', label: 'Orion', icon: '*', color: '#6ec6ff', desc: 'Customise your brain trainer' },
   { id: 'privacy', label: 'Privacy', icon: '◑', color: '#9b7fd4', desc: 'Your data, your control' },
 ]
 
@@ -406,7 +406,7 @@ export default function SettingsPage() {
         method: 'POST',
         body: JSON.stringify(updated),
       })
-      toast.success('Settings saved ✦', {
+      toast.success('Settings saved *', {
         style: {
           background: 'rgba(20,10,0,0.95)', color: '#d4af37',
           border: '1px solid rgba(212,175,55,0.3)',
@@ -652,7 +652,7 @@ export default function SettingsPage() {
                               border: active ? '1px solid rgba(212,175,55,0.45)' : '1px solid var(--border-subtle)',
                               color: active ? '#d4af37' : 'var(--text-muted)',
                             }}>
-                            {active ? '✓ ' : ''}{area}
+                            {active ? '+ ' : ''}{area}
                           </button>
                         )
                       })}
@@ -940,7 +940,7 @@ export default function SettingsPage() {
                       {settings.auto_adapt_sensitivity && (
                         <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(91,155,213,0.08)', border: '1px solid rgba(91,155,213,0.15)' }}>
                           <div className="flex items-start gap-2">
-                            <span style={{ color: '#5b9bd5', fontSize: '12px' }}>✦</span>
+                            <span style={{ color: '#5b9bd5', fontSize: '12px' }}>*</span>
                             <div>
                               <p className="font-jost text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
                                 Adaptive Mode Active
@@ -975,7 +975,7 @@ export default function SettingsPage() {
 
                     <div className="mt-5 p-3 rounded-lg" style={{ background: 'rgba(196,145,58,0.08)', border: '1px solid rgba(196,145,58,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                        This affects how Lumina interprets your words, not whether crisis resources are available. iCall (9152987821) is always at /crisis.
+                        This affects how Lumina interprets your words, not whether crisis resources are available. iCall: 9152987821.
                       </p>
                     </div>
                   </SectionCard>
@@ -1013,7 +1013,7 @@ export default function SettingsPage() {
                                 border: active ? '1px solid rgba(122,158,126,0.45)' : '1px solid var(--border-subtle)',
                                 color: active ? '#7a9e7e' : 'var(--text-muted)',
                               }}>
-                              {active ? '✓ ' : ''}{field}
+                              {active ? '+ ' : ''}{field}
                             </button>
                           )
                         })}
@@ -1210,7 +1210,7 @@ export default function SettingsPage() {
                               border: active ? '1px solid rgba(110,198,255,0.45)' : '1px solid var(--border-subtle)',
                               color: active ? '#6ec6ff' : 'var(--text-muted)',
                             }}>
-                            {active ? '✓ ' : ''}{g.label}
+                            {active ? '+ ' : ''}{g.label}
                           </button>
                         )
                       })}
@@ -1238,7 +1238,7 @@ export default function SettingsPage() {
                             <span key={g} className="flex items-center gap-1 px-2.5 py-1 rounded-full font-jost text-xs"
                               style={{ background: 'rgba(110,198,255,0.12)', border: '1px solid rgba(110,198,255,0.28)', color: '#6ec6ff' }}>
                               {label}
-                              <button onClick={() => toggleOrionGame(g)} style={{ opacity: 0.6, fontSize: '10px' }}>✕</button>
+                              <button onClick={() => toggleOrionGame(g)} style={{ opacity: 0.6, fontSize: '10px' }}>x</button>
                             </span>
                           )
                         })}

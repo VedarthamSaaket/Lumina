@@ -13,7 +13,7 @@ export const STICKER_PACKS: Record<string, { label: string; color: string; icon:
     kawaii: {
         label: 'Kawaii',
         color: '#c9897a',
-        icon: '🌸',
+        icon: '',
         stickers: [
             { id: 'kw-1', label: 'In Love', url: OM('1F970'), rotation: 2, category: 'kawaii' },
             { id: 'kw-2', label: 'Star Eyes', url: OM('1F929'), rotation: -2, category: 'kawaii' },
@@ -45,7 +45,7 @@ export const STICKER_PACKS: Record<string, { label: string; color: string; icon:
     cottagecore: {
         label: 'Cottagecore',
         color: '#7a9e7e',
-        icon: '🌿',
+        icon: '',
         stickers: [
             { id: 'cc-1', label: 'Sunflower', url: OM('1F33B'), rotation: -2, category: 'cottagecore' },
             { id: 'cc-2', label: 'Rose', url: OM('1F339'), rotation: 2, category: 'cottagecore' },
@@ -77,7 +77,7 @@ export const STICKER_PACKS: Record<string, { label: string; color: string; icon:
     dark_academia: {
         label: 'Dark Academia',
         color: '#8b7355',
-        icon: '📚',
+        icon: '',
         stickers: [
             { id: 'da-1', label: 'Open Book', url: OM('1F4D6'), category: 'dark_academia' },
             { id: 'da-2', label: 'Scroll', url: OM('1F4DC'), rotation: 2, category: 'dark_academia' },
@@ -109,7 +109,7 @@ export const STICKER_PACKS: Record<string, { label: string; color: string; icon:
     mindful: {
         label: 'Mindful',
         color: '#9b7fd4',
-        icon: '✨',
+        icon: '',
         stickers: [
             { id: 'mf-1', label: 'Shooting Star', url: OM('1F320'), rotation: -20, category: 'mindful' },
             { id: 'mf-2', label: 'Sparkles', url: OM('2728'), rotation: 2, category: 'mindful' },
@@ -141,7 +141,7 @@ export const STICKER_PACKS: Record<string, { label: string; color: string; icon:
     emotions: {
         label: 'Emotions',
         color: '#d4af37',
-        icon: '💛',
+        icon: '',
         stickers: [
             { id: 'em-1', label: 'Crying', url: OM('1F972'), rotation: 3, category: 'emotions' },
             { id: 'em-2', label: 'Pensive', url: OM('1F614'), rotation: 3, category: 'emotions' },

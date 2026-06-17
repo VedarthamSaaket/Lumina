@@ -41,7 +41,7 @@ z-index: 0;
 
 const CAPABILITIES = [
   {
-    icon: '✦',
+    icon: '*',
     title: 'Memory Analysis',
     desc: 'Orion reads your actual game scores and gives you specific coaching based on what it sees in your results.',
   },
@@ -158,7 +158,7 @@ export default function OrionPage() {
                 fontSize: '18px', color: ORION_COLOR,
                 boxShadow: `0 0 24px ${ORION_COLOR}30`,
               }}>
-                ✦
+                *
               </div>
               <GoldHeading prefix="" gold="Orion" size="clamp(2rem, 5vw, 3.5rem)" />
             </div>
@@ -295,7 +295,7 @@ export default function OrionPage() {
                             transition={{ delay: 0.3 + i * 0.05 }}
                             style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}
                           >
-                            <span style={{ color: ORION_COLOR, fontSize: '8px', marginTop: '5px', flexShrink: 0 }}>✦</span>
+                            <span style={{ color: ORION_COLOR, fontSize: '8px', marginTop: '5px', flexShrink: 0 }}>*</span>
                             <p style={{
                               fontFamily: 'var(--font-jost)', fontSize: '12px',
                               color: textSecondary, lineHeight: '1.6', margin: 0,

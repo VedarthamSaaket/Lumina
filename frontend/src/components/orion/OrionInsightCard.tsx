@@ -196,7 +196,7 @@ export function OrionInsightCard({ insights: initialInsights, maxDisplay = 3 }: 
                       className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-jost"
                       style={{ background: `${color}15`, border: `1px solid ${color}30`, color }}
                     >
-                      ✦
+                      *
                     </div>
                     <div>
                       {gameMatch && (

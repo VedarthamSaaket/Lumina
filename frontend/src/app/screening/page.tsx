@@ -209,7 +209,7 @@ const Qs = {
       { max: 42, label: 'Balanced profile', color: '#7a9e7e' },
       { max: 60, label: 'Empathising dominant', color: '#c9897a' },
     ],
-    note: 'Based on Baron-Cohen\'s Empathising–Systemising (E-S) theory. Measures cognitive style tendencies, not ability.',
+    note: 'Based on Baron-Cohen\'s Empathising-Systemising (E-S) theory. Measures cognitive style tendencies, not ability.',
     traits: [
       'reading between lines', 'emotional detection', 'motivation interest', 'empathic pull',
       'social prediction', 'people analysis', 'mood sensitivity', 'emotional energy',
@@ -249,7 +249,7 @@ const Qs = {
     ],
     note: 'Inspired by the Profile of Nonverbal Sensitivity (PONS) research by Rosenthal et al. (1979) and nonverbal decoding research.',
     traits: [
-      'facial microexpression', 'verbal–nonverbal gap', 'ambient tension', 'smile authenticity',
+      'facial microexpression', 'verbal-nonverbal gap', 'ambient tension', 'smile authenticity',
       'body language priority', 'vocal incongruence', 'mirroring tendency', 'eye contact awareness',
       'conversation exit sensing', 'group energy reading', 'calm-mask detection', 'subtle signal registration',
     ],
@@ -1074,7 +1074,7 @@ HARD RULES:
                           <h3 className="font-gothic text-sm mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '0.06em' }}>{test.name}</h3>
                           <p className="font-body text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{test.full}</p>
                           <p className="font-jost text-xs" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{test.intro}</p>
-                          <p className="font-jost text-xs mt-2 tracking-widest uppercase" style={{ color: test.color }}>BEGIN</p>
+                          <p className="font-jost text-xs mt-2 tracking-widest uppercase" style={{ color: test.color }}>BEGIN →</p>
                         </div>
                       </div>
                     </motion.button>

@@ -650,9 +650,8 @@ Rules:
                   <div className="mt-3 h-px" style={{ background: `linear-gradient(90deg,${m.color}40,transparent)` }} />
                   <div className="mt-2.5 flex items-center gap-1.5">
                     <span className="font-jost text-xs tracking-widest uppercase" style={{ color: m.color, opacity: 0.65 }}>
-                      {m.steps.length} steps . Begin
+                      {m.steps.length} steps . Begin →
                     </span>
-                    <span style={{ color: m.color, opacity: 0.5, fontSize: '10px' }}>→</span>
                   </div>
                 </motion.button>
               ))}
@@ -703,7 +702,7 @@ Rules:
                     background: `linear-gradient(135deg,${mod.color}22,${mod.color}0d)`,
                     border: `1px solid ${mod.color}38`, color: 'var(--text-primary)',
                   }}>
-                  Begin this exercise
+                  Begin this exercise →
                 </motion.button>
               </div>
             </motion.div>

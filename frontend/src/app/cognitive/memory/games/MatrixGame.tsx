@@ -79,7 +79,7 @@ export function MatrixGame({ onQuit, onComplete }: {
               ) : (
                 <div className="flex items-center justify-center">
                   {phase === 'feedback' ? (
-                    <span style={{ fontSize: 22, color: lastCorrect ? SAGE : '#f87171' }}>{lastCorrect ? '✓' : '✗'}</span>
+                    <span style={{ fontSize: 22, color: lastCorrect ? SAGE : '#f87171' }}>{lastCorrect ? '+' : 'x'}</span>
                   ) : (
                     <span className="font-display text-2xl font-light" style={{ color: `${color}60` }}>?</span>
                   )}

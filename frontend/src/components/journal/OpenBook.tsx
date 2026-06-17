@@ -302,7 +302,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
             }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >← Close</button>
+            > Close</button>
 
             {/* Main layout */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', alignItems: 'stretch' }}>
@@ -315,28 +315,28 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     gap: '14px', paddingBottom: '20px',
                     zIndex: 20,
                 }}>
-                    {/* ← Previous (go backward) */}
+                    {/* <- Previous (go backward) */}
                     <NavButton
                         onClick={goBackward}
                         disabled={currentPage <= 0 || isAnimating}
-                        label="←"
+                        label="<-"
                         title="Previous page"
                         nb={NB}
                     />
-                    {/* ✦ New entry */}
+                    {/* * New entry */}
                     <NavButton
                         onClick={goToWritePage}
                         disabled={currentPage === 0 || isAnimating}
-                        label="✦"
+                        label="*"
                         title="New entry"
                         small
                         nb={NB}
                     />
-                    {/* → Next (go forward) */}
+                    {/* -> Next (go forward) */}
                     <NavButton
                         onClick={goForward}
                         disabled={currentPage >= totalEntries || isAnimating}
-                        label="→"
+                        label="->"
                         title="Next page"
                         nb={NB}
                     />
@@ -469,7 +469,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                         {[
                             { id: 'font' as ToolSection, icon: 'Aa', title: 'Font' },
                             { id: 'style' as ToolSection, icon: 'Bb', title: 'Style' },
-                            { id: 'stickers' as ToolSection, icon: '✦', title: 'Stickers' },
+                            { id: 'stickers' as ToolSection, icon: '*', title: 'Stickers' },
                         ].map(tool => (
                             <motion.button key={tool.id} onClick={() => toggleSection(tool.id)}
                                 title={tool.title} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
@@ -571,7 +571,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                 <motion.div key="empty-panel"
                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: 0.3 }}>
-                                    <span style={{ fontSize: '20px', color: TB.emptyColor }}>✦</span>
+                                    <span style={{ fontSize: '20px', color: TB.emptyColor }}>*</span>
                                     <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: TB.emptyLabel }}>Tools</span>
                                 </motion.div>
                             )}
@@ -620,7 +620,7 @@ function PanelHeader({ title, onClose, tb }: { title: string; onClose: () => voi
                 borderRadius: '6px', cursor: 'pointer', width: '20px', height: '20px',
                 color: tb.closeBtnColor, fontSize: '9px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>✕</button>
+            }}>x</button>
         </div>
     )
 }
@@ -639,7 +639,7 @@ function IndexPage({ entries, writingFont, onEntryClick }: {
             }}>Index of Entries</div>
             {entries.length === 0 ? (
                 <div style={{ fontFamily: writingFont.family, fontStyle: writingFont.style as any, fontSize: '14px', color: PAPER_MUTED, lineHeight: 1.8, marginTop: '18px' }}>
-                    Your first entry awaits.<br />Begin writing on the right page →
+                    Your first entry awaits.<br />Begin writing on the right page!
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflow: 'hidden', maxHeight: 'calc(100% - 50px)' }}>
@@ -736,7 +736,7 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                         color: PAPER_TEXT, opacity: !content.trim() || isSaving ? 0.38 : 1,
                         transition: 'all 0.18s', userSelect: 'none',
                     }}>
-                    {isSaving ? 'Saving…' : 'Save Entry ✦'}
+                    {isSaving ? 'Saving…' : 'Save Entry *'}
                 </motion.button>
             </div>
         </>
@@ -851,7 +851,7 @@ function EntryContent({ entry, writingFont, fontStyle, pageNum, onDelete }: {
 function BlankPage() {
     return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.1 }}>
-            <span style={{ fontSize: '40px', color: PAPER_MUTED }}>✦</span>
+            <span style={{ fontSize: '40px', color: PAPER_MUTED }}>*</span>
         </div>
     )
 }

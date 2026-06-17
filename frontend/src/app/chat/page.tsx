@@ -88,7 +88,7 @@ const Avatar = ({ riskLevel }: { riskLevel: RiskLevel }) => (
       boxShadow: riskLevel >= 2
         ? '0 0 16px rgba(220,38,38,0.4)'
         : '0 0 14px rgba(212,175,55,0.28), inset 0 1px 0 rgba(212,175,55,0.22)',
-    }}>✦</motion.div>
+    }}>*</motion.div>
 )
 
 const StreamCursor = () => (
@@ -122,7 +122,7 @@ export default function ChatPage() {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // ── Redirect cooldown: track path → timestamp of last redirect shown ──
+  // ── Redirect cooldown: track path -> timestamp of last redirect shown ──
   // A path is on cooldown for 4 messages after it was shown (dismissed or answered)
   const redirectCooldown = useRef<Map<string, number>>(new Map())
   const msgCountRef = useRef<number>(1) // tracks assistant message count
@@ -408,7 +408,7 @@ export default function ChatPage() {
             fontFamily: 'var(--font-jost)', fontSize: '11px', letterSpacing: '0.1em',
             background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.4)', color: '#fb923c'
           }}>
-          ⚠ Ollama offline, run `ollama serve`
+          ! Ollama offline, run `ollama serve`
         </motion.div>
       )}
 
@@ -433,7 +433,7 @@ export default function ChatPage() {
               fontFamily: 'var(--font-jost)', fontSize: '11px', fontWeight: 500,
               letterSpacing: '0.1em', transition: 'all 0.2s',
             }}>
-              <span style={{ fontSize: '11px', color: 'var(--gold)', opacity: 0.7 }}>✦</span>
+              <span style={{ fontSize: '11px', color: 'var(--gold)', opacity: 0.7 }}>*</span>
               New conversation
             </button>
           </div>
@@ -465,7 +465,7 @@ export default function ChatPage() {
                         <div className="chat-history-title">{c.title}</div>
                         <div className="chat-history-date">{fmtDate(new Date(c.updated_at))}</div>
                       </div>
-                      <span className="chat-history-delete" onClick={e => deleteConvo(e, c.id)}>✕</span>
+                      <span className="chat-history-delete" onClick={e => deleteConvo(e, c.id)}>x</span>
                     </div>
                   ))}
                 </div>

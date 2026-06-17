@@ -115,7 +115,7 @@ export function ResultScreen({ gameId, rounds, onRetake, onBack }: {
             return (
               <div key={i} className="flex justify-between items-center text-xs font-jost py-1 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Lv{lvl} R{ril + 1}{extra}</span>
-                <span style={{ color: r.correct ? '#7a9e7e' : '#f87171' }}>{r.correct ? '✓' : '✗'}</span>
+                <span style={{ color: r.correct ? '#7a9e7e' : '#f87171' }}>{r.correct ? '+' : 'x'}</span>
               </div>
             )
           })}
@@ -127,7 +127,7 @@ export function ResultScreen({ gameId, rounds, onRetake, onBack }: {
           style={{ border: '1px solid var(--border-medium)', color: 'var(--text-primary)' }}>All Games</motion.button>
         <motion.button onClick={onRetake} whileHover={{ scale: 1.02 }}
           className="px-6 py-3 rounded-xl font-jost text-sm tracking-widest uppercase"
-          style={{ background: `${game.color}18`, border: `1px solid ${game.color}38`, color: 'var(--text-primary)' }}>Play Again</motion.button>
+          style={{ background: `${game.color}18`, border: `1px solid ${game.color}38`, color: 'var(--text-primary)' }}>Play Again →</motion.button>
       </div>
     </motion.div>
   )

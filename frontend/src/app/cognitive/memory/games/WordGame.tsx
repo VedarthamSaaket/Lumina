@@ -184,7 +184,7 @@ export function WordGame({
                     border: `1px solid ${recalled ? SAGE : '#f87171'}44`,
                     color: recalled ? SAGE : '#f87171',
                   }}>
-                  {recalled ? '✓' : '✗'} {w}
+                  {recalled ? '+' : 'x'} {w}
                 </span>
               )
             })}
@@ -193,13 +193,13 @@ export function WordGame({
               .map((w, i) => (
                 <span key={`extra-${i}`} className="px-3 py-1.5 rounded-xl font-jost text-xs tracking-wide"
                   style={{ background: '#f8717118', border: '1px solid #f8717144', color: '#f87171' }}>
-                  ⚠ {w}
+                  ! {w}
                 </span>
               ))
             }
           </div>
           {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up →</p>
+            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up -></p>
           )}
         </motion.div>
       )}

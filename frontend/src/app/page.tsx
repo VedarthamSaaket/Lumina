@@ -481,11 +481,11 @@ function Hero() {
               style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '14px 34px', border: 'none', cursor: 'pointer', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s', display: 'inline-block' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
-            >Begin Journey</button>
+            >Begin Journey →</button>
             <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.3)', paddingBottom: 2, transition: 'color .2s', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.5)' }}
-            >Explore Features</a>
+            >Explore Features →</a>
           </div>
         </div>
       </div>
@@ -1016,7 +1016,7 @@ function CTA() {
             style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.ink, background: T.cream, padding: '16px 40px', border: 'none', cursor: 'pointer', boxShadow: `3px 3px 0 ${T.umber}`, transition: 'all .15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translate(-2px,-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `5px 5px 0 ${T.umber}` }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = `3px 3px 0 ${T.umber}` }}
-          >Begin Your Journey</button>
+          >Begin Your Journey →</button>
           <a href="#features" style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(250,243,232,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(250,243,232,0.3)', paddingBottom: 2, alignSelf: 'center', transition: 'color .2s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = T.chalk }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(250,243,232,0.5)' }}

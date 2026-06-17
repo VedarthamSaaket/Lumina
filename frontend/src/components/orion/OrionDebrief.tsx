@@ -76,10 +76,22 @@ function computeDetailedStats(gameId: string, rounds: any[], sessionDurationMs: 
         else currentStreak = 0
     }
 
-    // Error pattern analysis
-    const firstHalfErrors = wrong.filter((_, i) => rounds.indexOf(wrong[i]) < total / 2).length
-    const secondHalfErrors = wrong.length - firstHalfErrors
-    const fatiguedPattern = secondHalfErrors > firstHalfErrors * 1.5
+    // Error pattern analysis. Index wrong rounds by their original position so
+    // first-half vs second-half is computed against actual round order.
+    let firstHalfErrors = 0, secondHalfErrors = 0
+    rounds.forEach((r, i) => {
+        if (r.correct) return
+        if (i < total / 2) firstHalfErrors++
+        else secondHalfErrors++
+    })
+    // Fatigue requires: meaningful error count (>=3), the back half clearly
+    // worse (>=2x first half AND at least 2 errors in the back), and accuracy
+    // below 80%. Prevents 10/12 sessions from being labeled fatigued.
+    const fatiguedPattern =
+        wrong.length >= 3 &&
+        secondHalfErrors >= 2 &&
+        secondHalfErrors >= firstHalfErrors * 2 &&
+        accuracy < 80
 
     // Game-specific analysis
     let gameSpecific: Record<string, any> = {}
@@ -305,7 +317,7 @@ export default function OrionDebrief({
                     {/* Orion debrief text */}
                     <div style={{ background: cardBg, border: cardBorder, borderRadius: '14px', padding: '18px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, background: `${orionColor}18`, border: `1px solid ${orionColor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: orionColor }}>✦</div>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, background: `${orionColor}18`, border: `1px solid ${orionColor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: orionColor }}>*</div>
                             <p style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.14em', color: orionColor, margin: 0 }}>ORION'S ANALYSIS</p>
                         </div>
 
@@ -374,7 +386,7 @@ export default function OrionDebrief({
                                         borderBottom: `1px solid ${borderColor}`, color: textMuted,
                                     }}>
                                         <span>Lv{lvl} R{ril + 1}{extra}{timeStr}</span>
-                                        <span style={{ color: r.correct ? '#7a9e7e' : '#c9897a', fontWeight: 600 }}>{r.correct ? '✓' : '✗'}</span>
+                                        <span style={{ color: r.correct ? '#7a9e7e' : '#c9897a', fontWeight: 600 }}>{r.correct ? '+' : 'x'}</span>
                                     </div>
                                 )
                             })}

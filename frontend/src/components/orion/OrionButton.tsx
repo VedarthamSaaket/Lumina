@@ -52,7 +52,7 @@ export default function OrionButton() {
                             transition={{ duration: 0.2 }}
                             style={{ fontSize: '16px', color: 'rgba(254,244,228,0.7)', lineHeight: 1 }}
                         >
-                            ✕
+                            x
                         </motion.span>
                     ) : (
                         <motion.div
@@ -64,7 +64,7 @@ export default function OrionButton() {
                             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}
                         >
                             <span style={{ fontSize: '14px', color, lineHeight: 1, filter: `drop-shadow(0 0 4px ${color}60)` }}>
-                                ✦
+                                *
                             </span>
                             <span style={{
                                 fontFamily: 'var(--font-gothic)',

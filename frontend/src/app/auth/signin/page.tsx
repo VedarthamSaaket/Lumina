@@ -86,7 +86,7 @@ export default function SignInPage() {
           </p>
           <div className="flex items-center justify-center gap-3 mt-3">
             <div className="h-px w-12" style={{ background: 'linear-gradient(to right, transparent, var(--divider-color, #d4af37))', opacity: 0.4 }} />
-            <span style={{ color: 'var(--gold)', fontSize: '11px', opacity: 0.6 }}>✦</span>
+            <span style={{ color: 'var(--gold)', fontSize: '11px', opacity: 0.6 }}>*</span>
             <div className="h-px w-12" style={{ background: 'linear-gradient(to left, transparent, var(--divider-color, #d4af37))', opacity: 0.4 }} />
           </div>
         </div>

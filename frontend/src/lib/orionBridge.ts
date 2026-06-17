@@ -1,12 +1,12 @@
 // frontend/src/lib/orionBridge.ts
 //
-// Dispatch game events from memory page → OrionCompanion listener.
+// Dispatch game events from memory page -> OrionCompanion listener.
 // Import and call these from your memory game components.
 
 export interface OrionGameEvent {
     game?: string           // e.g. "Digit Span", "Matrix Reasoning"
     score?: number          // raw score
-    accuracy?: number       // 0–1 float
+    accuracy?: number       // 0-1 float
     timeMs?: number         // time taken in ms
     streak?: number         // current correct streak
     level?: number          // current difficulty level

@@ -303,7 +303,7 @@ export default function OrionChatPanel({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', color,
             boxShadow: `0 0 12px ${color}28`,
-          }}>✦</div>
+          }}>*</div>
           <div>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', letterSpacing: '0.14em', color, margin: 0 }}>ORION</p>
             <p style={{ fontFamily: 'var(--font-jost)', fontSize: '10px', color: textMuted, margin: 0 }}>
@@ -395,7 +395,7 @@ export default function OrionChatPanel({
                   border: `1.5px solid ${color}38`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '9px', color,
-                }}>✦</div>
+                }}>*</div>
               )}
               <div style={{
                 maxWidth: '82%', padding: '9px 13px',

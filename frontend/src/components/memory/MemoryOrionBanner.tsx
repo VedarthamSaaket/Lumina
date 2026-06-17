@@ -26,7 +26,7 @@ export default function MemoryOrionBanner() {
         fontSize: '12px',
         color: '#5B9BD5',
       }}>
-        ✦
+        *
       </div>
       <div style={{ flex: 1 }}>
         <p style={{

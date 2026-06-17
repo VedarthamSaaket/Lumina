@@ -76,7 +76,7 @@ const GAME_DISPLAY: Record<string, { name: string; color: string; icon: string }
   // Fluid intelligence (Cattell Culture Fair)
   matrix: { name: 'Matrix Reasoning', color: '#d4af37', icon: '⊞' },
   oddoneout: { name: 'Odd One Out', color: '#c9897a', icon: '◉' },
-  series: { name: 'Series Completion', color: '#5b9bd5', icon: '→' },
+  series: { name: 'Series Completion', color: '#5b9bd5', icon: '->' },
   analogy: { name: 'Visual Analogy', color: '#8b7355', icon: '∷' },
   paperfold: { name: 'Paper Folding', color: '#d4af37', icon: '◱' },
 }
@@ -285,7 +285,7 @@ function MemoryTab({ memory }: { memory: MemoryRow[] }) {
           const firstHalfWrong = allRounds.slice(0, Math.floor(totalRounds / 2)).filter((r: any) => !r.correct).length
           const secondHalfWrong = wrongCount - firstHalfWrong
           if (totalRounds > 4 && secondHalfWrong > firstHalfWrong * 1.5) {
-            keyStats.push({ label: 'Fatigue pattern', value: '⚠ detected' })
+            keyStats.push({ label: 'Fatigue pattern', value: '! detected' })
           }
         }
 

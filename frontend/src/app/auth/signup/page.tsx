@@ -208,7 +208,7 @@ export default function SignUpPage() {
           </p>
           <div className="flex items-center justify-center gap-3 mt-4">
             <div className="h-px w-16" style={{ background: 'linear-gradient(to right, transparent, var(--divider-color, #d4af37))', opacity: 0.4 }} />
-            <span style={{ color: 'var(--gold)', opacity: 0.6 }}>✦</span>
+            <span style={{ color: 'var(--gold)', opacity: 0.6 }}>*</span>
             <div className="h-px w-16" style={{ background: 'linear-gradient(to left, transparent, var(--divider-color, #d4af37))', opacity: 0.4 }} />
           </div>
         </div>

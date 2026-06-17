@@ -49,7 +49,7 @@ export function generateAnalogy(level: number, roundInLevel: number): AnalogyPuz
         { type: sC, fill: 'empty' as Fill, color: MUTED },
       ]
       const { choices, answerIdx } = makeChoices(answer, wrongs)
-      return { a, b, c, choices, answerIdx, rule: 'Empty → full fill' }
+      return { a, b, c, choices, answerIdx, rule: 'Empty -> full fill' }
     },
     () => {
       const [sA, sC] = pickShapes()
@@ -64,7 +64,7 @@ export function generateAnalogy(level: number, roundInLevel: number): AnalogyPuz
         { type: sC, fill: 'full' as Fill, color: SAGE },
       ]
       const { choices, answerIdx } = makeChoices(answer, wrongs)
-      return { a, b, c, choices, answerIdx, rule: 'Full → empty fill' }
+      return { a, b, c, choices, answerIdx, rule: 'Full -> empty fill' }
     },
     () => {
       const [sA, sC] = pickShapes()
@@ -81,7 +81,7 @@ export function generateAnalogy(level: number, roundInLevel: number): AnalogyPuz
         { type: sC, fill: 'half' as Fill, color: STEEL },
       ]
       const { choices, answerIdx } = makeChoices(answer, wrongs)
-      return { a, b, c, choices, answerIdx, rule: `${srcFill} → half fill` }
+      return { a, b, c, choices, answerIdx, rule: `${srcFill} -> half fill` }
     },
     () => {
       const nonSymmetric = ALL_SHAPES.filter(s => s !== 'circle' && s !== 'star')
@@ -230,7 +230,7 @@ export function generateAnalogy(level: number, roundInLevel: number): AnalogyPuz
   for (let attempt = 0; attempt < 15; attempt++) {
     const r = Math.floor(rng() * Math.min(availableRuleCount, rules.length))
     const puzzle = rules[r]()
-    const sig = `${puzzle.rule}:${puzzle.a.type}→${puzzle.b.type}::${puzzle.c.type}→${puzzle.choices[puzzle.answerIdx]?.type}`
+    const sig = `${puzzle.rule}:${puzzle.a.type}->${puzzle.b.type}::${puzzle.c.type}->${puzzle.choices[puzzle.answerIdx]?.type}`
     if (!usedAnalogySigs.has(sig)) {
       usedAnalogySigs.add(sig)
       return puzzle

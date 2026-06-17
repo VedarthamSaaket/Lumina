@@ -207,7 +207,7 @@ export function SequenceGame({
 
       {phase === 'feedback' && (
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center flex flex-col items-center gap-2">
-          <div className="text-5xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '✓' : '✗'}</div>
+          <div className="text-5xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '+' : 'x'}</div>
           {!lastCorrect && (
             <>
               <p className="font-body text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -223,7 +223,7 @@ export function SequenceGame({
             </>
           )}
           {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-xs tracking-widest uppercase" style={{ color }}>Level complete! Moving up →</p>
+            <p className="font-jost text-xs tracking-widest uppercase" style={{ color }}>Level complete! Moving up -></p>
           )}
         </motion.div>
       )}

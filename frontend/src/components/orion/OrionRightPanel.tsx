@@ -211,7 +211,7 @@ daily_challenge: "Today's Challenge",
 const CONTENT_ICONS: Record<string, string> = {
 scenario: '◎',
 exercise: '◐',
-fun_fact: '✦',
+fun_fact: '*',
 curiosity_prompt: '◈',
 daily_challenge: '❋',
 }
@@ -291,7 +291,7 @@ const cardBorder = isDark ? `1px solid ${color}15` : `1px solid ${color}20`
 const goldColor = isDark ? '#d4af37' : '#8b6410'
 
 const label = CONTENT_LABELS[contentType] || 'Experience'
-const icon = CONTENT_ICONS[contentType] || '✦'
+const icon = CONTENT_ICONS[contentType] || '*'
 
 return (
 <div style={{
@@ -317,7 +317,7 @@ fontFamily: 'var(--font-jost)', letterSpacing: '0.08em', transition: 'color 0.15
 }}
 onMouseEnter={e => (e.currentTarget.style.color = textPrimary)}
 onMouseLeave={e => (e.currentTarget.style.color = textMuted)}
->✕ Back</button>
+>x Back</button>
 </div>
 
 <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
@@ -402,7 +402,7 @@ style={{ background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(212,175,55,0.08)',
 {contentType === 'fun_fact' && (
 <>
 <div style={{ background: `${color}12`, border: `1px solid ${color}28`, borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
-<span style={{ fontSize: '22px', display: 'block', marginBottom: '10px' }}>✦</span>
+<span style={{ fontSize: '22px', display: 'block', marginBottom: '10px' }}>*</span>
 <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '1.15rem', color: textPrimary, lineHeight: '1.65', margin: 0 }}>{content.hook}</p>
 </div>
 <p style={{ fontFamily: 'var(--font-jost)', fontSize: '13px', color: textSecondary, lineHeight: '1.85', margin: 0 }}>{content.detail}</p>

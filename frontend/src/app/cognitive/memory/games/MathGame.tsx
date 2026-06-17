@@ -155,18 +155,18 @@ export function MathGame({
 
       {phase === 'feedback' && (
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center flex flex-col items-center gap-2">
-          <div className="text-5xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '✓' : '✗'}</div>
+          <div className="text-5xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '+' : 'x'}</div>
           {!lastCorrect && mathData && (
             <>
               <p className="font-body text-sm" style={{ color: 'var(--text-muted)' }}>Answer was <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{mathData.answer}</span></p>
-              <p className="font-jost text-xs mt-1 max-w-xs" style={{ color: 'var(--text-muted)' }}>💡 {mathRuleHint(lastRule)}</p>
+              <p className="font-jost text-xs mt-1 max-w-xs" style={{ color: 'var(--text-muted)' }}> {mathRuleHint(lastRule)}</p>
               {consecutiveFails >= MAX_CONSEC && (
                 <p className="font-jost text-xs mt-2 tracking-widest uppercase" style={{ color: '#f87171' }}>3 in a row - wrapping up…</p>
               )}
             </>
           )}
           {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-xs tracking-widest uppercase" style={{ color }}>Level complete! Moving up →</p>
+            <p className="font-jost text-xs tracking-widest uppercase" style={{ color }}>Level complete! Moving up -></p>
           )}
         </motion.div>
       )}

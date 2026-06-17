@@ -86,7 +86,7 @@ export function ThemeToggle() {
           transition={{ duration: 0.2 }}
           style={{ fontSize: '11px', lineHeight: 1, userSelect: 'none' }}
         >
-          {isDark ? '🌙' : '☀️'}
+          {isDark ? '' : '️'}
         </motion.span>
       </motion.div>
     </motion.button>

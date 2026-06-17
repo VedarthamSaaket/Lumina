@@ -339,7 +339,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}
                         >
                             <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.5))' }} />
-                            <span style={{ color: 'rgba(212,175,55,0.6)', fontSize: '12px' }}>✦</span>
+                            <span style={{ color: 'rgba(212,175,55,0.6)', fontSize: '12px' }}>*</span>
                             <div style={{ height: '1px', width: '80px', background: 'linear-gradient(to left, transparent, rgba(212,175,55,0.5))' }} />
                         </motion.div>
 

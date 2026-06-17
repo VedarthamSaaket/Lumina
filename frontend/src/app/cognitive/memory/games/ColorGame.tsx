@@ -186,7 +186,7 @@ export function ColorGame({
           )}
           {phase === 'feedback' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center flex flex-col items-center gap-3">
-              <div className="text-4xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '✓' : '✗'}</div>
+              <div className="text-4xl mb-1" style={{ color: lastCorrect ? '#7a9e7e' : '#f87171' }}>{lastCorrect ? '+' : 'x'}</div>
               {!lastCorrect && (
                 <div className="flex flex-col items-center gap-2">
                   <p className="font-jost text-xs tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>Correct sequence</p>
@@ -205,7 +205,7 @@ export function ColorGame({
                 </div>
               )}
               {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-                <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up →</p>
+                <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up...</p>
               )}
             </motion.div>
           )}

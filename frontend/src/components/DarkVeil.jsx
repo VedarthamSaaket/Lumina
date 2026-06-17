@@ -79,7 +79,7 @@ void main(){
     vec3 creamBase = vec3(0.941, 0.902, 0.800); // #f0e6cc
     vec3 amberMid  = vec3(0.545, 0.392, 0.063); // #8b6410 (--gold)
     float lum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
-    // Dark areas → cream; bright areas → warm gold tones
+    // Dark areas -> cream; bright areas -> warm gold tones
     vec3 warmCol = mix(creamBase * 0.72, amberMid * 1.4, lum);
     col.rgb = mix(warmCol, col.rgb, 0.18); // 18% original signal, 82% warm remap
 
@@ -102,7 +102,7 @@ void main(){
  *   <DarkVeil hueShift={30} speed={0.4} warpAmount={0.3} />
  *
  * Recommended light-mode settings:
- *   hueShift={30}, shifts purple → amber
+ *   hueShift={30}, shifts purple -> amber
  *   speed={0.35}, slow, meditative
  *   warpAmount={0.25}, gentle fabric-like distortion
  *   noiseIntensity={0.02}, subtle grain

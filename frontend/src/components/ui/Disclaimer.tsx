@@ -35,7 +35,7 @@ export function Disclaimer() {
             className="flex-shrink-0 transition-opacity hover:opacity-100"
             style={{ color: 'var(--text-muted)', opacity: 0.5, fontSize: '12px', padding: '2px' }}
           >
-            ✕
+            x
           </button>
         </motion.div>
       )}
