@@ -40,7 +40,7 @@ export default function OrionButton() {
                     gap: '1px',
                     transition: 'background 0.25s, border-color 0.25s, box-shadow 0.25s',
                 }}
-                title="Talk to Orion — your cognitive companion"
+                title="Talk to Orion, your cognitive companion"
             >
                 <AnimatePresence mode="wait">
                     {open ? (

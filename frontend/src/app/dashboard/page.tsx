@@ -43,19 +43,24 @@ interface CBTModule { id: string; completed: boolean }
 interface SummaryRow { id: string; title: string; content: string; source: string; created_at: string }
 
 const TEST_DISPLAY: Record<string, { name: string; color: string }> = {
-  PHQ9: { name: 'Mood Check', color: '#d4af37' },
-  GAD7: { name: 'Mind and Worry', color: '#c9897a' },
-  RSES: { name: 'How You See Yourself', color: '#c4913a' },
-  MOOD: { name: 'Mood Check', color: '#d4af37' },
-  WORRY: { name: 'Mind and Worry', color: '#c9897a' },
-  SELFWORTH: { name: 'How You See Yourself', color: '#c4913a' },
-  BIGFIVE: { name: 'Who You Are', color: '#b8860b' },
-  ATTACHMENT: { name: 'How You Connect', color: '#c9897a' },
-  EQ: { name: 'Emotional Intelligence', color: '#8b9e7a' },
-  CAREERVALUES: { name: 'What Work Means to You', color: '#7a9e7e' },
-  WORKENVIRONMENT: { name: 'Where You Work Best', color: '#8b7355' },
-  LEADERSHIP: { name: 'How You Lead and Contribute', color: '#b8a070' },
-  BURNOUT: { name: 'Energy and Limits', color: '#c17a5a' },
+  PHQ9: { name: 'Vibe Check', color: '#d4af37' },
+  GAD7: { name: 'Overthinking Check', color: '#c9897a' },
+  RSES: { name: 'Main Character Energy', color: '#c4913a' },
+  MOOD: { name: 'Vibe Check', color: '#d4af37' },
+  WORRY: { name: 'Overthinking Check', color: '#c9897a' },
+  SELFWORTH: { name: 'Main Character Energy', color: '#c4913a' },
+  BIGFIVE: { name: 'The Real You', color: '#b8860b' },
+  ATTACHMENT: { name: 'How You Love', color: '#c9897a' },
+  EQ: { name: 'Emotional IQ', color: '#8b9e7a' },
+  STRESS: { name: 'Under Pressure', color: '#8b7355' },
+  CAREERVALUES: { name: 'What Drives You', color: '#7a9e7e' },
+  WORKENVIRONMENT: { name: 'Your Work Era', color: '#8b7355' },
+  LEADERSHIP: { name: 'Your Leader Type', color: '#b8a070' },
+  BURNOUT: { name: 'Burnout Check', color: '#c17a5a' },
+  SD3: { name: 'Your Villain Era', color: '#8b7355' },
+  RIASEC: { name: 'Your Work Vibe', color: '#7a9e7e' },
+  EQSQ: { name: 'Heart or Logic', color: '#9b7fd4' },
+  NVAS: { name: 'Reading the Room', color: '#d4af37' },
 }
 
 // PATCH 1: Updated GAME_DISPLAY with 5 new fluid intelligence games

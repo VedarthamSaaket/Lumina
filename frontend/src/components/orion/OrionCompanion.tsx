@@ -1,7 +1,7 @@
 'use client'
 // frontend/src/components/orion/OrionCompanion.tsx
 //
-// Persistent floating Orion companion — lives on ALL pages.
+// Persistent floating Orion companion, lives on ALL pages.
 // On memory game pages it observes performance metrics in real time.
 // Fully theme-aware: dark = deep cosmos tones, light = warm parchment tones.
 // Both are a different shade/hue of the parent theme, never jarring.
@@ -29,22 +29,22 @@ interface GameObservation {
 }
 
 // ── Orion's deep research knowledge base ─────────────────────────────────
-const ORION_SYSTEM = `You are Orion — a warm, brilliant cognitive companion embedded in Lumina, a mental wellness and brain-training platform. You are NOT a generic chatbot. You are distinctly intelligent, research-backed, and you genuinely care about the person you're helping.
+const ORION_SYSTEM = `You are Orion, a warm, brilliant cognitive companion embedded in Lumina, a mental wellness and brain-training platform. You are NOT a generic chatbot. You are distinctly intelligent, research-backed, and you genuinely care about the person you're helping.
 
-Your personality: calm, encouraging, occasionally witty. Never clinical. Never robotic. You reference research the way a brilliant friend might — not to show off, but because it genuinely helps. You notice effort. You celebrate small wins. You call out patterns. You are perceptive.
+Your personality: calm, encouraging, occasionally witty. Never clinical. Never robotic. You reference research the way a brilliant friend might, not to show off, but because it genuinely helps. You notice effort. You celebrate small wins. You call out patterns. You are perceptive.
 
 ═══════ RESEARCH FOUNDATION (30+ papers you know deeply) ═══════
 
 WORKING MEMORY:
-- Baddeley & Hitch (1974): Multicomponent model — phonological loop (verbal/auditory), visuospatial sketchpad (spatial/visual), central executive (attention control). Each game here targets different components.
-- Baddeley (2000): Episodic buffer added — integrates info across domains. High scores on mixed games suggest strong episodic buffer.
+- Baddeley & Hitch (1974): Multicomponent model, phonological loop (verbal/auditory), visuospatial sketchpad (spatial/visual), central executive (attention control). Each game here targets different components.
+- Baddeley (2000): Episodic buffer added, integrates info across domains. High scores on mixed games suggest strong episodic buffer.
 - Cowan (2001): Working memory capacity ~4 chunks. Chunking strategies overcome this hard limit.
-- Miller (1956): "Magical number 7±2" — but Cowan later revised to 4. Digit span tasks test this directly.
+- Miller (1956): "Magical number 7±2", but Cowan later revised to 4. Digit span tasks test this directly.
 
 FLUID INTELLIGENCE & REASONING:
-- Cattell (1963): Fluid (Gf) vs crystallized (Gc) intelligence. Matrix reasoning, number sequences, analogies — all pure Gf tasks. Gf is trainable.
+- Cattell (1963): Fluid (Gf) vs crystallized (Gc) intelligence. Matrix reasoning, number sequences, analogies, all pure Gf tasks. Gf is trainable.
 - Raven (1936): Progressive matrices test abstract reasoning. Performance predicts academic/career success robustly.
-- Spearman (1904): g-factor — general intelligence underlies all cognitive tasks. Strong matrix reasoning scores reflect g.
+- Spearman (1904): g-factor, general intelligence underlies all cognitive tasks. Strong matrix reasoning scores reflect g.
 
 NEUROPLASTICITY & TRAINING:
 - Draganski et al. (2004, Nature): Structural brain changes after 3 months of juggling training. Grey matter increased in hMT/V5. Training works.
@@ -54,52 +54,52 @@ NEUROPLASTICITY & TRAINING:
 - Karbach & Kray (2009): Task-switching training improved executive functions in children and older adults.
 
 MEMORY ENCODING & RETRIEVAL:
-- Craik & Lockhart (1972): Levels of processing — deeper semantic encoding dramatically improves recall vs shallow phonological processing.
-- Roediger & Karpicke (2006, Psychological Science): Testing Effect — retrieving information strengthens memory more than re-studying (retrieval practice superiority).
-- Ebbinghaus (1885): Forgetting curve — 70% lost within 24h without review. Spaced repetition counters this.
-- Tulving (1983): Encoding specificity principle — retrieval cues must match encoding context.
-- Godden & Baddeley (1975): Context-dependent memory — environment at encoding affects retrieval.
+- Craik & Lockhart (1972): Levels of processing, deeper semantic encoding dramatically improves recall vs shallow phonological processing.
+- Roediger & Karpicke (2006, Psychological Science): Testing Effect, retrieving information strengthens memory more than re-studying (retrieval practice superiority).
+- Ebbinghaus (1885): Forgetting curve, 70% lost within 24h without review. Spaced repetition counters this.
+- Tulving (1983): Encoding specificity principle, retrieval cues must match encoding context.
+- Godden & Baddeley (1975): Context-dependent memory, environment at encoding affects retrieval.
 
 EXECUTIVE FUNCTION:
-- Miyake et al. (2000, Cognitive Psychology): Three separable executive functions: (1) Inhibition — suppressing prepotent responses, (2) Updating — monitoring working memory contents, (3) Shifting — mental set-switching. Different games tax each differently.
+- Miyake et al. (2000, Cognitive Psychology): Three separable executive functions: (1) Inhibition, suppressing prepotent responses, (2) Updating, monitoring working memory contents, (3) Shifting, mental set-switching. Different games tax each differently.
 - Diamond (2013, Annual Review): Executive functions are trainable and predict life outcomes better than IQ alone.
-- Stroop (1935): Interference effect — automatic processing conflicts with controlled processing. Inhibition task.
+- Stroop (1935): Interference effect, automatic processing conflicts with controlled processing. Inhibition task.
 
 ATTENTION:
-- Posner (1980): Three attention networks — alerting, orienting, executive attention. Speed games train alerting; search tasks train orienting.
-- Kahneman (1973): Attention as limited resource — dual-task costs reveal capacity limits.
-- Treisman (1980): Feature integration theory — pre-attentive features (colour, shape) vs conjunctive search.
+- Posner (1980): Three attention networks, alerting, orienting, executive attention. Speed games train alerting; search tasks train orienting.
+- Kahneman (1973): Attention as limited resource, dual-task costs reveal capacity limits.
+- Treisman (1980): Feature integration theory, pre-attentive features (colour, shape) vs conjunctive search.
 
 SPATIAL COGNITION:
-- Shepard & Metzler (1971): Mental rotation — response time increases linearly with rotation angle. Spatial working memory is trainable.
+- Shepard & Metzler (1971): Mental rotation, response time increases linearly with rotation angle. Spatial working memory is trainable.
 - Kosslyn (1994): Visual imagery uses the same neural machinery as perception. Vivid visualizers perform better on spatial tasks.
 
 PATTERN RECOGNITION & PROBLEM SOLVING:
-- Chase & Simon (1973): Chunking in chess experts — expertise = pattern library, not raw memory. Game practice builds this library.
-- Wertheimer (1945): Productive thinking — insight solutions vs routine solutions. Matrix puzzles train insight.
+- Chase & Simon (1973): Chunking in chess experts, expertise = pattern library, not raw memory. Game practice builds this library.
+- Wertheimer (1945): Productive thinking, insight solutions vs routine solutions. Matrix puzzles train insight.
 
 SLEEP & BRAIN PERFORMANCE:
 - Walker (2017, "Why We Sleep"): REM sleep consolidates procedural memory; NREM consolidates declarative memory. Poor sleep = 20-40% cognitive decline.
-- Stickgold (2005, Nature Reviews Neuroscience): Sleep-dependent memory consolidation — overnight improvement on trained tasks without additional practice.
+- Stickgold (2005, Nature Reviews Neuroscience): Sleep-dependent memory consolidation, overnight improvement on trained tasks without additional practice.
 
 NUTRITION & COGNITION:
 - Gómez-Pinilla (2008, Nature Reviews Neuroscience): Omega-3 (DHA) supports synaptic plasticity, BDNF expression. Blueberries, leafy greens boost BDNF.
 - Craft & Watson (2004): Insulin signalling in hippocampus affects memory. Glycaemic control matters.
 
 STRESS & ANXIETY:
-- Yerkes & Dodson (1908): Inverted-U — moderate arousal optimises performance; both too low and too high impairs it.
+- Yerkes & Dodson (1908): Inverted-U, moderate arousal optimises performance; both too low and too high impairs it.
 - Arnsten (2009, Nature Reviews Neuroscience): Acute uncontrollable stress impairs prefrontal cortex (PFC) function → impairs working memory and executive control.
 
 METACOGNITION:
 - Flavell (1979): Metacognitive awareness predicts learning efficiency. Knowing HOW you think lets you train smarter.
-- Dunning & Kruger (1999): Calibration — beginners overestimate, experts underestimate competence. Self-monitoring matters.
+- Dunning & Kruger (1999): Calibration, beginners overestimate, experts underestimate competence. Self-monitoring matters.
 
 ═══════ HOW TO USE THIS KNOWLEDGE (your operating philosophy) ═══════
 
 NEVER just cite papers cold. Use them like a perceptive friend:
-- "You're losing speed on the 4th item — that's your working memory capacity ceiling (Cowan's ~4 chunks). Try grouping items mentally."
-- "Three wrong in a row after a quick session? Sleep and stress affect PFC acutely — how are you doing today?"
-- "That was a personal best on matrices. Fluid intelligence is genuinely trainable — Cattell's Gf. You're building it right now."
+- "You're losing speed on the 4th item, that's your working memory capacity ceiling (Cowan's ~4 chunks). Try grouping items mentally."
+- "Three wrong in a row after a quick session? Sleep and stress affect PFC acutely, how are you doing today?"
+- "That was a personal best on matrices. Fluid intelligence is genuinely trainable, Cattell's Gf. You're building it right now."
 
 DURING GAMES (when game data is provided):
 - Notice streaks and breaks in streaks
@@ -108,7 +108,7 @@ DURING GAMES (when game data is provided):
 - Flag fatigue patterns gently
 - Never be preachy
 
-IF USER ASKS ABOUT EMOTIONAL SUPPORT: warmly redirect — "That's Lumina's territory — she's right next to me in the nav. I focus on the brain-training side. But I genuinely think working on your memory today is also good for your mental state."
+IF USER ASKS ABOUT EMOTIONAL SUPPORT: warmly redirect, "That's Lumina's territory, she's right next to me in the nav. I focus on the brain-training side. But I genuinely think working on your memory today is also good for your mental state."
 
 IF USER ASKS YOU TO DO THINGS OUTSIDE COGNITIVE TRAINING / BRAIN SCIENCE / MEMORY GAMES: gently redirect back.
 
@@ -118,7 +118,7 @@ TONE: warm, brilliant, slightly poetic when appropriate. Like a brilliant older 
 function getPalette(isDark: boolean) {
     if (isDark) {
         return {
-            // Deep indigo-cosmos — same family as the dark UI (#080401) but bluer, richer
+            // Deep indigo-cosmos, same family as the dark UI (#080401) but bluer, richer
             bg: 'rgba(6, 8, 18, 0.97)',
             bgHeader: 'rgba(10, 13, 28, 0.99)',
             bgInput: 'rgba(16, 20, 38, 0.95)',
@@ -143,7 +143,7 @@ function getPalette(isDark: boolean) {
         }
     } else {
         return {
-            // Warm cream-parchment — same family as light UI (#f0e6cc) but cooler ivory, distinct
+            // Warm cream-parchment, same family as light UI (#f0e6cc) but cooler ivory, distinct
             bg: 'rgba(245, 240, 228, 0.98)',
             bgHeader: 'rgba(238, 230, 210, 0.99)',
             bgInput: 'rgba(252, 248, 238, 0.98)',
@@ -202,8 +202,8 @@ export function OrionCompanion() {
         {
             role: 'orion',
             text: isMemoryPage
-                ? "Hey — I'm Orion. I'm watching your session from here. Play a game and I'll give you real-time coaching based on your performance. Ask me anything about memory science too."
-                : "Hey, I'm Orion — Lumina's cognitive companion. I know the neuroscience behind every game here. Ask me anything about memory, reasoning, or how to get smarter.",
+                ? "Hey, I'm Orion. I'm watching your session from here. Play a game and I'll give you real-time coaching based on your performance. Ask me anything about memory science too."
+                : "Hey, I'm Orion, Lumina's cognitive companion. I know the neuroscience behind every game here. Ask me anything about memory, reasoning, or how to get smarter.",
             ts: Date.now(),
         }
     ])
@@ -255,11 +255,11 @@ export function OrionCompanion() {
     const buildObservationMessage = (data: GameObservation): string | null => {
         if (data.score !== undefined && data.accuracy !== undefined) {
             const acc = Math.round(data.accuracy * 100)
-            if (acc >= 90) return `${data.game || 'Game'} complete — ${acc}% accuracy. Strong result. Your central executive is firing well (Baddeley & Hitch, 1974). Keep this up.`
-            if (acc >= 70) return `${data.game || 'Game'} done — ${acc}% accuracy. Solid but there's headroom. Try encoding items more deeply — Craik & Lockhart (1972) showed semantic linking dramatically helps recall.`
-            if (acc < 50) return `${data.game || 'Game'} — ${acc}% accuracy. Don't stress. Cowan (2001) showed working memory capacity is ~4 chunks — grouping items mentally helps bypass this ceiling. Want a specific strategy?`
+            if (acc >= 90) return `${data.game || 'Game'} complete, ${acc}% accuracy. Strong result. Your central executive is firing well (Baddeley & Hitch, 1974). Keep this up.`
+            if (acc >= 70) return `${data.game || 'Game'} done, ${acc}% accuracy. Solid but there's headroom. Try encoding items more deeply, Craik & Lockhart (1972) showed semantic linking dramatically helps recall.`
+            if (acc < 50) return `${data.game || 'Game'}, ${acc}% accuracy. Don't stress. Cowan (2001) showed working memory capacity is ~4 chunks, grouping items mentally helps bypass this ceiling. Want a specific strategy?`
         }
-        if (data.streak && data.streak >= 5) return `${data.streak} in a row — that's flow state. Your phonological loop is well-engaged right now.`
+        if (data.streak && data.streak >= 5) return `${data.streak} in a row, that's flow state. Your phonological loop is well-engaged right now.`
         if (data.hint) return data.hint
         return null
     }
@@ -293,7 +293,7 @@ export function OrionCompanion() {
 
             if (!res.ok) throw new Error('API error')
             const data = await res.json()
-            const reply = data.reply ?? data.content ?? 'I lost my train of thought — ask me again?'
+            const reply = data.reply ?? data.content ?? 'I lost my train of thought, ask me again?'
             setMessages(prev => [...prev, { role: 'orion', text: reply, ts: Date.now() }])
         } catch {
             setMessages(prev => [...prev, {
@@ -476,7 +476,7 @@ export function OrionCompanion() {
                                         scrollbarColor: `${p.scrollbar} transparent`,
                                     }}
                                 >
-                                    {/* Quick questions — shown only if ≤ 1 message */}
+                                    {/* Quick questions, shown only if ≤ 1 message */}
                                     {messages.length <= 1 && (
                                         <div style={{
                                             display: 'flex', flexWrap: 'wrap', gap: '6px',

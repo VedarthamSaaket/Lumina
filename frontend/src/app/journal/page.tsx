@@ -25,7 +25,6 @@ interface JournalEntry {
 }
 
 // ─── BOOK SCENE ──────────────────────────────────────────────────────────────
-// Fixed: book is smaller, tilted backward (X axis), heading rises UP above the book
 function BookScene({ onBookClick }: { onBookClick: () => void }) {
     const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
@@ -65,10 +64,11 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 container.appendChild(renderer.domElement)
 
                 const scene = new THREE.Scene()
-                // Camera positioned to see book from above and front (resting on table look)
+                // Slightly below front, looking up a little, since the book now tips
+                // its TOP edge toward the viewer (bottom leans away).
                 const camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 500)
-                camera.position.set(0, 1.2, 5.5)
-                camera.lookAt(0, -0.2, 0)
+                camera.position.set(0, -0.6, 5.0)
+                camera.lookAt(0, 0.1, 0)
 
                 // Warm amber/gold lighting for aged book look
                 scene.add(new THREE.AmbientLight(0xfff0d0, 1.2))
@@ -85,7 +85,6 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 const clock = new THREE.Clock()
                 let model: any = null
                 let mixer: any = null
-                let rotY = -0.15  // slight angle, not centered
                 let clicking = false
                 let clickT = 0
                 let zoomT = 0
@@ -109,14 +108,16 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                                 const center = box.getCenter(new THREE.Vector3())
                                 const size = box.getSize(new THREE.Vector3())
                                 const maxDim = Math.max(size.x, size.y, size.z)
-                                // SMALLER scale — book looks like it's resting on a table
                                 const sc = 1.4 / maxDim
                                 m.scale.setScalar(sc)
                                 m.position.sub(center.multiplyScalar(sc))
-                                // Tilt backward on X axis
-                                m.rotation.x = 25 * (Math.PI / 180)
-                                m.rotation.y = rotY
-                                m.position.y -= 0.35  // lower center point
+                                // Open book with its TOP edge pulled toward the viewer
+                                // (bottom tips back), opening the spread down to the
+                                // slightly-lowered camera. ~-30deg.
+                                m.rotation.x = -30 * (Math.PI / 180)
+                                m.rotation.y = 0
+                                m.rotation.z = 0
+                                m.position.y -= 0.1
                                 initScale = sc
                                 model = m
                                 scene.add(model)
@@ -134,6 +135,10 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
 
                 loadGLB()
 
+                // Open book with its TOP edge pulled toward the viewer (bottom tips
+                // back). Single source of truth for its resting orientation.
+                const baseRotX = -30 * (Math.PI / 180)
+
                 const loop = () => {
                     if (cancelled) return
                     raf = requestAnimationFrame(loop)
@@ -141,30 +146,27 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                     const el = clock.elapsedTime
                     if (mixer) mixer.update(dt)
                     if (model && !clicking) {
-                        rotY += dt * 0.35 // Slightly increased rotation speed
-
-                        const targetX = isHoveredRef.current ? (29 * Math.PI / 180) : (25 * Math.PI / 180)
-                        const targetScale = isHoveredRef.current ? initScale * 1.04 : initScale * 1.02
-
-                        // Smooth lerp for responsive hover
-                        model.rotation.x += (targetX - model.rotation.x) * dt * 6.0
-                        model.rotation.y = rotY
-                        model.position.y = -0.35 + Math.sin(el * 0.55) * 0.04
-
-                        const currentScale = model.scale.x
-                        const nextScale = currentScale + (targetScale - currentScale) * dt * 6.0
-                        model.scale.setScalar(nextScale)
+                        // No carousel spin and NO hover reaction, the book holds its
+                        // upward-facing pose. Only a gentle float + breathing sway so
+                        // it stays alive without ever turning edge-on to the viewer.
+                        model.position.y = -0.1 + Math.sin(el * 0.7) * 0.05
+                        model.rotation.x = baseRotX + Math.sin(el * 0.45) * 0.025
+                        model.rotation.y = Math.sin(el * 0.32) * 0.06
+                        model.rotation.z = Math.sin(el * 0.5) * 0.015
+                        model.scale.setScalar(initScale)
                     }
                     if (model && clicking) {
                         clickT = Math.min(clickT + dt * 2.8, 1)
                         zoomT = Math.min(zoomT + dt * 2.0, 1)
                         const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-                        // Rises and comes toward camera significantly
-                        const startX = isHoveredRef.current ? (29 * Math.PI / 180) : (25 * Math.PI / 180)
-                        model.rotation.x = startX - ease(clickT) * startX
+                        // Lift the spread upright toward the lens and zoom in, as if
+                        // the book is opening straight into the reader's hands.
+                        model.rotation.x = baseRotX - ease(clickT) * (baseRotX - 0.15)
+                        model.rotation.y = 0
+                        model.rotation.z = 0
                         model.scale.setScalar(initScale * (1 + ease(zoomT) * 4.2))
-                        camera.position.z = 5.5 - ease(zoomT) * 4.6
-                        camera.position.y = 1.2 + ease(zoomT) * 1.5
+                        camera.position.y = -0.6 + ease(zoomT) * 0.6
+                        camera.position.z = 5.0 - ease(zoomT) * 4.2
                         camera.lookAt(0, 0, 0)
                     }
                     renderer.render(scene, camera)
@@ -255,7 +257,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 </div>
             )}
 
-            {/* HEADING — displays at top and animates down */}
+            {/* HEADING, displays at top and animates down */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <div className="relative z-10 pt-24 pb-20 px-5 max-w-3xl mx-auto pointer-events-none">
@@ -286,7 +288,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                 )}
             </AnimatePresence>
 
-            {/* Click hint — appears below the book */}
+            {/* Click hint, appears below the book */}
             <AnimatePresence>
                 {phase === 'idle' && headingRisen && (
                     <motion.div
@@ -377,6 +379,26 @@ export default function JournalPage() {
     }
 
     const handleBookClick = () => setStage('open')
+
+    const handleDelete = async (id: string) => {
+        try {
+            await journalAPI.delete(id)
+            setEntries(prev => prev.filter(e => e.id !== id))
+            toast.success('Entry removed', {
+                style: {
+                    background: 'rgba(20,10,0,0.95)',
+                    color: '#d4af37',
+                    border: '1px solid rgba(212,175,55,0.3)',
+                    fontFamily: 'var(--font-cinzel)',
+                    fontSize: '11px',
+                    letterSpacing: '0.15em',
+                },
+            })
+        } catch (err: any) {
+            const msg = err?.response?.data?.detail ?? 'Could not delete entry.'
+            toast.error(msg)
+        }
+    }
 
     const handleSave = async (content: string, mood: number, tags: string[], stickers: any[]) => {
         setIsSaving(true)
@@ -469,6 +491,7 @@ export default function JournalPage() {
                         <OpenBook
                             entries={entries}
                             onSave={handleSave}
+                            onDelete={handleDelete}
                             onClose={() => setStage('scene')}
                             isSaving={isSaving}
                         />

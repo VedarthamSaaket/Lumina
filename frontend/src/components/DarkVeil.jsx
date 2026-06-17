@@ -91,7 +91,7 @@ void main(){
 `;
 
 /**
- * DarkVeil — animated CPPN background, warm amber/cream edition.
+ * DarkVeil, animated CPPN background, warm amber/cream edition.
  *
  * Only renders in light mode (checks for `.light` class on <html>).
  * Props match the original ReactBits DarkVeil interface exactly.
@@ -102,10 +102,10 @@ void main(){
  *   <DarkVeil hueShift={30} speed={0.4} warpAmount={0.3} />
  *
  * Recommended light-mode settings:
- *   hueShift={30}          — shifts purple → amber
- *   speed={0.35}           — slow, meditative
- *   warpAmount={0.25}      — gentle fabric-like distortion
- *   noiseIntensity={0.02}  — subtle grain
+ *   hueShift={30}, shifts purple → amber
+ *   speed={0.35}, slow, meditative
+ *   warpAmount={0.25}, gentle fabric-like distortion
+ *   noiseIntensity={0.02}, subtle grain
  */
 export default function DarkVeil({
     hueShift = 30,

@@ -33,7 +33,7 @@ const StreamCursor = () => (
   >▍</motion.span>
 )
 
-// CSS grain overlay — pure CSS implementation, no WebGL needed
+// CSS grain overlay, pure CSS implementation, no WebGL needed
 // Intensified grain for more visible texture
 const GRAIN_STYLE = `
 @keyframes orion-grain-shift {
@@ -116,7 +116,7 @@ export default function OrionChatPanel({
     role: 'assistant',
     content: isMemoryPage
       ? "I'm watching your session. Play a game and I'll give you specific coaching based on what I see. Ask me anything about memory or reasoning."
-      : "Hey! I'm Orion, your brain training companion. I know how memory and thinking skills work — ask me anything.",
+      : "Hey! I'm Orion, your brain training companion. I know how memory and thinking skills work, ask me anything.",
   }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -226,7 +226,7 @@ export default function OrionChatPanel({
           const data = await fallback.json()
           setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: data.response || '', streaming: false } : m))
         } catch {
-          setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: 'Connection trouble — try again in a moment.', streaming: false } : m))
+          setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: 'Connection trouble, try again in a moment.', streaming: false } : m))
         }
       } else {
         setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, streaming: false } : m))
@@ -357,7 +357,7 @@ export default function OrionChatPanel({
             </div>
           )}
 
-          {/* Persistent interactive triggers — always visible for re-accessing exercises */}
+          {/* Persistent interactive triggers, always visible for re-accessing exercises */}
           {msgs.length > 2 && onRequestRightPanel && (
             <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '12px', background: isDark ? 'rgba(212,175,55,0.04)' : 'rgba(212,175,55,0.05)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.12)' : 'rgba(139,100,16,0.12)'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>

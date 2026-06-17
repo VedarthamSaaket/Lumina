@@ -10,71 +10,88 @@ declare global {
     interface Window {
         THREE: any
         GLTFLoader: any
-        __threeLoaded?: boolean
-        __gltfLoaded?: boolean
     }
 }
 
-// Pre-load Three.js and GLTFLoader scripts before component mounts
-function preloadScripts(): Promise<void> {
-    if (typeof window === 'undefined') return Promise.resolve()
+// Returns a promise that resolves once a script is loaded, injecting it if needed.
+// No cap on retries, polls until the check passes or the script fires onload.
+function loadScript(src: string, check: () => boolean): Promise<void> {
+    return new Promise((resolve) => {
+        if (check()) { resolve(); return }
 
-    const threeUrl = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
-    const gltfUrl = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'
+        // If the tag already exists, just wait for it
+        const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null
+        if (existing) {
+            if (check()) { resolve(); return }
+            const poll = setInterval(() => { if (check()) { clearInterval(poll); resolve() } }, 100)
+            return
+        }
 
-    const loadScript = (src: string, checkFn: () => boolean): Promise<void> => {
-        return new Promise((resolve) => {
-            if (checkFn()) { resolve(); return }
-            const existing = document.querySelector(`script[src="${src}"]`)
-            if (existing) {
-                // Script tag exists - wait for it
-                const checkInterval = setInterval(() => {
-                    if (checkFn()) { clearInterval(checkInterval); resolve() }
-                }, 50)
-                setTimeout(() => { clearInterval(checkInterval); resolve() }, 5000)
-                return
-            }
-            const s = document.createElement('script')
-            s.src = src
-            s.onload = () => resolve()
-            s.onerror = () => resolve() // resolve even on error, we'll handle it
-            document.head.appendChild(s)
-        })
-    }
-
-    return loadScript(threeUrl, () => !!(window as any).THREE)
-        .then(() => loadScript(gltfUrl, () => !!(window as any).THREE?.GLTFLoader))
+        const s = document.createElement('script')
+        s.src = src
+        s.onload = () => {
+            // Give the script a tick to execute before resolving
+            setTimeout(resolve, 0)
+        }
+        s.onerror = () => {
+            console.error('[BookScene] Failed to load script:', src)
+            resolve() // resolve anyway so we can show an error state
+        }
+        document.head.appendChild(s)
+    })
 }
 
-// Start preloading immediately when this module loads
+async function loadThreeAndGLTF(): Promise<boolean> {
+    await loadScript(
+        'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+        () => !!(window as any).THREE
+    )
+    if (!(window as any).THREE) return false
+
+    await loadScript(
+        'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',
+        () => !!(window as any).THREE?.GLTFLoader
+    )
+    return !!(window as any).THREE?.GLTFLoader
+}
+
+// Kick off loading immediately when module is parsed (best-effort preload)
+let preloadPromise: Promise<boolean> | null = null
 if (typeof window !== 'undefined') {
-    preloadScripts()
+    preloadPromise = loadThreeAndGLTF()
 }
 
 export default function BookScene3D({ onBookClick }: BookScene3DProps) {
     const mountRef = useRef<HTMLDivElement>(null)
     const stateRef = useRef<{
         renderer: any; scene: any; camera: any; model: any
-        mixer: any; clock: any; raf: number
-        rotY: number; clicking: boolean; clickT: number; zoomT: number
+        clock: any; raf: number
+        clicking: boolean; clickT: number; zoomT: number
         initScale: number; cancelled: boolean
     } | null>(null)
     const [phase, setPhase] = useState<'loading' | 'idle' | 'clicking' | 'flash'>('loading')
     const [headingRisen, setHeadingRisen] = useState(false)
 
-    const setupScene = useCallback(async () => {
+    const setupScene = useCallback(async (getIsCancelled: () => boolean) => {
         if (!mountRef.current) return
         const container = mountRef.current
 
-        // Wait for THREE to be available
-        let attempts = 0
-        while (!(window as any).THREE && attempts < 100) {
-            await new Promise(r => setTimeout(r, 50))
-            attempts++
+        // Wait for THREE + GLTFLoader, reuse the preload promise if it exists,
+        // otherwise kick off a fresh load. This handles the first-visit case where
+        // the module-level preload may not have run yet (SSR, cold cache, etc.)
+        const ready = preloadPromise
+            ? await preloadPromise
+            : await loadThreeAndGLTF()
+
+        if (getIsCancelled()) return
+
+        if (!ready) {
+            setPhase('idle')
+            return
         }
 
         const THREE = (window as any).THREE
-        if (!THREE || stateRef.current?.cancelled) return
+        if (!THREE) { setPhase('idle'); return }
 
         const W = container.clientWidth || window.innerWidth
         const H = container.clientHeight || window.innerHeight
@@ -82,18 +99,18 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.setSize(W, H)
-        renderer.shadowMap.enabled = false // Disabled for better mobile perf
+        renderer.shadowMap.enabled = false
         renderer.outputEncoding = THREE.sRGBEncoding || 3001
         container.appendChild(renderer.domElement)
 
         const scene = new THREE.Scene()
 
-        // Camera tilted slightly to see book from above and in front
         const camera = new THREE.PerspectiveCamera(42, W / H, 0.01, 500)
-        camera.position.set(0, 0.6, 3.8)
-        camera.lookAt(0, 0, 0)
+        // Raised and pulled back so we look DOWN onto the open book, as if it
+        // were lying open on an invisible surface and we're reading over it.
+        camera.position.set(0, 2.6, 3.2)
+        camera.lookAt(0, -0.1, 0)
 
-        // Warm, moody lighting to make the book look aged and beautiful
         scene.add(new THREE.AmbientLight(0xfff0d0, 0.9))
 
         const key = new THREE.DirectionalLight(0xffc070, 2.8)
@@ -122,59 +139,41 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
 
         const s = {
             renderer, scene, camera,
-            model: null as any, mixer: null as any, clock,
-            raf: 0, rotY: -0.3, clicking: false, clickT: 0, zoomT: 0,
+            model: null as any, clock,
+            raf: 0, clicking: false, clickT: 0, zoomT: 0,
             initScale: 1, cancelled: false,
         }
         stateRef.current = s
 
-        // Load GLTFLoader then GLB
-        let gltfAttempts = 0
-        while (!(window as any).THREE?.GLTFLoader && gltfAttempts < 100) {
-            await new Promise(r => setTimeout(r, 50))
-            gltfAttempts++
-        }
-
-        const Loader = THREE.GLTFLoader
-        if (!Loader) {
-            setPhase('idle')
-            return
-        }
-
-        const loader = new Loader()
+        const loader = new THREE.GLTFLoader()
         loader.load(
             '/Hitem3d-1776860930240.glb',
             (gltf: any) => {
                 if (s.cancelled) return
                 const model = gltf.scene
 
-                // Normalize size
                 const box = new THREE.Box3().setFromObject(model)
                 const center = box.getCenter(new THREE.Vector3())
                 const size = box.getSize(new THREE.Vector3())
                 const maxDim = Math.max(size.x, size.y, size.z)
-                // Smaller scale — book should feel like it's resting on something
                 const sc = 1.6 / maxDim
                 model.scale.setScalar(sc)
                 model.position.sub(center.multiplyScalar(sc))
 
-                // Tilt backwards (around X axis) as if book is lying on a table
-                // and slightly angled, not left/right
-                model.rotation.x = 0.35  // tilt backwards
-                model.rotation.y = s.rotY
-                model.position.y -= 0.15
+                // Book pages face +Z (toward camera) in local space.
+                // To make it read as an open book lying flat and FACING UPWARD,
+                // we tip it back ~90deg around X so the open spread points at the
+                // sky. The camera (raised above) then looks down onto the pages.
+                // Math.PI / 2 = exactly flat; we ease it just under so the far
+                // page edge stays visible and the spine reads with depth.
+                model.rotation.x = Math.PI / 2 - 0.18   // ~80deg back -> faces up
+                model.rotation.y = 0                     // squared to the viewer
+                model.rotation.z = 0
+                model.position.y -= 0.1
 
                 s.initScale = sc
                 s.model = model
                 scene.add(model)
-
-                if (gltf.animations?.length) {
-                    s.mixer = new THREE.AnimationMixer(model)
-                    gltf.animations.forEach((clip: any) => {
-                        const action = s.mixer.clipAction(clip)
-                        action.play()
-                    })
-                }
 
                 if (!s.cancelled) setPhase('idle')
             },
@@ -191,26 +190,31 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
             const dt = s.clock.getDelta()
             const el = s.clock.elapsedTime
 
-            if (s.mixer) s.mixer.update(dt)
+            // Base orientation: book lies open, facing up toward the camera.
+            const baseRotX = Math.PI / 2 - 0.18
 
             if (s.model && !s.clicking) {
-                // Slow, gentle rotation around Y, maintaining backward tilt
-                s.rotY += dt * 0.25
-                s.model.rotation.y = s.rotY
-                s.model.position.y = -0.15 + Math.sin(el * 0.6) * 0.04
-                // Very subtle rocking, no left/right tilt
-                s.model.rotation.x = 0.35 + Math.sin(el * 0.4) * 0.02
+                // No carousel spin. Just a gentle float + breathing sway so the
+                // open pages stay facing up and never turn edge-on to the viewer.
+                s.model.position.y = -0.1 + Math.sin(el * 0.7) * 0.05
+                s.model.rotation.x = baseRotX + Math.sin(el * 0.45) * 0.025
+                s.model.rotation.y = Math.sin(el * 0.32) * 0.06
+                s.model.rotation.z = Math.sin(el * 0.5) * 0.015
             }
 
             if (s.model && s.clicking) {
                 s.clickT = Math.min(s.clickT + dt * 2.5, 1)
                 s.zoomT = Math.min(s.zoomT + dt * 2, 1)
                 const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-                // Open the book animation — tilt forward as if it's opening
-                s.model.rotation.x = 0.35 - ease(s.clickT) * 0.55
+                // On click, lift the spread upright toward the lens and zoom in,
+                // as if the book is opening straight into the reader's face.
+                s.model.rotation.x = baseRotX - ease(s.clickT) * (baseRotX - 0.15)
+                s.model.rotation.y = 0
+                s.model.rotation.z = 0
                 s.model.scale.setScalar(s.initScale * (1 + ease(s.zoomT) * 2.0))
-                s.camera.position.z = 3.8 - ease(s.zoomT) * 3.2
-                s.camera.lookAt(0, 0, 0)
+                s.camera.position.y = 2.6 - ease(s.zoomT) * 2.5
+                s.camera.position.z = 3.2 - ease(s.zoomT) * 2.6
+                s.camera.lookAt(0, -0.1, 0)
             }
 
             renderer.render(scene, camera)
@@ -227,19 +231,25 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         }
         window.addEventListener('resize', resize)
 
-        return () => {
-            window.removeEventListener('resize', resize)
-        }
+        return () => { window.removeEventListener('resize', resize) }
     }, [])
 
     useEffect(() => {
-        let cleanupFn: (() => void) | undefined
+        let isCancelled = false
+        const getIsCancelled = () => isCancelled
 
-        setupScene().then(fn => {
-            cleanupFn = fn
+        let cleanupFn: (() => void) | undefined
+        
+        setupScene(getIsCancelled).then(fn => { 
+            if (isCancelled && fn) {
+                fn()
+            } else {
+                cleanupFn = fn 
+            }
         })
 
         return () => {
+            isCancelled = true
             if (stateRef.current) {
                 stateRef.current.cancelled = true
                 cancelAnimationFrame(stateRef.current.raf)
@@ -263,7 +273,6 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         if (phase !== 'idle') return
         if (stateRef.current) stateRef.current.clicking = true
         setPhase('clicking')
-
         setTimeout(() => {
             setPhase('flash')
             setTimeout(() => onBookClick(), 750)
@@ -281,13 +290,11 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
         >
             <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 2 }} />
 
-            {/* Ambient glow */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
                 background: 'radial-gradient(ellipse 60% 50% at 50% 55%, rgba(212,175,55,0.14) 0%, rgba(201,137,122,0.07) 45%, transparent 75%)',
             }} />
 
-            {/* Vignette */}
             <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
                 background: [
@@ -296,7 +303,6 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                 ].join(', '),
             }} />
 
-            {/* Loading */}
             {phase === 'loading' && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 15 }}>
                     <motion.div
@@ -308,7 +314,6 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                 </div>
             )}
 
-            {/* Heading rises up as book settles */}
             <AnimatePresence>
                 {(phase === 'idle' || phase === 'clicking') && (
                     <motion.div
@@ -375,7 +380,6 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                 )}
             </AnimatePresence>
 
-            {/* Click hint */}
             <AnimatePresence>
                 {phase === 'idle' && headingRisen && (
                     <motion.div
@@ -409,7 +413,6 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                 )}
             </AnimatePresence>
 
-            {/* Flash transition */}
             <AnimatePresence>
                 {phase === 'flash' && (
                     <>

@@ -27,21 +27,21 @@ The page at /screening shows three category groups. Each test lives inside a cat
 Users land on the category selector first, then pick a specific test.
 
 Wellbeing checks:
-  MOOD        - "Mood Check"           - PHQ-9 based wellbeing check
-  WORRY       - "Mind and Worry"       - GAD-7 based anxiety check
-  SELFWORTH   - "How You See Yourself" - Rosenberg self-esteem scale
+  MOOD        - "Vibe Check"            - PHQ-9 based wellbeing check
+  WORRY       - "Overthinking Check"    - GAD-7 based anxiety check
+  SELFWORTH   - "Main Character Energy" - Rosenberg self-esteem scale
 
 Personality checks:
-  BIGFIVE     - "Who You Are"                    - Big Five personality
-  ATTACHMENT  - "How You Connect"                - Attachment style
-  EQ          - "Your Emotional Intelligence"    - Emotional intelligence
-  STRESS      - "Stress and Coping"              - Coping style
+  BIGFIVE     - "The Real You"          - Big Five personality
+  ATTACHMENT  - "How You Love"          - Attachment style
+  EQ          - "Emotional IQ"          - Emotional intelligence
+  STRESS      - "Under Pressure"        - Coping style
 
 Career checks:
-  CAREERVALUES    - "What Work Means to You"    - Career motivation
-  WORKENVIRONMENT - "Where You Work Best"       - Work environment preferences
-  LEADERSHIP      - "How You Lead and Contribute" - Leadership vs contributor style
-  BURNOUT         - "Your Energy and Limits"    - Burnout indicators
+  CAREERVALUES    - "What Drives You"   - Career motivation
+  WORKENVIRONMENT - "Your Work Era"     - Work environment preferences
+  LEADERSHIP      - "Your Leader Type"  - Leadership vs contributor style
+  BURNOUT         - "Burnout Check"     - Burnout indicators
 
 HOW TO REDIRECT for self-reflection:
   - Always use /screening?test=TEST_KEY in the path, never just /screening alone
@@ -131,7 +131,7 @@ End your message with this on its own line - no extra text after it:
 TOOL_REDIRECT:{"name":"Display Name","path":"/exact/path","description":"one warm sentence naming the specific check, module, or game"}
 
 Correct examples:
-  TOOL_REDIRECT:{"name":"Mind and Worry","path":"/screening?test=WORRY","description":"The Mind and Worry check might give you a clearer picture of what is going on."}
+  TOOL_REDIRECT:{"name":"Overthinking Check","path":"/screening?test=WORRY","description":"The Overthinking Check might give you a clearer picture of what is going on."}
   TOOL_REDIRECT:{"name":"Settings","path":"/settings","description":"You can adjust how Lumina speaks to you in Settings."}
   TOOL_REDIRECT:{"name":"Memory Games","path":"/cognitive/memory","description":"Seven memory games plus five fluid intelligence puzzles - pick what calls to you."}
 
@@ -236,12 +236,12 @@ def detect_risk_level(text: str) -> int:
 # USER CONTEXT BUILDER
 # ─────────────────────────────────────────────
 TEST_NAMES = {
-    "PHQ9": "Mood Check", "GAD7": "Mind and Worry", "RSES": "How You See Yourself",
-    "MOOD": "Mood Check", "WORRY": "Mind and Worry", "SELFWORTH": "How You See Yourself",
-    "BIGFIVE": "Who You Are", "ATTACHMENT": "How You Connect", "EQ": "Emotional Intelligence",
-    "STRESS": "Stress and Coping", "CAREERVALUES": "What Work Means to You",
-    "WORKENVIRONMENT": "Where You Work Best", "LEADERSHIP": "How You Lead and Contribute",
-    "BURNOUT": "Your Energy and Limits",
+    "PHQ9": "Vibe Check", "GAD7": "Overthinking Check", "RSES": "Main Character Energy",
+    "MOOD": "Vibe Check", "WORRY": "Overthinking Check", "SELFWORTH": "Main Character Energy",
+    "BIGFIVE": "The Real You", "ATTACHMENT": "How You Love", "EQ": "Emotional IQ",
+    "STRESS": "Under Pressure", "CAREERVALUES": "Your Work Why",
+    "WORKENVIRONMENT": "Your Work Era", "LEADERSHIP": "Your Leader Type",
+    "BURNOUT": "Burnout Check",
 }
 
 GAME_DISPLAY_NAMES = {
@@ -304,42 +304,55 @@ def build_user_context(
     insight_summaries: list[dict] | None = None,
     user_name:         str | None = None,
 ) -> str:
-    lines = []
-    if user_name:
-        lines.append(f"User's name: {user_name} - use their name naturally in conversation, the way a friend would")
+    # Two distinct buckets so the model never confuses what it has OBSERVED
+    # about the user (their actual activity and results) with who they ARE
+    # (identity the user gave us). Everything observed is framed strictly as
+    # "what this app has recorded" — not outside knowledge, not assumptions.
+    observed: list[str] = []
+
     if mood_history:
         avg          = round(sum(m['score'] for m in mood_history) / len(mood_history), 1)
         recent       = mood_history[:3]
         recent_scores = [str(m['score']) for m in recent]
         notes        = [m['note'] for m in recent if m.get('note')]
-        lines.append(f"Mood: average {avg}/10 across {len(mood_history)} logs. Recent scores: {', '.join(recent_scores)}.")
+        observed.append(f"Mood: average {avg}/10 across {len(mood_history)} logs. Recent scores: {', '.join(recent_scores)}.")
         if notes:
-            lines.append(f"Recent mood notes: {'; '.join(notes[:2])}")
+            observed.append(f"Recent mood notes: {'; '.join(notes[:2])}")
     if screening_history:
         results = [
             f"{TEST_NAMES.get(r['type'], r['type'])}: score {r['score']} ({r['severity']})"
             for r in screening_history[:6]
         ]
-        lines.append(f"Self-reflection results: {', '.join(results)}")
+        observed.append(f"Self-reflection results: {', '.join(results)}")
     if cbt_modules:
         completed = [m['id'] for m in cbt_modules if m.get('completed')]
         remaining = [m['id'] for m in cbt_modules if not m.get('completed')]
         if completed:
-            lines.append(f"CBT modules completed: {', '.join(completed)}")
+            observed.append(f"Inner-work modules completed: {', '.join(completed)}")
         if remaining:
-            lines.append(f"CBT modules not yet started: {', '.join(remaining)}")
+            observed.append(f"Inner-work modules not yet started: {', '.join(remaining)}")
     if journal_count > 0:
-        lines.append(f"Journal entries written: {journal_count}")
+        observed.append(f"Journal entries written: {journal_count}")
         if journal_tags:
-            lines.append(f"Recent journal themes: {', '.join(journal_tags[:6])}")
+            observed.append(f"Recent journal themes: {', '.join(journal_tags[:6])}")
     if memory_history:
-        lines.extend(_format_memory_game_context(memory_history))
+        observed.extend(_format_memory_game_context(memory_history))
     if insight_summaries:
         latest = insight_summaries[0]
-        lines.append(f"Latest saved insight ({latest.get('title', 'Insight')}): {latest.get('content', '')[:300]}")
-    if not lines:
+        observed.append(f"Latest saved insight ({latest.get('title', 'Insight')}): {latest.get('content', '')[:300]}")
+
+    if not observed and not user_name:
         return ""
-    return "\n\nUSER CONTEXT (use this to speak specifically about their data):\n" + "\n".join(f"- {l}" for l in lines)
+
+    blocks = [
+        "\n\nWHAT THIS APP KNOWS ABOUT THIS USER",
+        "(This is the ONLY information you have about them. It comes entirely from their own activity inside this app — their logs, entries, results, and saved insights. Do not invent, assume, or imply knowledge of anything beyond what is listed here. If they ask what you know or remember about them, answer only from this.)",
+    ]
+    if user_name:
+        blocks.append(f"\nWho they are:\n- They go by {user_name}. Use their name naturally in conversation, the way a friend would.")
+    if observed:
+        blocks.append("\nWhat they have done and recorded here:\n" + "\n".join(f"- {l}" for l in observed))
+    return "\n".join(blocks)
 
 # ─────────────────────────────────────────────
 # HELPERS

@@ -253,7 +253,6 @@ function ContextRow({
 function MemoryViewer({ title, color, endpoint, isOrion = false }: { title: string; color: string; endpoint: string; isOrion?: boolean }) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -291,8 +290,6 @@ function MemoryViewer({ title, color, endpoint, isOrion = false }: { title: stri
   }
 
   const insights = data.insights || []
-  const settingsPrompt = data.settings_prompt || data.orion_settings_prompt || ''
-  const userContext = data.user_context || data.cognitive_context || data.user_memory || ''
   const name = data.preferred_name || data.name || ''
   const focusAreas = data.focus_areas || data.orion_focus_games || []
 
@@ -300,42 +297,53 @@ function MemoryViewer({ title, color, endpoint, isOrion = false }: { title: stri
     <SectionCard color={color}>
       <p className="font-jost text-xs tracking-widest uppercase mb-1" style={{ color }}>{title}</p>
       <p className="font-body text-xs italic mb-4" style={{ color: 'var(--text-muted)' }}>
-        {isOrion ? "What Orion knows about your thinking and game performance." : "What Lumina remembers about your emotions and journey."}
+        {isOrion
+          ? "Everything here comes only from your own activity in this app, your game sessions and what Orion noted from them."
+          : "Everything here comes only from your own activity in this app, your logs, entries, results, and saved insights."}
       </p>
 
-      {/* Quick Overview */}
+      {/* What you told it, your own settings, not things it learned */}
       {(name || focusAreas.length > 0) && (
-        <div className="mb-4 p-3 rounded-lg" style={{ background: `${color}10`, border: `1px solid ${color}20` }}>
-          {name && (
-            <p className="font-jost text-xs mb-2" style={{ color: 'var(--text-primary)' }}>
-              <span style={{ color }}>Name:</span> {name}
-            </p>
-          )}
-          {focusAreas.length > 0 && (
-            <div>
-              <p className="font-jost text-xs mb-1" style={{ color }}>Focus areas:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {focusAreas.slice(0, 5).map((area: string, i: number) => (
-                  <span key={i} className="px-2 py-0.5 rounded-full text-xs font-jost"
-                    style={{ background: `${color}18`, color: 'var(--text-primary)' }}>
-                    {area}
-                  </span>
-                ))}
-                {focusAreas.length > 5 && (
-                  <span className="text-xs font-jost" style={{ color: 'var(--text-muted)' }}>
-                    +{focusAreas.length - 5} more
-                  </span>
-                )}
+        <div className="mb-4">
+          <p className="font-jost text-[10px] tracking-widest uppercase mb-2" style={{ color: 'var(--text-muted)' }}>
+            What you told it
+          </p>
+          <div className="p-3 rounded-lg" style={{ background: `${color}0c`, border: `1px solid ${color}1a` }}>
+            {name && (
+              <p className="font-jost text-xs mb-2" style={{ color: 'var(--text-primary)' }}>
+                <span style={{ color }}>You go by:</span> {name}
+              </p>
+            )}
+            {focusAreas.length > 0 && (
+              <div>
+                <p className="font-jost text-xs mb-1" style={{ color }}>
+                  {isOrion ? 'Focus games you chose:' : 'Focus areas you chose:'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {focusAreas.slice(0, 5).map((area: string, i: number) => (
+                    <span key={i} className="px-2 py-0.5 rounded-full text-xs font-jost"
+                      style={{ background: `${color}18`, color: 'var(--text-primary)' }}>
+                      {area}
+                    </span>
+                  ))}
+                  {focusAreas.length > 5 && (
+                    <span className="text-xs font-jost" style={{ color: 'var(--text-muted)' }}>
+                      +{focusAreas.length - 5} more
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
-      {/* Insights */}
+      {/* What it learned, observed from your activity */}
       {insights.length > 0 && (
         <div className="mb-4">
-          <p className="font-jost text-xs tracking-widest mb-2" style={{ color }}>Stored Insights</p>
+          <p className="font-jost text-[10px] tracking-widest uppercase mb-2" style={{ color: 'var(--text-muted)' }}>
+            What it learned about you
+          </p>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: `${color}30 transparent` }}>
             {insights.slice(0, 6).map((insight: any, i: number) => (
               <div key={i} className="p-2.5 rounded-lg" style={{ background: 'var(--bg-glass)', border: `1px solid ${color}15` }}>
@@ -352,26 +360,6 @@ function MemoryViewer({ title, color, endpoint, isOrion = false }: { title: stri
       )}
 
       {/* Expandable Raw Context */}
-      <div>
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 mb-2 font-jost text-xs"
-          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <span style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>▶</span>
-          {expanded ? 'Hide' : 'Show'} context prompt ({userContext.length} chars)
-        </button>
-        {expanded && userContext && (
-          <textarea
-            readOnly
-            rows={6}
-            value={userContext.slice(0, 2000) + (userContext.length > 2000 ? '...' : '')}
-            className="w-full p-3 rounded-lg resize-none font-mono focus:outline-none"
-            style={{
-              background: 'var(--bg-glass)', border: `1px solid ${color}20`,
-              color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '10px',
-            }}
-          />
-        )}
-      </div>
-
       <p className="font-jost text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
         Read-only. Grows as you interact with {isOrion ? 'Orion' : 'Lumina'}.
       </p>
@@ -854,7 +842,7 @@ export default function SettingsPage() {
                 </motion.div>
               )}
 
-              {/* HELPER MEMORY (was Lumina Memory — now includes Memory View) */}
+              {/* HELPER MEMORY (was Lumina Memory, now includes Memory View) */}
               {activeSection === 'context' && (
                 <motion.div key="context" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                   className="space-y-5">
@@ -887,7 +875,7 @@ export default function SettingsPage() {
 
                   {/* Memory View moved inside Helper Memory */}
                   <p className="font-body text-sm italic" style={{ color: 'var(--text-muted)' }}>
-                    These are the conclusions the system stores about you from interactions. They evolve over time.
+                    This is everything Lumina and Orion know about you, drawn only from your own activity in this app, and kept separate for each. Nothing here is shared with anyone else.
                   </p>
                   <MemoryViewer title="Lumina's Memory" color="#d4af37" endpoint="/api/chat/context" />
                   <MemoryViewer title="Orion's Memory" color="#6ec6ff" endpoint="/api/orion/memory-view" isOrion={true} />
@@ -1034,7 +1022,7 @@ export default function SettingsPage() {
 
                     <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(122,158,126,0.08)', border: '1px solid rgba(122,158,126,0.18)' }}>
                       <p className="font-body text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                        These are starting points — you can always add custom focus areas in the Lumina Tone section below.
+                        These are starting points, you can always add custom focus areas in the Lumina Tone section below.
                       </p>
                     </div>
                   </SectionCard>

@@ -48,7 +48,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
     const { theme } = useThemeStore()
     const isDark = theme === 'dark'
 
-    // ── ORION ACCENT — a warm terracotta-amber complement ────────────────
+    // ── ORION ACCENT, a warm terracotta-amber complement ────────────────
     // Dark mode: Orion uses deep indigo-charcoal (complement to the warm chocolate dark UI)
     // Light mode: Orion uses soft sage-stone (complement to the blush/cream light UI)
     const accentColor = isDark ? '#C4923A' : '#7A8C6E'   // amber / sage

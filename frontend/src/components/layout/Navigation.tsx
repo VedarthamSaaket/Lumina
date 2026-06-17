@@ -94,7 +94,7 @@ export function Navigation() {
           flexShrink: 0,
         }} />
 
-        {/* L U M I N A — wide letter-spacing to match screenshot */}
+        {/* L U M I N A, wide letter-spacing to match screenshot */}
         <span style={{
           fontFamily: 'var(--font-cormorant)',
           fontStyle: 'italic', fontWeight: 400,
@@ -166,7 +166,7 @@ export function Navigation() {
         gap: '7px', flexShrink: 0, marginLeft: 'auto',
       }}>
 
-        {/* Theme toggle removed — now in settings page */}
+        {/* Theme toggle removed, now in settings page */}
 
         {isAuthed && (
           <>

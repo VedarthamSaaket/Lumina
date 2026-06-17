@@ -880,7 +880,7 @@ function InnerWork() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
-                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Mood stickers to capture how you feel without typing a word — a quick visual anchor for each entry.</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Mood stickers to capture how you feel without typing a word, a quick visual anchor for each entry.</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
@@ -888,7 +888,7 @@ function InnerWork() {
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ color: T.umber, fontSize: 10, marginTop: 1 }}>◆</span>
-                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Orion-linked pattern detection — your journal entries feed into the same engine that tracks your cognitive health.</span>
+                <span style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 9.5, lineHeight: 1.7, color: 'rgba(28,20,16,0.55)' }}>Orion-linked pattern detection, your journal entries feed into the same engine that tracks your cognitive health.</span>
               </div>
             </div>
             <div style={{ fontFamily: T.script, fontStyle: 'italic', fontSize: 18, color: 'rgba(28,20,16,0.35)', lineHeight: 1.2 }}>

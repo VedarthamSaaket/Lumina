@@ -242,7 +242,7 @@ def _get_cognitive_context(user_id: str, db: Session) -> str:
         if not records:
             return ""
 
-        lines = ["\n\nUSER GAME HISTORY, use this for specific personalised coaching:"]
+        lines = ["\n\nWHAT THIS APP HAS RECORDED ABOUT THIS USER'S GAME PLAY (the only game data you have — it all comes from their own sessions in this app; do not assume anything beyond it). Use it for specific, personalised coaching:"]
         by_type: dict[str, list] = {}
         for r in records:
             gt = r.test_type or "unknown"
@@ -317,7 +317,7 @@ def _get_orion_user_memory(user_id: str, db: Session) -> str:
         )
         if not summaries:
             return ""
-        lines = ["\n\nORION MEMORY (things noted about this user across sessions):"]
+        lines = ["\n\nWHAT YOU'VE NOTED ABOUT THIS USER ACROSS SESSIONS (your own saved observations from this app — nothing else):"]
         for s in summaries:
             lines.append(f"- {s.title}: {s.content[:200]}")
         return "\n".join(lines)

@@ -8,12 +8,19 @@ const PUBLIC_ROUTES = ['/auth', '/api', '/_next', '/favicon.ico']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const token = request.cookies.get('lumina_token')?.value
+
+  // Landing page: show to unauthenticated, redirect authenticated to /chat
+  if (pathname === '/') {
+    if (token) {
+      return NextResponse.redirect(new URL('/chat', request.url))
+    }
+    return NextResponse.next()
+  }
 
   // Allow public routes through
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
   if (isPublic) return NextResponse.next()
-
-  const token = request.cookies.get('lumina_token')?.value
 
   if (!token) {
     const loginUrl = new URL('/auth/signin', request.url)

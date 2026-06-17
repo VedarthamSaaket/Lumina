@@ -23,6 +23,7 @@ interface JournalEntry {
 interface OpenBookProps {
     entries: JournalEntry[]
     onSave: (content: string, mood: number, tags: string[], stickers: PlacedSticker[]) => Promise<void>
+    onDelete: (id: string) => Promise<void>
     onClose: () => void
     isSaving: boolean
 }
@@ -79,7 +80,7 @@ const PAPER_DOT = 'rgba(0,0,0,0.12)'
 
 type ToolSection = 'font' | 'style' | 'stickers' | null
 
-// Toolbar palette — adapts to theme
+// Toolbar palette, adapts to theme
 function useToolbarPalette() {
     const [isDark, setIsDark] = useState(true)
     useEffect(() => {
@@ -92,10 +93,10 @@ function useToolbarPalette() {
     return isDark
 }
 
-export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBookProps) {
+export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving }: OpenBookProps) {
     const isDark = useToolbarPalette()
 
-    // Toolbar palette — light theme gets warm parchment tones to complement the book
+    // Toolbar palette, light theme gets warm parchment tones to complement the book
     const TB = isDark ? {
         bg: 'rgba(8,4,0,0.88)',
         border: 'rgba(212,175,55,0.14)',
@@ -147,12 +148,12 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
         disabledBorder: 'rgba(212,175,55,0.12)',
         disabledColor: 'rgba(212,175,55,0.22)',
     } : {
-        enabledBg: 'rgba(139,100,16,0.14)',
-        enabledBorder: 'rgba(139,100,16,0.38)',
-        enabledColor: 'rgba(70,45,8,0.88)',
-        disabledBg: 'rgba(139,100,16,0.05)',
-        disabledBorder: 'rgba(139,100,16,0.14)',
-        disabledColor: 'rgba(70,45,8,0.25)',
+        enabledBg: 'rgba(60,38,12,0.82)',
+        enabledBorder: 'rgba(40,24,6,0.9)',
+        enabledColor: 'rgba(245,225,180,0.95)',
+        disabledBg: 'rgba(90,68,30,0.28)',
+        disabledBorder: 'rgba(90,68,30,0.32)',
+        disabledColor: 'rgba(60,40,12,0.4)',
     }
 
     const [currentPage, setCurrentPage] = useState(0)
@@ -167,7 +168,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
     const [activeStickerId, setActiveStickerId] = useState<string | null>(null)
 
     const [writingFontId, setWritingFontId] = useState('garamond')
-    // The "active" style for the textarea — reverts to default after block-level newline
+    // The "active" style for the textarea, reverts to default after block-level newline
     const [fontStyleId, setFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
     // The style selected in the panel (persists for user preference display)
     const [panelFontStyleId, setPanelFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
@@ -189,7 +190,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
     const leftEntry = currentPage >= 2 ? entries[currentPage - 2] : null
     const rightEntry = currentPage >= 1 ? entries[currentPage - 1] : null
 
-    // Fix: swap direction — goForward increments, goBackward decrements
+    // Fix: swap direction, goForward increments, goBackward decrements
     const goForward = useCallback(() => {
         if (isAnimating || currentPage >= totalEntries) return
         setFlipDirection('forward')
@@ -222,6 +223,13 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
         if (textareaRef.current) textareaRef.current.value = ''
     }
 
+    const handleDeleteEntry = async (id: string) => {
+        await onDelete(id)
+        // The entry list just shrank by one, so step back a page to stay in
+        // bounds and avoid landing on a now-empty spread.
+        setCurrentPage(p => Math.max(0, p - 1))
+    }
+
     const toggleTag = (tag: string) => {
         setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
     }
@@ -245,7 +253,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
         setActiveSection(prev => prev === s ? null : s)
     }
 
-    // Handle style panel selection — if block-level style, it stays active until newline
+    // Handle style panel selection, if block-level style, it stays active until newline
     const handleStyleSelect = (styleId: string) => {
         setFontStyleId(styleId)
         setPanelFontStyleId(styleId)
@@ -433,7 +441,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                                             textareaRef={textareaRef}
                                         />
                                     ) : rightEntry ? (
-                                        <EntryContent entry={rightEntry} writingFont={writingFont} fontStyle={fontStyle} pageNum={currentPage} />
+                                        <EntryContent entry={rightEntry} writingFont={writingFont} fontStyle={fontStyle} pageNum={currentPage} onDelete={handleDeleteEntry} />
                                     ) : <BlankPage />}
                                 </div>
                             </motion.div>
@@ -450,7 +458,7 @@ export default function OpenBook({ entries, onSave, onClose, isSaving }: OpenBoo
                     backdropFilter: 'blur(40px)',
                     transition: 'background 0.3s',
                 }}>
-                    {/* Icon strip — only font, style, stickers */}
+                    {/* Icon strip, only font, style, stickers */}
                     <div style={{
                         width: '52px', flexShrink: 0,
                         display: 'flex', flexDirection: 'column',
@@ -735,16 +743,18 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
     )
 }
 
-function EntryContent({ entry, writingFont, fontStyle, pageNum }: {
+function EntryContent({ entry, writingFont, fontStyle, pageNum, onDelete }: {
     entry: JournalEntry
     writingFont: typeof WRITING_FONTS[0]
     fontStyle: typeof FONT_STYLES[0]
     pageNum: number
+    onDelete?: (id: string) => void
 }) {
     const moodInfo = entry.mood_score ? MOOD_LABELS[entry.mood_score] : null
+    const [confirming, setConfirming] = useState(false)
     return (
         <>
-            {/* Saved stickers — rendered on top of the page */}
+            {/* Saved stickers, rendered on top of the page */}
             {entry.stickers && entry.stickers.length > 0 && (
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, overflow: 'hidden' }}>
                     {entry.stickers.map((s: any) => (
@@ -766,20 +776,63 @@ function EntryContent({ entry, writingFont, fontStyle, pageNum }: {
                     ))}
                 </div>
             )}
-            <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
-                <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
-                    {format(new Date(entry.created_at), 'EEEE, MMMM d yyyy')}
-                    {moodInfo && <span style={{ marginLeft: '8px', color: moodInfo.color }}>· {moodInfo.label}</span>}
+            <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
+                        {format(new Date(entry.created_at), 'EEEE, MMMM d yyyy')}
+                        {moodInfo && <span style={{ marginLeft: '8px', color: moodInfo.color }}>· {moodInfo.label}</span>}
+                    </div>
+                    {entry.tags && entry.tags.length > 0 && (
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            {entry.tags.map(t => (
+                                <span key={t} style={{ padding: '1px 6px', borderRadius: '8px', fontSize: '8px', fontFamily: 'var(--font-jost)', background: 'transparent', border: `1px solid ${PAPER_BORDER}`, color: PAPER_MUTED }}>{t}</span>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                {entry.tags && entry.tags.length > 0 && (
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                        {entry.tags.map(t => (
-                            <span key={t} style={{ padding: '1px 6px', borderRadius: '8px', fontSize: '8px', fontFamily: 'var(--font-jost)', background: 'transparent', border: `1px solid ${PAPER_BORDER}`, color: PAPER_MUTED }}>{t}</span>
-                        ))}
+                {onDelete && (
+                    <div style={{ flexShrink: 0, zIndex: 25 }}>
+                        {!confirming ? (
+                            <motion.button type="button"
+                                onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(true) }}
+                                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}
+                                title="Delete this entry"
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '24px', height: '24px', borderRadius: '50%', padding: 0,
+                                    background: 'rgba(120,72,30,0.07)', border: `1px solid ${PAPER_BORDER}`,
+                                    cursor: 'pointer', userSelect: 'none',
+                                }}>
+                                <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                    <path d="M2.5 3.5h9M5.5 3.5V2.4c0-.4.3-.7.7-.7h1.6c.4 0 .7.3.7.7v1.1M3.4 3.5l.5 8c0 .5.4.9.9.9h4.4c.5 0 .9-.4.9-.9l.5-8"
+                                        stroke="#9c6b3f" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </motion.button>
+                        ) : (
+                            <motion.div initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button type="button"
+                                    onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(false); onDelete(entry.id) }}
+                                    style={{
+                                        padding: '3px 10px', borderRadius: '12px', cursor: 'pointer',
+                                        fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.12em', textTransform: 'uppercase',
+                                        background: 'rgba(150,55,40,0.16)', border: '1px solid rgba(150,55,40,0.45)', color: '#8a3a2a',
+                                        userSelect: 'none',
+                                    }}>Delete</button>
+                                <button type="button"
+                                    onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(false) }}
+                                    style={{
+                                        padding: '3px 9px', borderRadius: '12px', cursor: 'pointer',
+                                        fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.12em', textTransform: 'uppercase',
+                                        background: 'transparent', border: `1px solid ${PAPER_BORDER}`, color: PAPER_MUTED,
+                                        userSelect: 'none',
+                                    }}>Keep</button>
+                            </motion.div>
+                        )}
                     </div>
                 )}
             </div>
-            {/* Entry content uses the font family only — NOT the currently-selected style
+            {/* Entry content uses the font family only, NOT the currently-selected style
                 so that switching style in the toolbar doesn't reformat old entries */}
             <div style={{
                 fontFamily: writingFont.family,
@@ -830,35 +883,103 @@ function DraggableSticker({ sticker, isActive, onActivate, onDeactivate, onRemov
 }) {
     const ref = useRef<HTMLDivElement>(null)
     const [dragging, setDragging] = useState(false)
-    const dragStart = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null)
+    const [hovered, setHovered] = useState(false)
+    const dragStart = useRef<{ mx: number; my: number; sx: number; sy: number; moved: boolean } | null>(null)
+    const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Auto-hide the remove control after a short idle period. The countdown is
+    // paused while the sticker is hovered so it never vanishes as the user
+    // reaches for the X. Any fresh interaction restarts it.
+    const clearIdleTimer = useCallback(() => {
+        if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null }
+    }, [])
+
+    const armIdleTimer = useCallback(() => {
+        clearIdleTimer()
+        idleTimer.current = setTimeout(() => onDeactivate(), 2500)
+    }, [clearIdleTimer, onDeactivate])
+
+    useEffect(() => {
+        if (!isActive) { clearIdleTimer(); return }
+        if (hovered) { clearIdleTimer(); return }  // pause countdown while hovered
+        armIdleTimer()
+        return clearIdleTimer
+    }, [isActive, hovered, armIdleTimer, clearIdleTimer])
+
+    useEffect(() => clearIdleTimer, [clearIdleTimer])
 
     const handlePointerDown = (e: React.PointerEvent) => {
-        e.preventDefault(); e.stopPropagation(); onActivate(); setDragging(true)
-        dragStart.current = { mx: e.clientX, my: e.clientY, sx: sticker.x, sy: sticker.y }
+        e.preventDefault(); e.stopPropagation(); setDragging(true)
+        dragStart.current = { mx: e.clientX, my: e.clientY, sx: sticker.x, sy: sticker.y, moved: false }
         const handleMove = (ev: PointerEvent) => {
             if (!dragStart.current || !ref.current) return
             const parent = ref.current.closest('[data-page="right"]') as HTMLElement
             if (!parent) return
             const rect = parent.getBoundingClientRect()
-            const dx = ((ev.clientX - dragStart.current.mx) / rect.width) * 100
-            const dy = ((ev.clientY - dragStart.current.my) / rect.height) * 100
+            const totalDx = ev.clientX - dragStart.current.mx
+            const totalDy = ev.clientY - dragStart.current.my
+            // Treat tiny pointer travel as a click, not a drag.
+            if (Math.abs(totalDx) > 4 || Math.abs(totalDy) > 4) dragStart.current.moved = true
+            const dx = (totalDx / rect.width) * 100
+            const dy = (totalDy / rect.height) * 100
             onPositionChange(Math.max(2, Math.min(88, dragStart.current.sx + dx)), Math.max(2, Math.min(88, dragStart.current.sy + dy)))
         }
-        const handleUp = () => { setDragging(false); dragStart.current = null; document.removeEventListener('pointermove', handleMove); document.removeEventListener('pointerup', handleUp) }
+        const handleUp = () => {
+            setDragging(false)
+            // A click (no meaningful movement) toggles the remove control.
+            // A real drag leaves activation state untouched.
+            if (dragStart.current && !dragStart.current.moved) {
+                if (isActive) onDeactivate(); else onActivate()
+            } else if (isActive) {
+                armIdleTimer()  // restart countdown after a drag
+            }
+            dragStart.current = null
+            document.removeEventListener('pointermove', handleMove)
+            document.removeEventListener('pointerup', handleUp)
+        }
         document.addEventListener('pointermove', handleMove); document.addEventListener('pointerup', handleUp)
     }
 
     return (
         <div ref={ref} data-sticker-id={sticker.stickerId} onPointerDown={handlePointerDown}
+            onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
             onWheel={e => { e.stopPropagation(); onScaleChange(Math.max(0.3, Math.min(3, sticker.scale + (e.deltaY > 0 ? -0.1 : 0.1)))) }}
             style={{ position: 'absolute', left: `${sticker.x}%`, top: `${sticker.y}%`, zIndex: isActive ? 50 : 15, cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none' }}>
             <div style={{ position: 'relative', display: 'inline-flex' }}>
                 <img src={sticker.url} alt={sticker.label} width={60 * sticker.scale} height={60 * sticker.scale}
                     style={{ display: 'block', objectFit: 'contain', transform: `rotate(${sticker.rotation || 0}deg)`, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 3px white)', pointerEvents: 'none', userSelect: 'none' }}
                     draggable={false} />
-                <button onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
-                    onClick={e => { e.stopPropagation(); e.preventDefault(); onRemove() }}
-                    style={{ position: 'absolute', top: '-12px', right: '-12px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(220,38,38,0.92)', border: '2px solid white', cursor: 'pointer', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'white', fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.4)', userSelect: 'none' }} title="Remove sticker">✕</button>
+                <AnimatePresence>
+                    {isActive && (
+                        <motion.button
+                            key="remove"
+                            initial={{ opacity: 0, scale: 0.4 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.4 }}
+                            transition={{ type: 'spring', stiffness: 520, damping: 28 }}
+                            whileHover={{ scale: 1.12, boxShadow: '0 3px 14px rgba(212,175,55,0.45)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
+                            onClick={e => { e.stopPropagation(); e.preventDefault(); clearIdleTimer(); onRemove() }}
+                            title="Remove sticker"
+                            style={{
+                                position: 'absolute', top: '-11px', right: '-11px',
+                                width: '22px', height: '22px', borderRadius: '50%',
+                                background: 'linear-gradient(145deg, rgba(38,22,9,0.96), rgba(20,11,4,0.96))',
+                                border: '1px solid rgba(212,175,55,0.65)',
+                                cursor: 'pointer', zIndex: 100, padding: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.5), inset 0 0 6px rgba(212,175,55,0.12)',
+                                backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+                                userSelect: 'none',
+                            }}>
+                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                                <path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5"
+                                    stroke="#e8c869" strokeWidth="1.6" strokeLinecap="round" />
+                            </svg>
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     )

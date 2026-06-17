@@ -77,7 +77,7 @@ const SAFE_ANSWER_FLAGS: Record<string, Record<number, { safeIdx: number; nudge:
 const Qs = {
 
   SD3: {
-    name: 'The Dark Triad',
+    name: 'Your Villain Era',
     full: 'Your shadow personality traits',
     color: '#8b7355',
     category: 'personality',
@@ -124,7 +124,7 @@ const Qs = {
   },
 
   RIASEC: {
-    name: 'Holland\'s Career Types',
+    name: 'Your Work Vibe',
     full: 'Your vocational personality',
     color: '#7a9e7e',
     category: 'personality',
@@ -175,7 +175,7 @@ const Qs = {
   },
 
   EQSQ: {
-    name: 'Empathising vs. Systemising',
+    name: 'Heart or Logic',
     full: 'How your mind processes the world',
     color: '#9b7fd4',
     category: 'personality',
@@ -221,7 +221,7 @@ const Qs = {
   },
 
   NVAS: {
-    name: 'Nonverbal Sensitivity',
+    name: 'Reading the Room',
     full: 'How you read people without words',
     color: '#c4913a',
     category: 'personality',
@@ -257,7 +257,7 @@ const Qs = {
   },
 
   MOOD: {
-    name: 'Mood Check',
+    name: 'Vibe Check',
     full: 'How have you been feeling lately?',
     color: '#d4af37',
     category: 'wellbeing',
@@ -304,7 +304,7 @@ const Qs = {
   },
 
   WORRY: {
-    name: 'Mind and Worry',
+    name: 'Overthinking Check',
     full: 'How has your mind been treating you?',
     color: '#c9897a',
     category: 'wellbeing',
@@ -346,7 +346,7 @@ const Qs = {
   },
 
   SELFWORTH: {
-    name: 'How You See Yourself',
+    name: 'Main Character Energy',
     full: 'Your relationship with yourself',
     color: '#c4913a',
     category: 'wellbeing',
@@ -392,7 +392,7 @@ const Qs = {
   },
 
   BIGFIVE: {
-    name: 'Who You Are',
+    name: 'The Real You',
     full: 'Your personality at a glance',
     color: '#b8860b',
     category: 'personality',
@@ -437,7 +437,7 @@ const Qs = {
   },
 
   ATTACHMENT: {
-    name: 'How You Connect',
+    name: 'How You Love',
     full: 'Your patterns in close relationships',
     color: '#c9897a',
     category: 'personality',
@@ -482,7 +482,7 @@ const Qs = {
   },
 
   EQ: {
-    name: 'Your Emotional Intelligence',
+    name: 'Emotional IQ',
     full: 'How you navigate feelings, yours and others\'',
     color: '#8b9e7a',
     category: 'personality',
@@ -527,7 +527,7 @@ const Qs = {
   },
 
   STRESS: {
-    name: 'Stress and Coping',
+    name: 'Under Pressure',
     full: 'How you handle pressure and difficulty',
     color: '#8b7355',
     category: 'personality',
@@ -572,7 +572,7 @@ const Qs = {
   },
 
   CAREERVALUES: {
-    name: 'What Work Means to You',
+    name: 'What Drives You',
     full: 'Your values and motivations at work',
     color: '#7a9e7e',
     category: 'career',
@@ -617,7 +617,7 @@ const Qs = {
   },
 
   WORKENVIRONMENT: {
-    name: 'Where You Work Best',
+    name: 'Your Work Era',
     full: 'Your ideal work setup and environment',
     color: '#8b7355',
     category: 'career',
@@ -662,7 +662,7 @@ const Qs = {
   },
 
   LEADERSHIP: {
-    name: 'How You Lead and Contribute',
+    name: 'Your Leader Type',
     full: 'Your natural role in teams and at work',
     color: '#b8a070',
     category: 'career',
@@ -707,7 +707,7 @@ const Qs = {
   },
 
   BURNOUT: {
-    name: 'Your Energy and Limits',
+    name: 'Burnout Check',
     full: 'How work has been affecting you',
     color: '#c17a5a',
     category: 'career',
@@ -921,7 +921,7 @@ export default function ScreeningPage() {
     const prompt = `You are a warm, insightful psychological guide giving someone a personal summary after a self-reflection check.
 
 Test: ${qd.name} (${qd.full})
-Overall result: ${score} points — described as "${severityLabel}"
+Overall result: ${score} points, described as "${severityLabel}"
 What this measures: ${qd.intro}
 
 ${highItems.length > 0
@@ -934,7 +934,7 @@ ${contextNotes ? `\nPersonal context they shared:\n${contextNotes}` : ''}
 
 Style instruction: ${funFramework}
 
-REQUIRED FORMAT — output EXACTLY 4 bullet points, nothing else:
+REQUIRED FORMAT, output EXACTLY 4 bullet points, nothing else:
 
 • [What this pattern reveals about where they are right now. Warm, specific, non-clinical. Reference their context if they gave it. Use the evocative phrase naturally in the sentence.]
 • [What seems to be going well or a genuine strength you notice. Honest, not falsely positive.]
@@ -948,7 +948,7 @@ HARD RULES:
 - No clinical labels (no disorder names, no test acronyms)
 - Speak directly as "you"
 - No em dashes
-- Warm but honest — not falsely cheerful
+- Warm but honest, not falsely cheerful
 - Total output under 130 words`
 
     try {
@@ -1173,7 +1173,7 @@ HARD RULES:
             </motion.div>
           )}
 
-          {/* RESULT — BULLET POINT LAYOUT */}
+          {/* RESULT, BULLET POINT LAYOUT */}
           {screen === 'result' && result && resultQ && severity && (
             <motion.div key="res" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
               <div className="glass-strong rounded-2xl p-8" style={{ border: `1px solid ${severity.color}28` }}>
