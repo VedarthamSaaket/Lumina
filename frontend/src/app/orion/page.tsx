@@ -6,6 +6,7 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import OrionChatPanel from '@/components/orion/OrionChatPanel'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
 import { useThemeStore } from '@/lib/themeStore'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import Grainient from '@/components/ui/Grainient'
 
 const ORION_COLOR = '#5B9BD5'
@@ -72,10 +73,12 @@ const RESEARCH_HIGHLIGHTS = [
 ]
 
 export default function OrionPage() {
+  usePsychWarmup('orion')
   const [chatOpen, setChatOpen] = useState(true)
   const [rightContent, setRightContent] = useState<string | null>(null)
   const [rightPanelActive, setRightPanelActive] = useState<any>(null)
   const [showInfo, setShowInfo] = useState(true)
+  const [seedQuestion, setSeedQuestion] = useState<string | null>(null)
   const { theme } = useThemeStore()
   const isDark = theme === 'dark'
 
@@ -155,10 +158,26 @@ export default function OrionPage() {
                 background: `linear-gradient(135deg, ${ORION_COLOR}28, ${ORION_COLOR}08)`,
                 border: `1.5px solid ${ORION_COLOR}45`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '18px', color: ORION_COLOR,
+                color: ORION_COLOR,
                 boxShadow: `0 0 24px ${ORION_COLOR}30`,
+                flexShrink: 0,
               }}>
-                *
+                {/* Orion star — inline SVG so it stays perfectly centered and crisp,
+                    instead of a top-aligned text asterisk that renders off-centre */}
+                <svg
+                  width="22" height="22" viewBox="0 0 24 24"
+                  fill="none" aria-hidden="true"
+                  style={{ display: 'block', filter: `drop-shadow(0 0 6px ${ORION_COLOR}99)` }}
+                >
+                  <path
+                    d="M12 1.5c.5 4.4 2.1 8 4.5 10.5C14.1 14.4 12.5 18 12 22.5 11.5 18 9.9 14.4 7.5 12 9.9 9.5 11.5 5.9 12 1.5Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M21.5 12c-2.7.3-4.9 1.3-6.4 2.9 1.5 1.6 3.7 2.6 6.4 2.9-.3-2-.3-3.8 0-5.8ZM2.5 12c2.7.3 4.9 1.3 6.4 2.9-1.5 1.6-3.7 2.6-6.4 2.9.3-2 .3-3.8 0-5.8Z"
+                    fill="currentColor" opacity="0.55"
+                  />
+                </svg>
               </div>
               <GoldHeading prefix="" gold="Orion" size="clamp(2rem, 5vw, 3.5rem)" />
             </div>
@@ -192,6 +211,8 @@ export default function OrionPage() {
               <OrionChatPanel
                 onRequestRightPanel={handleRightPanelRequest}
                 rightPanelContext={rightPanelActive}
+                seedMessage={seedQuestion}
+                onSeedConsumed={() => setSeedQuestion(null)}
               />
             </motion.div>
 
@@ -342,16 +363,30 @@ export default function OrionPage() {
                           "Give me a quick brain exercise I can do right now",
                           "What should I practise more based on my results?",
                         ].map((q, i) => (
-                          <div key={i} style={{
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            background: isDark ? 'rgba(91,155,213,0.06)' : 'rgba(91,155,213,0.06)',
-                            border: `1px solid ${ORION_COLOR}18`,
-                            fontFamily: 'var(--font-jost)', fontSize: '12px',
-                            color: textMuted, fontStyle: 'italic',
-                          }}>
+                          <button
+                            key={i}
+                            onClick={() => setSeedQuestion(q)}
+                            style={{
+                              textAlign: 'left',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              background: isDark ? 'rgba(91,155,213,0.06)' : 'rgba(91,155,213,0.06)',
+                              border: `1px solid ${ORION_COLOR}18`,
+                              fontFamily: 'var(--font-jost)', fontSize: '12px',
+                              color: textMuted, fontStyle: 'italic',
+                              cursor: 'pointer', transition: 'all 0.18s',
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = isDark ? 'rgba(91,155,213,0.14)' : 'rgba(91,155,213,0.12)'
+                              e.currentTarget.style.color = textPrimary
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = isDark ? 'rgba(91,155,213,0.06)' : 'rgba(91,155,213,0.06)'
+                              e.currentTarget.style.color = textMuted
+                            }}
+                          >
                             "{q}"
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>

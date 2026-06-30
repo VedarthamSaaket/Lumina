@@ -115,7 +115,12 @@ export function ResultScreen({ gameId, rounds, onRetake, onBack }: {
             return (
               <div key={i} className="flex justify-between items-center text-xs font-jost py-1 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Lv{lvl} R{ril + 1}{extra}</span>
-                <span style={{ color: r.correct ? '#7a9e7e' : '#f87171' }}>{r.correct ? '+' : 'x'}</span>
+                <span style={{
+                  color: r.correct ? '#7a9e7e' : '#c9897a',
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  lineHeight: 1,
+                }}>{r.correct ? '✓' : '✕'}</span>
               </div>
             )
           })}

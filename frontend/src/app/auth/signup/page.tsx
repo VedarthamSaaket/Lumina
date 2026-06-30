@@ -1,6 +1,6 @@
 'use client'
 // src/app/auth/signup/page.tsx
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -50,10 +50,10 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function StepIndicator({ step }: { step: 1 | 2 }) {
+function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '28px' }}>
-      {[1, 2].map(n => (
+      {[1, 2, 3].map(n => (
         <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <motion.div
             animate={{
@@ -74,10 +74,10 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
           >
             {n}
           </motion.div>
-          {n === 1 && (
+          {n < 3 && (
             <div style={{
               width: '40px', height: '1px',
-              background: step > 1
+              background: step > n
                 ? 'linear-gradient(90deg, #d4af37, #c4913a)'
                 : 'rgba(212,175,55,0.15)',
               transition: 'background 0.4s',
@@ -91,11 +91,16 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
 
 export default function SignUpPage() {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [stepOneCache, setStepOneCache] = useState<StepOneData | null>(null)
+
+  // Verification-step state
+  const [code, setCode] = useState('')
+  const [resendIn, setResendIn] = useState(0)
+  const codeInputRef = useRef<HTMLInputElement>(null)
 
   const {
     register: reg1, handleSubmit: handle1,
@@ -107,6 +112,18 @@ export default function SignUpPage() {
     formState: { errors: err2 },
   } = useForm<StepTwoData>()
 
+  // Resend cooldown ticker
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000)
+    return () => clearInterval(t)
+  }, [resendIn])
+
+  // Autofocus the code field when entering step 3
+  useEffect(() => {
+    if (step === 3) codeInputRef.current?.focus()
+  }, [step])
+
   const onStep1 = (data: StepOneData) => {
     if (data.password !== data.confirmPassword) {
       toast.error('Passwords do not match')
@@ -116,11 +133,12 @@ export default function SignUpPage() {
     setStep(2)
   }
 
+  // Step 2 submit → send verification code, advance to step 3 (does NOT create account)
   const onStep2 = async (data: StepTwoData) => {
     if (!stepOneCache) return
     setLoading(true)
     try {
-      const res = await authAPI.signup(
+      await authAPI.signup(
         stepOneCache.email,
         stepOneCache.password,
         stepOneCache.ageConfirmed,
@@ -130,17 +148,50 @@ export default function SignUpPage() {
           gender: data.gender || undefined,
         }
       )
+      toast.success('Verification code sent to your email')
+      setCode('')
+      setResendIn(30)
+      setStep(3)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || 'Could not send verification code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 3 submit → verify code, create account, sign in
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stepOneCache) return
+    if (code.trim().length !== 6) {
+      toast.error('Enter the 6-digit code from your email')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await authAPI.verifyEmail(stepOneCache.email, code.trim(), true)
       const token = res.data?.access_token ?? res.data?.token
       if (token) {
-        Cookies.set('lumina_token', token, { expires: 7, sameSite: 'lax' })
+        Cookies.set('lumina_token', token, { expires: 30, sameSite: 'lax' })
         localStorage.setItem('access_token', token)
       }
       toast.success('Your sanctuary awaits')
       router.push('/chat')
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Registration failed')
+      toast.error(e?.response?.data?.detail || 'Invalid or expired code')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const onResend = async () => {
+    if (!stepOneCache || resendIn > 0) return
+    try {
+      await authAPI.resendCode(stepOneCache.email)
+      toast.success('A new code is on its way')
+      setResendIn(30)
+    } catch {
+      toast.error('Could not resend the code')
     }
   }
 
@@ -161,6 +212,12 @@ export default function SignUpPage() {
       {visible ? 'Hide' : 'Show'}
     </button>
   )
+
+  const headerCopy = {
+    1: { title: 'Begin Here', sub: 'Every journey starts with a single step inward' },
+    2: { title: 'About You', sub: 'Help us personalise your experience' },
+    3: { title: 'Verify Email', sub: 'We sent a 6-digit code to your inbox' },
+  }[step]
 
   return (
     <main className="bg-landing min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 relative overflow-hidden">
@@ -195,16 +252,14 @@ export default function SignUpPage() {
             className="font-display font-light"
             style={{ fontSize: '3.5rem', letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: '8px' }}
           >
-            {step === 1 ? 'Begin Here' : 'About You'}
+            {headerCopy.title}
           </h1>
           {/* Cormorant Garamond italic subtitle */}
           <p
             className="font-display italic"
             style={{ fontSize: '1.15rem', fontWeight: 300, color: 'var(--text-secondary)' }}
           >
-            {step === 1
-              ? 'Every journey starts with a single step inward'
-              : 'Help us personalise your experience'}
+            {headerCopy.sub}
           </p>
           <div className="flex items-center justify-center gap-3 mt-4">
             <div className="h-px w-16" style={{ background: 'linear-gradient(to right, transparent, var(--divider-color, #d4af37))', opacity: 0.4 }} />
@@ -440,23 +495,122 @@ export default function SignUpPage() {
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       />
-                      Creating your sanctuary...
+                      Sending code...
                     </span>
-                  ) : 'Create Account'}
+                  ) : 'Send Verification Code'}
+                </motion.button>
+              </div>
+            </motion.form>
+          )}
+
+          {/* STEP 3 — verify email */}
+          {step === 3 && (
+            <motion.form
+              key="step3"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.35 }}
+              onSubmit={onVerify}
+              style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+            >
+              <p style={{
+                fontSize: '13px', lineHeight: '1.7',
+                fontFamily: 'var(--font-eb-garamond)',
+                color: 'var(--text-muted)', textAlign: 'center',
+              }}>
+                Enter the 6-digit code we sent to{' '}
+                <strong style={{ color: 'var(--text-secondary)' }}>{stepOneCache?.email}</strong>.
+                Your account is created once it&rsquo;s verified.
+              </p>
+
+              <div>
+                <FieldLabel>Verification Code</FieldLabel>
+                <input
+                  ref={codeInputRef}
+                  value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="lumina-input"
+                  style={{
+                    ...inputStyle(false),
+                    textAlign: 'center',
+                    fontFamily: 'var(--font-jost)',
+                    fontSize: '28px',
+                    letterSpacing: '0.5em',
+                    paddingLeft: '0.5em',
+                    fontWeight: 600,
+                  }}
+                  placeholder="••••••"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="glass"
+                  style={{
+                    flex: '0 0 auto', padding: '13px 20px', borderRadius: '12px',
+                    fontFamily: 'var(--font-rajdhani)', fontWeight: 600, fontSize: '12px',
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-muted)', cursor: 'pointer', transition: 'border-color 0.2s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
+                >
+                  Back
+                </button>
+
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  className="glass"
+                  style={{
+                    flex: 1, padding: '13px', borderRadius: '12px',
+                    fontFamily: 'var(--font-rajdhani)', fontWeight: 600, fontSize: '13px',
+                    letterSpacing: '0.16em', textTransform: 'uppercase',
+                    border: '1px solid var(--border-medium)',
+                    color: 'var(--text-primary)',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.6 : 1, transition: 'all 0.25s',
+                  }}
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: loading ? 1 : 0.98 }}
+                >
+                  {loading ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <motion.div
+                        style={{
+                          width: '14px', height: '14px', borderRadius: '50%',
+                          border: '2px solid var(--border-medium)', borderTopColor: 'var(--text-primary)',
+                        }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      />
+                      Verifying...
+                    </span>
+                  ) : 'Verify & Create Account'}
                 </motion.button>
               </div>
 
               <button
-                type="submit"
+                type="button"
+                onClick={onResend}
+                disabled={resendIn > 0}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
+                  background: 'none', border: 'none',
+                  cursor: resendIn > 0 ? 'default' : 'pointer',
                   textAlign: 'center', fontSize: '12px',
                   fontFamily: 'var(--font-eb-garamond)',
-                  color: 'var(--text-muted)', textDecoration: 'underline',
-                  opacity: 0.7,
+                  color: resendIn > 0 ? 'var(--text-muted)' : 'var(--gold)',
+                  textDecoration: resendIn > 0 ? 'none' : 'underline',
+                  opacity: resendIn > 0 ? 0.6 : 0.9,
                 }}
               >
-                Skip for now
+                {resendIn > 0 ? `Resend code in ${resendIn}s` : "Didn't get it? Resend code"}
               </button>
             </motion.form>
           )}

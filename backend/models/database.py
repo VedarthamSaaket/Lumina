@@ -3,9 +3,15 @@ from sqlalchemy import create_engine, Column, String, Integer, Float, Boolean, D
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from config import settings
+
+
+def utcnow():
+    """Timezone-aware UTC now. Use everywhere we compare against TIMESTAMPTZ
+    values Postgres returns — naive datetime.utcnow() raises on comparison."""
+    return datetime.now(timezone.utc)
 
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -29,6 +35,9 @@ def run_migrations():
         ("users", "age", "INTEGER"),
         ("users", "gender", "VARCHAR"),
         ("users", "settings_json", "TEXT"), # ← settings storage
+        ("users", "email_verified", "BOOLEAN DEFAULT TRUE"),  # existing rows are grandfathered as verified
+        ("users", "reset_code_hash", "VARCHAR"),
+        ("users", "reset_code_expires", "TIMESTAMPTZ"),
         ("journal_entries", "stickers", "JSON"),
     ]
     with engine.connect() as conn:
@@ -59,6 +68,30 @@ class User(Base):
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
     settings_json = Column(Text, nullable=True) # JSON blob for all user preferences
+    # Email verification: new accounts are only ever created post-verification,
+    # so this is True by construction. Kept for auditing / future re-verification.
+    email_verified = Column(Boolean, default=True, nullable=False)
+    # Password reset (6-digit code). Hash + aware expiry; cleared after use.
+    reset_code_hash    = Column(String, nullable=True)
+    reset_code_expires = Column(DateTime(timezone=True), nullable=True)
+
+
+class PendingSignup(Base):
+    """Holds a not-yet-verified signup. The real User row is created only once
+    the emailed code is confirmed, so unverified attempts never become accounts.
+    Rows are keyed by email and overwritten on resend / re-attempt."""
+    __tablename__ = "pending_signups"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    age_confirmed = Column(Boolean, default=False)
+    full_name = Column(String, nullable=True)
+    age = Column(Integer, nullable=True)
+    gender = Column(String, nullable=True)
+    code_hash = Column(String, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)  # wrong-code guesses
+    created_at = Column(DateTime(timezone=True), default=utcnow)
 
 
 class JournalEntry(Base):

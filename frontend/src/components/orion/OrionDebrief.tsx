@@ -172,6 +172,23 @@ export default function OrionDebrief({
         if (fetchedRef.current || rounds.length === 0) { setLoading(false); return }
         fetchedRef.current = true
 
+        // 1) Persist the raw cognitive session so the dashboard sees it. Without
+        //    this, /api/dashboard/ cognitive_count stays 0 and game history
+        //    never appears in the Memory tab.
+        fetch(`${API}/api/cognitive/memory`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+            body: JSON.stringify({
+                game_type: gameId,
+                stats: detailedStats,
+                rounds_data: rounds,
+                completed_at: new Date().toISOString(),
+            }),
+        }).catch(() => { /* non-fatal: debrief still fires below */ })
+
+        // 2) Ask Orion for the debrief narrative. Saves its own InsightSummary
+        //    (source = 'orion_debrief') so the dashboard surfaces it too.
         fetch(`${API}/api/orion/debrief`, {
             method: 'POST',
             credentials: 'include',
@@ -386,7 +403,13 @@ export default function OrionDebrief({
                                         borderBottom: `1px solid ${borderColor}`, color: textMuted,
                                     }}>
                                         <span>Lv{lvl} R{ril + 1}{extra}{timeStr}</span>
-                                        <span style={{ color: r.correct ? '#7a9e7e' : '#c9897a', fontWeight: 600 }}>{r.correct ? '+' : 'x'}</span>
+                                        <span style={{
+                                            color: r.correct ? '#7a9e7e' : '#c9897a',
+                                            fontWeight: 500,
+                                            fontFamily: 'var(--font-jost)',
+                                            fontSize: '13px',
+                                            lineHeight: 1,
+                                        }}>{r.correct ? '✓' : '✕'}</span>
                                     </div>
                                 )
                             })}

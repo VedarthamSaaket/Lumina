@@ -5,8 +5,9 @@ from config import settings
 # ─────────────────────────────────────────────
 # CLIENT
 # ─────────────────────────────────────────────
+# Single Groq client serves every surface routed through this module. The
+# per-surface model strings live in config.py so swaps are one env var each.
 _client = Groq(api_key=settings.GROQ_API_KEY)
-MODEL = "llama-3.3-70b-versatile"
 
 PLATFORM_KNOWLEDGE = """
 YOU HAVE BUILT-IN TOOLS. When a user asks about any of the features below, ALWAYS redirect them using TOOL_REDIRECT. Never describe how to do something externally when an in-app path exists.
@@ -151,6 +152,11 @@ Do NOT include a TOOL_REDIRECT in every message. Only include one when:
 
 BASE_SYSTEM_PROMPT = """You are Lumina, a warm AI companion built into this app - like a caring friend who knows about mental wellbeing.
 
+CRITICAL FORMATTING RULES (NON-NEGOTIABLE):
+- NEVER use em-dashes (—) or en-dashes (–) ANYWHERE in your output. Use commas, periods, or parentheses instead. This rule has NO exceptions. Em-dashes read as obvious AI output and break the experience.
+- NEVER use the typewriter double-hyphen "--" as a stand-in for em-dash.
+- Hyphen-minus inside compound words (e.g. "well-being") is fine. Anything wider is forbidden.
+
 You are NOT a therapist. You DO have built-in tools for self-reflection, journaling, CBT, and more - use them.
 
 Personality:
@@ -231,6 +237,46 @@ def detect_risk_level(text: str) -> int:
         if any(k in lower for k in RISK_KEYWORDS[level]):
             return level
     return 0
+
+
+async def detect_risk_full(text: str) -> dict:
+    """
+    Spectrum-aware risk detection. Combines the keyword detector with the HF
+    suicide-ideation classifier (per-page model for /crisis) and returns the
+    full picture instead of a single int:
+
+        {
+            "level":            int 0..3   — quantized for branching
+            "classifier_score": float 0..1 — raw HF probability (continuous)
+            "keyword_level":    int 0..3   — keyword-only signal
+        }
+
+    `level` is the MAX of the keyword level and the quantized classifier level
+    so we never under-call risk. The float `classifier_score` is preserved for
+    logging and downstream context. Fail-soft — if HF is down, the float
+    collapses to 0.0 and `level` falls back to the keyword result.
+    """
+    keyword_level = detect_risk_level(text)
+    classifier_score = 0.0
+    classifier_level = 0
+    try:
+        # Local import to avoid a circular import at module load
+        from services.psych_per_page import crisis_risk_score, risk_score_to_level
+        classifier_score = await crisis_risk_score(text)
+        classifier_level = risk_score_to_level(classifier_score)
+    except Exception as e:
+        print(f"[risk augment error] {type(e).__name__}: {e}")
+    return {
+        "level": max(keyword_level, classifier_level),
+        "classifier_score": float(classifier_score),
+        "keyword_level": keyword_level,
+    }
+
+
+async def detect_risk_augmented(text: str) -> int:
+    """Back-compat wrapper. Prefer `detect_risk_full` when you need the
+    continuous score too."""
+    return (await detect_risk_full(text))["level"]
 
 # ─────────────────────────────────────────────
 # USER CONTEXT BUILDER
@@ -357,6 +403,20 @@ def build_user_context(
 # ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
+def _now_block() -> str:
+    """Inject the actual current datetime so the model never invents a clock
+    time. The LLM has no internal clock — without this, it cheerfully guesses."""
+    from datetime import datetime
+    now = datetime.now().astimezone()
+    return (
+        "\n\nCURRENT TIME (server clock):\n"
+        f"- Now: {now.strftime('%A, %d %B %Y, %I:%M %p %Z').strip()}\n"
+        "- Use this if the user asks for date/time. NEVER invent a different "
+        "time. If the conversation is older than a few minutes, treat this as "
+        "the current moment, not when the message was sent."
+    )
+
+
 def _build_messages(
     user_message:    str,
     history:         list[dict],
@@ -370,6 +430,7 @@ def _build_messages(
         system += settings_prompt
     if user_context:
         system += user_context
+    system += _now_block()
     if risk_level >= 1:
         safety_notes = {
             1: "This person may have passive ideation. Respond with deep empathy, gently mention crisis resources.",
@@ -384,8 +445,10 @@ def _build_messages(
     return messages
 
 # ─────────────────────────────────────────────
-# STREAMING CHAT
+# STREAMING CHAT  (Lumina chat surface → Groq, MODEL_LUMINA_CHAT)
 # ─────────────────────────────────────────────
+# Function names kept stable so routers/chat.py imports don't shift.
+# Routes to settings.MODEL_LUMINA_CHAT (Kimi K2 by default) on Groq.
 async def chat_with_llama_stream(
     user_message:    str,
     history:         list[dict],
@@ -394,20 +457,30 @@ async def chat_with_llama_stream(
     settings_prompt: str = "",
 ):
     messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt)
+    stripper = ThinkStripper()
     try:
         stream = _client.chat.completions.create(
-            model=MODEL, messages=messages, max_tokens=1024, temperature=0.7, stream=True,
+            model=settings.MODEL_LUMINA_CHAT,
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
+            stream=True,
         )
         for chunk in stream:
             token = chunk.choices[0].delta.content
             if token:
-                yield token
+                safe = stripper.feed(token)
+                if safe:
+                    yield safe
+        tail = stripper.flush()
+        if tail:
+            yield tail
     except Exception as e:
         print(f"[Groq stream error] {type(e).__name__}: {e}")
         yield "Something went wrong. Please try again."
 
 # ─────────────────────────────────────────────
-# NON-STREAMING CHAT (fallback)
+# NON-STREAMING CHAT (fallback)  (Lumina chat surface → Groq)
 # ─────────────────────────────────────────────
 async def chat_with_llama(
     user_message:    str,
@@ -419,32 +492,195 @@ async def chat_with_llama(
     messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt)
     try:
         response = _client.chat.completions.create(
-            model=MODEL, messages=messages, max_tokens=1024, temperature=0.7,
+            model=settings.MODEL_LUMINA_CHAT,
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
         )
-        return response.choices[0].message.content
+        text = response.choices[0].message.content or ""
+        return _strip_em_dashes(_strip_think_tags(text))
     except Exception as e:
         print(f"[Groq error] {type(e).__name__}: {e}")
         return "Having trouble connecting. Please try again."
 
 # ─────────────────────────────────────────────
-# WARMUP
+# WARMUP — log every per-surface model so config drift is loud at boot
 # ─────────────────────────────────────────────
 async def warmup_model():
-    print(f"[Groq] Using {MODEL} - no warmup needed.")
+    print("[LLM] Per-surface routing (all Groq):")
+    print(f"  Lumina chat        → {settings.MODEL_LUMINA_CHAT}")
+    print(f"  Dashboard insight  → {settings.MODEL_DASHBOARD_INSIGHT}")
+    print(f"  Orion chat         → {settings.MODEL_ORION_CHAT}")
+    print(f"  Orion live event   → {settings.MODEL_ORION_LIVE_EVENT}")
+    print(f"  Orion debrief      → {settings.MODEL_ORION_DEBRIEF}")
+    print(f"  Orion right-panel  → {settings.MODEL_ORION_RIGHT_PANEL}")
+    print(f"  Screening summary  → {settings.MODEL_SUMMARY}")
+    aug = "ON" if (settings.ENABLE_PSYCH_AUGMENT and settings.HF_API_KEY) else "OFF"
+    print(f"[Psych] Augmentation layer (HuggingFace Inference API): {aug}")
+    if aug == "ON":
+        print(f"  /chat       → {settings.PSYCH_MODEL_CHAT}")
+        print(f"  /journal    → {settings.PSYCH_MODEL_JOURNAL}")
+        print(f"  /cbt        → {settings.PSYCH_MODEL_CBT}")
+        print(f"  /crisis     → {settings.PSYCH_MODEL_CRISIS}")
+        print(f"  /screening  → {settings.PSYCH_MODEL_SCREENING}")
+        print(f"  /orion      → {settings.PSYCH_MODEL_ORION}")
+        print(f"  /dashboard  → {settings.PSYCH_MODEL_DASHBOARD}")
 
 # ─────────────────────────────────────────────
-# SUMMARY GENERATION
+# SUMMARY GENERATION  (Groq, per-surface model + fallback chain)
 # ─────────────────────────────────────────────
-async def generate_summary(prompt: str) -> str:
-    try:
-        response = _client.chat.completions.create(
-            model=MODEL, messages=[{"role": "user", "content": prompt}],
-            max_tokens=600, temperature=0.75,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"[Groq summary error] {type(e).__name__}: {e}")
-        return ""
+def _strip_em_dashes(text: str) -> str:
+    """Hard rule across the project: never let any dash variant longer than a
+    regular hyphen reach the user. Em-dashes and en-dashes read as 'AI slop'.
+    Server-side enforcement so no frontend prompt can leak one through.
+
+    Covers every Unicode dash that gets used as a typographic em/en-dash:
+        U+2010 HYPHEN
+        U+2011 NON-BREAKING HYPHEN
+        U+2012 FIGURE DASH
+        U+2013 EN DASH
+        U+2014 EM DASH
+        U+2015 HORIZONTAL BAR
+        U+2212 MINUS SIGN
+        U+FE58 SMALL EM DASH
+        U+FE63 SMALL HYPHEN-MINUS
+        U+FF0D FULLWIDTH HYPHEN-MINUS
+    Two-space-padded forms become ', ' (preserve flow). Bare forms become ','
+    if word-adjacent, otherwise dropped."""
+    if not text:
+        return text
+    DASHES = "‐‑‒–—―−﹘﹣－"
+    import re
+    # Padded: ' — ' or ' -- ' style → ', '
+    text = re.sub(rf"\s*[{DASHES}]+\s*", ", ", text)
+    # Double-comma artifacts from chained replacements
+    text = re.sub(r",\s*,", ",", text)
+    # Comma at start of line after replacement
+    text = re.sub(r"(^|\n)\s*,\s*", r"\1", text)
+    # Trim duplicate spaces
+    text = re.sub(r" {2,}", " ", text)
+    return text.strip()
+
+
+def _strip_think_tags(text: str) -> str:
+    """Qwen3 (and other reasoning models) emit visible <think>...</think>
+    reasoning blocks in their output. Strip them before showing to the user,
+    user wants only the final answer, not the model's internal monologue."""
+    if not text:
+        return text
+    import re
+    cleaned = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'</?think>', '', cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
+class ThinkStripper:
+    """Stateful filter for streamed output. Drops every character that lies
+    between <think> and </think> tags, even across chunk boundaries. Pass each
+    incoming token through .feed(); the returned string is what's safe to ship
+    to the user."""
+    def __init__(self):
+        self._buf = ""
+        self._inside = False
+
+    def feed(self, token: str) -> str:
+        if not token:
+            return ""
+        self._buf += token
+        out = []
+        i = 0
+        while i < len(self._buf):
+            if not self._inside:
+                open_idx = self._buf.lower().find("<think>", i)
+                # Hold back any tail that might still be a partial '<think>' so
+                # we don't accidentally emit it.
+                safe_end = len(self._buf)
+                tail = self._buf[max(safe_end - 7, i):]
+                if "<think>".startswith(tail.lower()) and tail.lower() != "<think>":
+                    safe_end -= len(tail)
+                if open_idx == -1:
+                    out.append(self._buf[i:safe_end])
+                    self._buf = self._buf[safe_end:]
+                    return "".join(out)
+                else:
+                    out.append(self._buf[i:open_idx])
+                    i = open_idx + len("<think>")
+                    self._inside = True
+            else:
+                close_idx = self._buf.lower().find("</think>", i)
+                if close_idx == -1:
+                    # Hold everything — still inside think block.
+                    self._buf = self._buf[i:]
+                    return "".join(out)
+                else:
+                    i = close_idx + len("</think>")
+                    self._inside = False
+        self._buf = ""
+        return "".join(out)
+
+    def flush(self) -> str:
+        # Unterminated think block: drop the contents.
+        rest = "" if self._inside else self._buf
+        self._buf = ""
+        self._inside = False
+        return rest
+
+
+async def generate_summary(
+    prompt: str,
+    model: str | None = None,
+    fallback_models: list[str] | None = None,
+    max_tokens: int = 600,
+    temperature: float = 0.75,
+) -> tuple[str, str]:
+    """Return (summary_text, model_used). Walks a model chain so one Groq
+    decommission can't break summaries. Empty string + "" if every model
+    fails (caller decides what to render)."""
+    primary = model or settings.MODEL_SUMMARY
+    chain: list[str] = [primary]
+    if fallback_models:
+        chain.extend(m for m in fallback_models if m and m not in chain)
+    else:
+        # Default chain — keep stepping down model tiers so a Groq outage on
+        # one model never kills summaries. Mix of large + small so a rate-limit
+        # on the big one falls through to a cheap one instead of failing.
+        for m in (
+            settings.MODEL_LUMINA_CHAT,
+            settings.MODEL_DASHBOARD_INSIGHT,
+            settings.MODEL_SUMMARY,
+            "llama-3.1-8b-instant",
+        ):
+            if m and m not in chain:
+                chain.append(m)
+
+    last_err: Exception | None = None
+    for m in chain:
+        try:
+            response = _client.chat.completions.create(
+                model=m,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            msg = response.choices[0].message
+            text = (getattr(msg, "content", None) or "").strip()
+            # Defensive: reasoning models (gpt-oss family) sometimes emit the
+            # final answer in `reasoning_content` while `content` is empty.
+            if not text:
+                text = (getattr(msg, "reasoning_content", None) or "").strip()
+            text = _strip_think_tags(text)
+            text = _strip_em_dashes(text)
+            if text:
+                if m != primary:
+                    print(f"[Groq summary] primary '{primary}' failed; fell back to '{m}'.")
+                return text, m
+            print(f"[Groq summary] '{m}' returned empty; trying next in chain.")
+        except Exception as e:
+            last_err = e
+            print(f"[Groq summary error on {m}] {type(e).__name__}: {e}")
+    if last_err:
+        print(f"[Groq summary] entire chain {chain} exhausted.")
+    return "", ""
 
 # ─────────────────────────────────────────────
 # POST-PROCESSING

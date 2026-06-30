@@ -17,15 +17,18 @@ export default function SignInPage() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [remember, setRemember] = useState(true)
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>()
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
     try {
-      const res = await authAPI.signin(data.email, data.password)
+      const res = await authAPI.signin(data.email, data.password, remember)
       const token = res.data?.access_token ?? res.data?.token
       if (token) {
-        Cookies.set('lumina_token', token, { expires: 7, sameSite: 'lax' })
+        // Remember me → persistent cookie (30d). Otherwise a session cookie
+        // that clears when the browser closes.
+        Cookies.set('lumina_token', token, remember ? { expires: 30, sameSite: 'lax' } : { sameSite: 'lax' })
         localStorage.setItem('access_token', token)
       }
       toast.success('Welcome back to Lumina')
@@ -155,6 +158,32 @@ export default function SignInPage() {
                 {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
+          </div>
+
+          {/* Remember me + Forgot password */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                style={{ width: '15px', height: '15px', borderRadius: '4px', accentColor: 'var(--gold)', flexShrink: 0 }}
+              />
+              <span style={{ fontSize: '13px', fontFamily: 'var(--font-eb-garamond)', color: 'var(--text-secondary)' }}>
+                Remember me
+              </span>
+            </label>
+            <Link
+              href="/auth/forgot"
+              style={{
+                fontSize: '13px', fontFamily: 'var(--font-eb-garamond)',
+                color: 'var(--gold)', textDecoration: 'none', transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => ((e.target as HTMLElement).style.opacity = '0.75')}
+              onMouseLeave={e => ((e.target as HTMLElement).style.opacity = '1')}
+            >
+              Forgot password?
+            </Link>
           </div>
 
           <motion.button

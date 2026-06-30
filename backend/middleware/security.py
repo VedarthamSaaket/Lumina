@@ -43,8 +43,12 @@ _suspicious: Dict[str, int] = defaultdict(int)
 # (window_seconds, max_requests)
 RATE_LIMITS: Dict[str, Tuple[int, int]] = {
     # Auth  – very tight
-    "/api/auth/signin":    (60,   8),    # 8 attempts / minute
-    "/api/auth/signup":    (60,   5),    # 5 signups / minute
+    "/api/auth/signin":          (60,   8),    # 8 attempts / minute
+    "/api/auth/signup":          (60,   5),    # 5 signups / minute
+    "/api/auth/verify-email":    (60,  10),    # code guesses (also capped server-side)
+    "/api/auth/resend-code":     (60,   3),    # throttle re-sends / quota burn
+    "/api/auth/forgot-password": (60,   4),    # throttle reset-email sends
+    "/api/auth/reset-password":  (60,  10),    # code guesses (also capped server-side)
     # AI generation – expensive
     "/api/chat/stream":    (60,  20),    # 20 streaming messages / minute
     "/api/chat/message":   (60,  20),

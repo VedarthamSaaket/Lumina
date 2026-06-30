@@ -6,6 +6,7 @@ from typing import Optional
 from models.database import get_db, User, JournalEntry, MoodLog
 from utils.auth import get_current_user
 from middleware.ownership import require_owner
+from services.psych_per_page import journal_emotion_tags
 
 router = APIRouter(prefix="/api/journal", tags=["journal"])
 
@@ -18,23 +19,28 @@ class JournalCreate(BaseModel):
 
 
 @router.post("")
-def create_entry(
+async def create_entry(
     data: JournalCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    # Psych augmentation: auto-tag emotion themes from the entry text using
+    # the GoEmotions classifier. Merged with any user-supplied tags.
+    auto_emotion_tags = await journal_emotion_tags(data.content)
+    merged_tags = list(dict.fromkeys((data.tags or []) + auto_emotion_tags))
+
     entry = JournalEntry(
         user_id    = user.id,
         content    = data.content,
         mood_score = data.mood_score,
-        tags       = data.tags,
+        tags       = merged_tags,
         stickers   = data.stickers,
     )
     db.add(entry)
 
     if data.mood_score is not None:
-        mood_note = f"From journal entry. Tags: {', '.join(data.tags)}" if data.tags else "From journal entry."
-        db.add(MoodLog(user_id=user.id, score=data.mood_score, note=mood_note, tags=data.tags))
+        mood_note = f"From journal entry. Tags: {', '.join(merged_tags)}" if merged_tags else "From journal entry."
+        db.add(MoodLog(user_id=user.id, score=data.mood_score, note=mood_note, tags=merged_tags))
 
     db.commit()
     db.refresh(entry)
