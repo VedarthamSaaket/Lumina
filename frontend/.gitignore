@@ -1,5 +1,4 @@
-node_modules/ 
-.next/ 
-.env 
-.env.local 
-stickers/
+node_modules/
+.next/
+.env
+.env.local
