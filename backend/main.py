@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy import text
 from routers import dashboard
 from models.database import engine, run_migrations
-from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion, stickers, psych_warmup
+from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion, stickers, psych_warmup, specialty_internal
 from config import settings
 from services.llm import warmup_model, close_http_client
 from services.psych_hf import warmup_all_psych_models
@@ -73,6 +73,7 @@ app.include_router(settings_router.router)
 app.include_router(orion.router)
 app.include_router(stickers.router)
 app.include_router(psych_warmup.router)
+app.include_router(specialty_internal.router)
 
 
 @app.get("/health")

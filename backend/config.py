@@ -78,6 +78,30 @@ class Settings(BaseSettings):
     # Master toggle for specialty layer
     ENABLE_SPECIALTY_PSYCH: bool = os.getenv("ENABLE_SPECIALTY_PSYCH", "true").lower() in ("1", "true", "yes")
 
+    # Shared secret workers (Lightning / Kaggle / Colab) send in X-Specialty-Secret
+    # when self-reporting their public URL to /internal/specialty/register.
+    SPECIALTY_REGISTRY_SECRET: str = os.getenv("SPECIALTY_REGISTRY_SECRET", "")
+
+    # Kaggle API credentials — used by services/specialty_lifecycle to wake
+    # the kernel when the registry has no live worker and a user feature fires.
+    KAGGLE_USERNAME:     str = os.getenv("KAGGLE_USERNAME", "")
+    KAGGLE_KEY:          str = os.getenv("KAGGLE_KEY", "")
+    # Slug of the Kaggle notebook that runs kaggle_psych_host.py
+    # e.g. "vaedarth/lumina-psych-host"
+    KAGGLE_KERNEL_SLUG:  str = os.getenv("KAGGLE_KERNEL_SLUG", "")
+    # Local folder containing kernel-metadata.json + the host script (used to
+    # push a new version when waking). Defaults to repo-relative path.
+    KAGGLE_KERNEL_DIR:   str = os.getenv("KAGGLE_KERNEL_DIR", "../kaggle-kernel")
+
+    # Weekly GPU budget for the Kaggle free tier (30 hours = 1800 minutes).
+    # The lifecycle controller refuses to issue wake calls once this much
+    # uptime has been reported by workers in the current rolling 7-day window.
+    SPECIALTY_WEEKLY_GPU_MINUTES: int = int(os.getenv("SPECIALTY_WEEKLY_GPU_MINUTES", "1800"))
+    # Persisted quota state file
+    SPECIALTY_QUOTA_FILE: str = os.getenv("SPECIALTY_QUOTA_FILE", "./specialty_quota.json")
+    # How long worker can sit idle (no /infer hits) before self-terminating
+    SPECIALTY_WORKER_IDLE_SECONDS: int = int(os.getenv("SPECIALTY_WORKER_IDLE_SECONDS", "1200"))
+
     # ── Transactional email (Gmail SMTP) ──────────────────────────────────────
     # GMAIL_APP_PASSWORD is a 16-char app password (NOT the account password).
     # Both must live in backend/.env, which is gitignored.

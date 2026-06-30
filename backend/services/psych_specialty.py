@@ -39,6 +39,7 @@ from typing import Optional
 import httpx
 
 from config import settings
+from services import specialty_registry, specialty_lifecycle
 
 
 def _enabled() -> bool:
@@ -46,29 +47,38 @@ def _enabled() -> bool:
 
 
 async def _call_worker(
-    base_url: str,
+    model_key: str,
     prompt: str,
     max_new_tokens: int = 256,
     temperature: float = 0.7,
     timeout: float = 30.0,
 ) -> Optional[str]:
-    if not _enabled() or not base_url:
+    """
+    Resolve model_key → live worker URL via specialty_registry (Lightning →
+    Kaggle → manual Colab env fallback). POST /infer. Fail-soft to None.
+    """
+    if not _enabled():
+        return None
+    base_url = specialty_registry.resolve(model_key)
+    if not base_url:
+        # Fire-and-forget wake; this request still degrades to Layer A.
+        asyncio.create_task(specialty_lifecycle.ensure_warm(model_key))
         return None
     url = f"{base_url.rstrip('/')}/infer"
     payload = {
         "prompt": prompt,
         "max_new_tokens": max_new_tokens,
         "temperature": temperature,
+        "model_key": model_key,
     }
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(url, json=payload)
+            resp = await client.post(url, json=payload, params={"model": model_key})
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        print(f"[specialty {base_url}] {type(e).__name__}: {e}")
+        print(f"[specialty {model_key} @ {base_url}] {type(e).__name__}: {e}")
         return None
-    # Tolerate a handful of common worker response shapes
     if isinstance(data, dict):
         for key in ("text", "response", "output", "generated_text"):
             v = data.get(key)
@@ -77,8 +87,11 @@ async def _call_worker(
     return None
 
 
-async def health_check(base_url: str, timeout: float = 5.0) -> bool:
-    if not _enabled() or not base_url:
+async def health_check(model_key: str, timeout: float = 5.0) -> bool:
+    if not _enabled():
+        return False
+    base_url = specialty_registry.resolve(model_key)
+    if not base_url:
         return False
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -100,7 +113,7 @@ async def psyllm_cbt_analyze(reframing_text: str, module_id: str) -> Optional[st
         f"reframe the user could try.\n\n"
         f"Entry: {reframing_text[:1500]}\n\nAnalysis:"
     )
-    return await _call_worker(settings.COLAB_URL_PSYLLM, prompt, max_new_tokens=220, temperature=0.5)
+    return await _call_worker("psyllm", prompt, max_new_tokens=220, temperature=0.5)
 
 
 # ─── /chat — PsychoCounsel-Llama3 (therapist-aligned critic) ──────────────────
@@ -125,7 +138,7 @@ async def psychocounsel_critic(user_message: str, draft_reply: str, risk_level: 
         f"Assistant draft: {draft_reply[:1500]}\n\n"
         "Final reply:"
     )
-    return await _call_worker(settings.COLAB_URL_PSYCHOCOUNSEL, prompt, max_new_tokens=400, temperature=0.6)
+    return await _call_worker("psychocounsel", prompt, max_new_tokens=400, temperature=0.6)
 
 
 # ─── /screening — PsychoLexLLaMA (academic terminology enrichment) ────────────
@@ -142,7 +155,7 @@ async def psycholex_screening_enrich(test_type: str, severity: str, contexts: li
         f"avoidance) and one well-supported intervention family. No diagnoses.\n\n"
         f"User context: {text}\n\nNote:"
     )
-    return await _call_worker(settings.COLAB_URL_PSYCHOLEX, prompt, max_new_tokens=160, temperature=0.4)
+    return await _call_worker("psycholex", prompt, max_new_tokens=160, temperature=0.4)
 
 
 # ─── /dashboard — MentaLLaMA (interpretable diagnostic justification) ─────────
@@ -158,18 +171,18 @@ async def mentallama_dashboard_justify(aggregated_text: str) -> Optional[str]:
         "into a warm insight summary — be neutral, not alarmist.\n\n"
         f"Activity log: {aggregated_text[:2000]}\n\nJustifications:"
     )
-    return await _call_worker(settings.COLAB_URL_MENTALLAMA, prompt, max_new_tokens=240, temperature=0.5)
+    return await _call_worker("mentallama", prompt, max_new_tokens=240, temperature=0.5)
 
 
 # ─── Bulk health probe (used by /api/psych/warmup) ───────────────────────────
 async def specialty_health_snapshot() -> dict:
     if not _enabled():
         return {"enabled": False}
-    urls = {
-        "psyllm":        settings.COLAB_URL_PSYLLM,
-        "psychocounsel": settings.COLAB_URL_PSYCHOCOUNSEL,
-        "psycholex":     settings.COLAB_URL_PSYCHOLEX,
-        "mentallama":    settings.COLAB_URL_MENTALLAMA,
+    keys = ("psyllm", "psychocounsel", "psycholex", "mentallama")
+    results = await asyncio.gather(*[health_check(k) for k in keys])
+    snap = specialty_registry.snapshot()
+    return {
+        "enabled":  True,
+        "alive":    {k: ok for k, ok in zip(keys, results)},
+        "registry": snap,
     }
-    results = await asyncio.gather(*[health_check(u) for u in urls.values()])
-    return {"enabled": True, **{k: ok for k, ok in zip(urls.keys(), results)}}
