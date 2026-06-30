@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from models.database import get_db, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
 from utils.auth import get_current_user
+from services.psych_per_page import orion_engagement_signal
+from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper
 import json
 from datetime import datetime
 
@@ -14,6 +16,12 @@ router = APIRouter(prefix="/api/orion", tags=["orion"])
 
 
 ORION_SYSTEM_PROMPT = """You are Orion, a warm and sharp thinking companion inside Lumina. You are Lumina's close friend who specialises in brain training, thinking skills, memory, reasoning, and how people get smarter.
+
+CRITICAL FORMATTING RULES (NON-NEGOTIABLE):
+- NEVER use em-dashes (—) or en-dashes (–) ANYWHERE in your output. Use commas, periods, or parentheses instead. This rule has NO exceptions. Em-dashes read as obvious AI output and break the experience.
+- NEVER use the typewriter double-hyphen "--" as a stand-in for em-dash.
+- Hyphen-minus inside compound words is fine. Anything wider is forbidden.
+- NEVER expose your internal reasoning or <think> blocks. Only output the final answer.
 
 You are NOT Lumina. Lumina handles feelings, journaling, and emotional support. You handle thinking, memory, reasoning, problem solving, and pattern recognition. If someone brings up emotions or mental health, warmly point them to Lumina and come back to the brain side of things.
 
@@ -132,6 +140,16 @@ GAME_NAMES = {
 from groq import Groq
 from config import settings as _app_settings
 _groq_client = Groq(api_key=_app_settings.GROQ_API_KEY)
+
+
+# Per-surface model strings live in config so the next swap is one env var.
+def _model_for(surface: str) -> str:
+    return {
+        "chat":         _app_settings.MODEL_ORION_CHAT,
+        "live_event":   _app_settings.MODEL_ORION_LIVE_EVENT,
+        "debrief":      _app_settings.MODEL_ORION_DEBRIEF,
+        "right_panel":  _app_settings.MODEL_ORION_RIGHT_PANEL,
+    }[surface]
 
 
 # ── Settings helpers ──────────────────────────────────────────────────────────
@@ -390,9 +408,14 @@ Encourage the user to think about this. Ask follow-up questions to get their per
     return ""
 
 
-def _call_groq(messages: list[dict], max_tokens: int = 900, temperature: float = 0.68):
+def _call_groq(
+    messages: list[dict],
+    max_tokens: int = 900,
+    temperature: float = 0.68,
+    model: str | None = None,
+):
     return _groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=model or _app_settings.MODEL_ORION_CHAT,
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -475,8 +498,9 @@ async def orion_stream(
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
+    engagement_signal = await orion_engagement_signal(data.content)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + engagement_signal + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -489,9 +513,10 @@ async def orion_stream(
 
     async def generate():
         accumulated = ""
+        stripper = ThinkStripper()
         try:
             stream = _groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=_model_for("chat"),
                 messages=messages,
                 max_tokens=900,
                 temperature=0.68,
@@ -500,8 +525,14 @@ async def orion_stream(
             for chunk in stream:
                 token = chunk.choices[0].delta.content
                 if token:
-                    accumulated += token
-                    yield f"data: {json.dumps({'text': token})}\n\n"
+                    safe = stripper.feed(token)
+                    if safe:
+                        accumulated += safe
+                        yield f"data: {json.dumps({'text': safe})}\n\n"
+            tail = stripper.flush()
+            if tail:
+                accumulated += tail
+                yield f"data: {json.dumps({'text': tail})}\n\n"
         except Exception as e:
             print(f"[Orion stream error] {type(e).__name__}: {e}")
             error_msg = "Something went wrong. Please try again."
@@ -509,6 +540,7 @@ async def orion_stream(
             if not accumulated:
                 yield f"data: {json.dumps({'text': error_msg})}\n\n"
 
+        accumulated = _strip_em_dashes(accumulated)
         # Save assistant response after streaming
         if accumulated:
             _save_orion_message(conversation_id, current_user.id, "assistant", accumulated, db)
@@ -537,8 +569,9 @@ async def orion_message(
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
+    engagement_signal = await orion_engagement_signal(data.content)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + engagement_signal + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -550,8 +583,9 @@ async def orion_message(
     _save_orion_message(conversation_id, current_user.id, "user", data.content, db)
 
     try:
-        response = _call_groq(messages)
-        reply = response.choices[0].message.content
+        response = _call_groq(messages, model=_model_for("chat"))
+        reply = response.choices[0].message.content or ""
+        reply = _strip_em_dashes(_strip_think_tags(reply))
         _save_orion_message(conversation_id, current_user.id, "assistant", reply, db)
         return {"response": reply, "conversation_id": conversation_id}
     except Exception as e:
@@ -594,8 +628,10 @@ Data: {json.dumps(d)}"""
     ]
 
     try:
-        response = _call_groq(messages, max_tokens=120, temperature=0.8)
-        return {"notification": response.choices[0].message.content.strip()}
+        response = _call_groq(messages, max_tokens=120, temperature=0.8, model=_model_for("live_event"))
+        text = (response.choices[0].message.content or "").strip()
+        text = _strip_em_dashes(_strip_think_tags(text))
+        return {"notification": text}
     except Exception as e:
         print(f"[Orion live event error] {type(e).__name__}: {e}")
         return {"notification": None}
@@ -609,6 +645,14 @@ async def orion_debrief(
 ):
     game_name = GAME_NAMES.get(data.game_type, data.game_type)
     cognitive_context = _get_cognitive_context(current_user.id, db)
+    # Cross-surface awareness: pull Lumina-side data so Orion's debrief speaks
+    # from the same shared knowledge of this user that Lumina would. Lazy
+    # import to avoid the circular dependency at module load.
+    try:
+        from routers.summary import _cross_surface_context as _cross_ctx
+        cross_surface = _cross_ctx(current_user.id, db)
+    except Exception:
+        cross_surface = ""
 
     rounds_summary = []
     for i, r in enumerate(data.rounds[:20]):
@@ -654,6 +698,15 @@ async def orion_debrief(
         back = sum(1 for r in data.rounds[total // 2 :] if not r.get("correct"))
         back_half_note = f"Errors front-half: {front}. Errors back-half: {back}."
 
+    # HF engagement spectrum over a synthesized description of the session.
+    # Gives the debrief model emotional/engagement context to read against the
+    # raw round log — e.g. "joy + frustration" reads differently than "flat".
+    engagement_seed = (
+        f"{game_name} session. Accuracy {accuracy}%. Max level {max_level}. "
+        f"{correct_count}/{total} correct. {back_half_note}"
+    )
+    engagement_block = await orion_engagement_signal(engagement_seed)
+
     system = f"""You are Orion, a warm and sharp brain training companion. Write a personalised post-game debrief for this session. Use simple friendly language. No psychological jargon. No em dashes. No emojis. No exclamation marks unless the session genuinely warrants one.
 
 {tone_frame}
@@ -680,7 +733,9 @@ Max level reached: {max_level}
 Stats: {json.dumps(data.stats)}
 Round by round:
 {chr(10).join(rounds_summary)}
-{cognitive_context[:800] if cognitive_context else ''}"""
+{cognitive_context[:800] if cognitive_context else ''}
+{engagement_block}
+{cross_surface[:600] if cross_surface else ''}"""
 
     messages = [
         {"role": "system", "content": system},
@@ -688,8 +743,9 @@ Round by round:
     ]
 
     try:
-        response = _call_groq(messages, max_tokens=400, temperature=0.7)
-        debrief_text = response.choices[0].message.content.strip()
+        response = _call_groq(messages, max_tokens=400, temperature=0.7, model=_model_for("debrief"))
+        debrief_text = (response.choices[0].message.content or "").strip()
+        debrief_text = _strip_em_dashes(_strip_think_tags(debrief_text))
 
         insight = InsightSummary(
             user_id=current_user.id,
@@ -844,8 +900,9 @@ Make it something achievable in a few minutes throughout the day.""",
     ]
 
     try:
-        response = _call_groq(messages, max_tokens=400, temperature=0.85)
-        raw = response.choices[0].message.content.strip()
+        response = _call_groq(messages, max_tokens=400, temperature=0.85, model=_model_for("right_panel"))
+        raw = (response.choices[0].message.content or "").strip()
+        raw = _strip_em_dashes(_strip_think_tags(raw))
 
         result: dict = {"type": content_type, "raw": raw, "game_type": game_type}
 

@@ -37,6 +37,7 @@ api.interceptors.response.use(
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 export const authAPI = {
+  // Step 1 of signup — emails a 6-digit code; no account created yet.
   signup: (
     email: string,
     password: string,
@@ -51,10 +52,20 @@ export const authAPI = {
       age:       profile?.age       || null,
       gender:    profile?.gender    || null,
     }),
-  signin:  (email: string, password: string) =>
-    api.post('/api/auth/signin', { email, password }),
+  // Step 2 of signup — confirms the code, creates the account, signs in.
+  verifyEmail: (email: string, code: string, remember = false) =>
+    api.post('/api/auth/verify-email', { email, code, remember }),
+  resendCode:  (email: string) =>
+    api.post('/api/auth/resend-code', { email }),
+  signin:  (email: string, password: string, remember = false) =>
+    api.post('/api/auth/signin', { email, password, remember }),
   signout: () => api.post('/api/auth/signout'),
   me:      () => api.get('/api/auth/me'),
+  // Forgot / reset password (6-digit code)
+  forgotPassword: (email: string) =>
+    api.post('/api/auth/forgot-password', { email }),
+  resetPassword:  (email: string, code: string, password: string) =>
+    api.post('/api/auth/reset-password', { email, code, password }),
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────
@@ -130,4 +141,21 @@ export const crisisAPI = {
     api.get('/api/crisis/resources', { params: { country } }),
   logEvent: (level: number, content: string) =>
     api.post('/api/crisis/log', { level, content }),
+}
+
+// ── Psych augmentation warmup ──────────────────────────────────────────────
+// Hit on page-mount so the HF cold-start (~20s) and the Colab worker wake
+// happen WHILE the user is reading / taking a test. By the time they submit,
+// both layers are warm. Fire-and-forget — failures are swallowed so a cold
+// psych layer never blocks the page.
+export type PsychPage =
+  | 'chat' | 'journal' | 'cbt' | 'crisis' | 'screening' | 'orion' | 'dashboard'
+
+export const psychAPI = {
+  // Warm one page's layer-A classifier + probe its layer-B Colab worker.
+  warmupPage: (page: PsychPage) =>
+    api.get(`/api/psych/warmup/${page}`).then(r => r.data).catch(() => null),
+  // Warm everything (e.g. from the app shell once after sign-in).
+  warmupAll: () => api.get('/api/psych/warmup').then(r => r.data).catch(() => null),
+  health:    () => api.get('/api/psych/health').then(r => r.data).catch(() => null),
 }

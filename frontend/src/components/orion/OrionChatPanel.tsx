@@ -98,6 +98,11 @@ interface OrionChatPanelProps {
   gameType?: string
   isMemoryPage?: boolean
   compact?: boolean
+  /** When set, the panel sends this as a user message immediately, then calls
+   *  onSeedConsumed so the parent can reset state for the next click. Used by
+   *  the "Try asking Orion" sample chips on the Orion page. */
+  seedMessage?: string | null
+  onSeedConsumed?: () => void
 }
 
 export default function OrionChatPanel({
@@ -106,6 +111,8 @@ export default function OrionChatPanel({
   gameType,
   isMemoryPage = false,
   compact = false,
+  seedMessage = null,
+  onSeedConsumed,
 }: OrionChatPanelProps) {
   const { theme } = useThemeStore()
   const isDark = theme === 'dark'
@@ -235,6 +242,17 @@ export default function OrionChatPanel({
       setLoading(false)
     }
   }, [input, loading, msgs, rightPanelContext, onRequestRightPanel])
+
+  // Sample-chip seeding: parent passes a question via seedMessage; we fire it
+  // through send() once, then call onSeedConsumed so the chip can be clicked
+  // again later (or another one).
+  useEffect(() => {
+    const q = (seedMessage || '').trim()
+    if (!q || loading) return
+    send(q)
+    onSeedConsumed?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedMessage])
 
   // Palette
   const bgPanel = isDark

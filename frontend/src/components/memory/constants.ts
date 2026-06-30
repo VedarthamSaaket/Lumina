@@ -142,8 +142,8 @@ export const isPuzzleId = (id: string): id is PuzzleGameId => id in PUZZLE_GAMES
 export const MODE_LABELS: Record<SeqMode, string> = {
   forward: 'Forward order',
   reverse: 'Reverse order',
-  ascending: 'Ascending (low -> high)',
-  descending: 'Descending (high -> low)',
+  ascending: 'Ascending (low → high)',
+  descending: 'Descending (high → low)',
   odd_only: 'Odd digits only',
   even_only: 'Even digits only',
 }

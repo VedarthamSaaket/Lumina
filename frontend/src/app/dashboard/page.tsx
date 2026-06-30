@@ -9,6 +9,7 @@ import '@/components/DarkVeil.css'
 import { OrionInsightCard } from '@/components/orion/OrionInsightCard'
 import Grainient from '@/components/ui/Grainient'
 import { useThemeStore } from '@/lib/themeStore'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -285,7 +286,7 @@ function MemoryTab({ memory }: { memory: MemoryRow[] }) {
           const firstHalfWrong = allRounds.slice(0, Math.floor(totalRounds / 2)).filter((r: any) => !r.correct).length
           const secondHalfWrong = wrongCount - firstHalfWrong
           if (totalRounds > 4 && secondHalfWrong > firstHalfWrong * 1.5) {
-            keyStats.push({ label: 'Fatigue pattern', value: '! detected' })
+            keyStats.push({ label: 'Fatigue pattern', value: 'Detected' })
           }
         }
 
@@ -377,6 +378,7 @@ function MemoryTab({ memory }: { memory: MemoryRow[] }) {
 type Tab = 'overview' | 'screening' | 'memory' | 'wellbeing' | 'cbt'
 
 export default function DashboardPage() {
+  usePsychWarmup('dashboard')
   const { theme } = useThemeStore()
   const isLight = theme === 'light'
   const [loading, setLoading] = useState(true)

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import type { Sticker } from '@/components/journal/JournalStickers'
 import Grainient from '@/components/ui/Grainient'
 import { GoldHeading } from '@/components/ui/GoldHeading'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 
 const OpenBook = dynamic(() => import('@/components/journal/OpenBook'), { ssr: false })
 
@@ -384,6 +385,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
 }
 
 export default function JournalPage() {
+    usePsychWarmup('journal')
     const [stage, setStage] = useState<Stage>('scene')
     const [entries, setEntries] = useState<JournalEntry[]>([])
     const [isSaving, setIsSaving] = useState(false)

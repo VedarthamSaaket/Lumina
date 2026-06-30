@@ -48,7 +48,12 @@ export default function MemoryPage() {
 
   const quitMemoryGame = (r: AnyRound[]) => {
     if (r.length > 0) { setRounds(r); setPhase('result') }
-    else { setPhase('selector') }
+    else {
+      // Hard reset on empty-quit. Leaving `selected` set caused the AnimatePresence
+      // transition to occasionally land on a blank screen because the previous
+      // playing branch was still considered "current" for its exit animation.
+      setSelected(null); setActiveGameType(null); setRounds([]); setPhase('selector')
+    }
   }
   const completeMemoryGame = (r: AnyRound[]) => {
     setRounds(r); setPhase('result')
@@ -56,10 +61,15 @@ export default function MemoryPage() {
 
   const quitPuzzleGame = (r: BaseRound[]) => {
     if (r.length > 0) { setPuzzleRounds(r); setPhase('puzzle-result') }
-    else { setPhase('selector') }
+    else {
+      setPuzzleSelected(null); setActiveGameType(null); setPuzzleRounds([]); setPhase('selector')
+    }
   }
   const completePuzzleGame = (r: BaseRound[]) => {
-    setPuzzleRounds(r); setPhase(r.length > 0 ? 'puzzle-result' : 'selector')
+    if (r.length > 0) { setPuzzleRounds(r); setPhase('puzzle-result') }
+    else {
+      setPuzzleSelected(null); setActiveGameType(null); setPuzzleRounds([]); setPhase('selector')
+    }
   }
 
   const gameGroups = [

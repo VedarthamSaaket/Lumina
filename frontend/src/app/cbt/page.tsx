@@ -7,40 +7,31 @@ import Grainient from '@/components/ui/Grainient'
 import { cbtAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { useThemeStore } from '@/lib/themeStore'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-async function fetchSummary(prompt: string): Promise<string> {
+async function fetchContextualSummary(opts: {
+  surface: string
+  reference_id?: string
+  base_prompt: string
+  structured_data?: Record<string, unknown>
+  save_to_dashboard?: boolean
+  summary_title?: string
+}): Promise<string> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
   try {
-    const res = await fetch(`${API_BASE}/api/summary`, {
+    const res = await fetch(`${API_BASE}/api/summary/contextual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       credentials: 'include',
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(opts),
     })
     if (!res.ok) return ''
     const data = await res.json()
     return data.summary ?? ''
   } catch { return '' }
-}
-
-async function saveSummaryToDashboard(moduleTitle: string, summaryText: string) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-  if (!token || !summaryText) return
-  try {
-    await fetch(`${API_BASE}/api/dashboard/summaries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      credentials: 'include',
-      body: JSON.stringify({
-        title: `Inner Work . ${moduleTitle}`,
-        content: summaryText,
-        source: 'cbt',
-      }),
-    })
-  } catch { /* silent */ }
 }
 
 type StepType = 'text' | 'slider' | 'choice' | 'split'
@@ -58,6 +49,28 @@ type Step = {
   splitRight?: string
   splitPlaceholderLeft?: string
   splitPlaceholderRight?: string
+  /** Plain-language explanation shown when the user clicks "Need help understanding this?".
+   *  Optional, falls back to a type-aware generic tip. */
+  tip?: string
+}
+
+// Generic plain-language tip used when a step has no explicit `tip`. Keeps the
+// help affordance available everywhere without forcing a per-step copy edit.
+function fallbackTip(s: Step): string {
+  if (s.type === 'slider') {
+    return "Just slide to a number that feels right today. A rough guess is fine, there is no correct answer. If you are not sure, pick the middle."
+  }
+  if (s.type === 'choice') {
+    return "Pick whichever feels most like you. There is no wrong answer. If two options feel right, choose the one that is closer to your gut reaction."
+  }
+  if (s.type === 'split') {
+    return "Sort your worries into two boxes. On the left, things you could actually do something about. On the right, things outside your control. It is okay if one side is empty."
+  }
+  const example = (s.placeholder || "").replace(/^e\.g\.\s*/i, "").trim()
+  return (
+    "Write whatever comes to mind, even if it feels messy. Do not try to sound smart or right. "
+    + (example ? `Something like: "${example}"` : "A sentence or two is plenty.")
+  )
 }
 
 type Mod = {
@@ -290,7 +303,7 @@ const MODULES: Mod[] = [
   },
   {
     id: 'worrytime',
-    icon: '◙',
+    icon: '◴',
     color: '#7ab8c9',
     title: 'Containing the Worry',
     subtitle: 'Give anxious thoughts a specific time and place',
@@ -407,6 +420,7 @@ Under 80 words. Speak as "you". No em dashes.`,
 }
 
 export default function InnerWorkPage() {
+  usePsychWarmup('cbt')
   const { theme } = useThemeStore()
   const isLight = theme === 'light'
   const [active, setActive] = useState<string | null>(null)
@@ -421,6 +435,16 @@ export default function InnerWorkPage() {
   const [completedMod, setCompletedMod] = useState<Mod | null>(null)
   const [completionSummary, setCompletionSummary] = useState<string>('')
   const [summaryLoading, setSummaryLoading] = useState(false)
+  // ── Confusion-help tracking ────────────────────────────────────────────────
+  // Per-step: time on step, response length. Help toggle count across the
+  // session. After completion we use these to decide whether to suggest a
+  // simpler retake or a different module (no LLM round-trip needed).
+  const [helpOpen, setHelpOpen] = useState(false)            // current step
+  const [simplerMode, setSimplerMode] = useState(false)      // expand tips by default on retake
+  const stepStartRef = useRef<number>(Date.now())
+  const stepTimingsRef = useRef<{ ms: number; chars: number }[]>([])
+  const helpClicksRef = useRef(0)
+  const [confused, setConfused] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -440,12 +464,19 @@ export default function InnerWorkPage() {
     setResps(p => ({ ...p, [active]: Object.assign([...(p[active] ?? Array(mod.steps.length).fill(''))], { [step]: v }) }))
   }
 
-  const open = (id: string) => {
+  const open = (id: string, opts?: { simpler?: boolean }) => {
     const m = MODULES.find(x => x.id === id)!
     setActive(id); setStep(0); setStarted(false); setChoices([]); setSlider(5)
     setSplitLeft(''); setSplitRight('')
     setResps(p => ({ ...p, [id]: Array(m.steps.length).fill('') }))
     setCompletedMod(null); setCompletionSummary('')
+    // Reset confusion state for the new attempt
+    stepTimingsRef.current = []
+    helpClicksRef.current = 0
+    setConfused(false)
+    setSimplerMode(opts?.simpler === true)
+    setHelpOpen(opts?.simpler === true) // simpler retake: tips expanded by default
+    stepStartRef.current = Date.now()
   }
 
   const toggleChoice = (l: string) => setChoices(p => p.includes(l) ? p.filter(c => c !== l) : [...p, l])
@@ -466,7 +497,7 @@ export default function InnerWorkPage() {
       .filter(r => r.length > 10)
       .join('\n')
 
-    const prompt = `${promptNote}
+    const base_prompt = `${promptNote}
 
 Person's responses:
 ${responseSummary}
@@ -481,11 +512,15 @@ Rules:
 - Each bullet should be an actionable insight or practice they can use`
 
     try {
-      const text = await fetchSummary(prompt)
-      if (text) {
-        setCompletionSummary(text)
-        await saveSummaryToDashboard(modTitle, text)
-      }
+      const text = await fetchContextualSummary({
+        surface: 'cbt',
+        reference_id: modId,
+        base_prompt,
+        structured_data: { responses, module_title: modTitle },
+        save_to_dashboard: true,
+        summary_title: `Inner Work · ${modTitle}`,
+      })
+      if (text) setCompletionSummary(text)
     } catch { /* silent */ } finally {
       setSummaryLoading(false)
     }
@@ -499,8 +534,34 @@ Rules:
     else if (cur.type === 'split') v = `Left: ${splitLeft} | Right: ${splitRight}`
     const updated = Object.assign([...(resps[active] ?? Array(mod.steps.length).fill(''))], { [step]: v })
     setResps(p => ({ ...p, [active]: updated }))
+
+    // Record timing + response length for this step before advancing.
+    const elapsed = Date.now() - stepStartRef.current
+    const chars = typeof v === 'string' ? v.trim().length : (typeof v === 'number' ? 1 : String(v).length)
+    stepTimingsRef.current.push({ ms: elapsed, chars })
+
     setChoices([]); setSlider(5); setSplitLeft(''); setSplitRight('')
-    if (step < mod.steps.length - 1) { setStep(s => s + 1); return }
+    if (step < mod.steps.length - 1) {
+      setStep(s => s + 1)
+      stepStartRef.current = Date.now()
+      setHelpOpen(simplerMode) // collapse help on next step unless simpler-mode is on
+      return
+    }
+
+    // ── Final step. Compute confusion signal BEFORE leaving the module. ─────
+    const timings = stepTimingsRef.current
+    const textSteps = mod.steps.filter(s => !s.type || s.type === 'text').length
+    const textChars = timings
+      .map((t, i) => ({ chars: t.chars, type: mod.steps[i]?.type }))
+      .filter(t => !t.type || t.type === 'text')
+      .reduce((sum, t) => sum + t.chars, 0)
+    const avgChars = textSteps > 0 ? textChars / textSteps : 100
+    const avgMs = timings.reduce((s, t) => s + t.ms, 0) / Math.max(timings.length, 1)
+    const confusionScore =
+      (textSteps > 0 && avgChars < 14)
+      || avgMs > 60_000
+      || helpClicksRef.current >= 2
+    setConfused(confusionScore)
 
     setSaving(true)
     try {
@@ -539,6 +600,60 @@ Rules:
                 Session complete
               </p>
             </div>
+
+            {confused && (
+              <div
+                className="rounded-xl p-5 mb-4"
+                style={{
+                  background: `${completedMod.color}0d`,
+                  border: `1px solid ${completedMod.color}28`,
+                }}
+              >
+                <p
+                  className="font-jost text-xs tracking-widest uppercase mb-2"
+                  style={{ color: completedMod.color }}
+                >
+                  Did that feel hard to follow?
+                </p>
+                <p
+                  className="font-body text-sm leading-relaxed mb-4"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  The wording in some exercises can feel abstract. Try this same module again with simpler language and tips visible by default, or try a different exercise that may land easier today.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => open(completedMod.id, { simpler: true })}
+                    className="px-4 py-2 rounded-lg font-jost text-xs tracking-widest uppercase"
+                    style={{
+                      background: `${completedMod.color}1c`,
+                      border: `1px solid ${completedMod.color}45`,
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Retake with simpler wording
+                  </button>
+                  {(() => {
+                    const others = MODULES.filter(m => m.id !== completedMod.id).slice(0, 2)
+                    return others.map(other => (
+                      <button
+                        key={other.id}
+                        onClick={() => { setCompletedMod(null); setCompletionSummary(''); open(other.id) }}
+                        className="px-4 py-2 rounded-lg font-jost text-xs tracking-widest uppercase glass"
+                        style={{
+                          border: '1px solid var(--border-medium)',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Try {other.title}
+                      </button>
+                    ))
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-xl p-5 mb-6" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-subtle)' }}>
               <p className="font-jost text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--text-muted)' }}>
@@ -696,7 +811,7 @@ Rules:
                   <span>Saved privately</span>
                 </div>
 
-                <motion.button onClick={() => setStarted(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                <motion.button onClick={() => { setStarted(true); stepStartRef.current = Date.now() }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   className="w-full py-4 rounded-xl font-jost font-semibold text-sm tracking-widest uppercase"
                   style={{
                     background: `linear-gradient(135deg,${mod.color}22,${mod.color}0d)`,
@@ -732,10 +847,56 @@ Rules:
                   {cur.q}
                 </h3>
                 {cur.hint && (
-                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                     {cur.hint}
                   </p>
                 )}
+
+                {/* "Need help understanding this?" — pre-baked plain-language tip.
+                    No LLM call, instant. Helps users who feel the question wording
+                    is too abstract or clinical-sounding. */}
+                <div style={{ marginBottom: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !helpOpen
+                      setHelpOpen(next)
+                      if (next) helpClicksRef.current += 1
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      fontFamily: 'var(--font-jost)',
+                      fontSize: '11px',
+                      letterSpacing: '0.05em',
+                      color: mod.color,
+                      cursor: 'pointer',
+                      opacity: 0.85,
+                    }}
+                  >
+                    {helpOpen ? '− Hide help' : '+ Need help understanding this?'}
+                  </button>
+                  {helpOpen && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: `${mod.color}0c`,
+                        border: `1px solid ${mod.color}1f`,
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontStyle: 'italic',
+                        fontWeight: 300,
+                        fontSize: '0.92rem',
+                        lineHeight: 1.55,
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {cur.tip || fallbackTip(cur)}
+                    </div>
+                  )}
+                </div>
 
                 {/* Text input */}
                 {(!cur.type || cur.type === 'text') && (

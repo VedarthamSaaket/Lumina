@@ -143,8 +143,8 @@ export const WORD_BANK = [
 export const MODE_LABELS: Record<string, string> = {
   forward: 'Forward order',
   reverse: 'Reverse order',
-  ascending: 'Ascending (low -> high)',
-  descending: 'Descending (high -> low)',
+  ascending: 'Ascending (low →high)',
+  descending: 'Descending (high →low)',
   odd_only: 'Odd digits only',
   even_only: 'Even digits only',
 }

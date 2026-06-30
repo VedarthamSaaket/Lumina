@@ -9,36 +9,31 @@ import toast from 'react-hot-toast'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
 import { useThemeStore } from '@/lib/themeStore'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import Grainient from '@/components/ui/Grainient'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-async function fetchSummary(prompt: string): Promise<string> {
+async function fetchContextualSummary(opts: {
+  surface: string
+  reference_id?: string
+  base_prompt: string
+  structured_data?: Record<string, unknown>
+  save_to_dashboard?: boolean
+  summary_title?: string
+}): Promise<string> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
   try {
-    const res = await fetch(`${API_BASE}/api/summary`, {
+    const res = await fetch(`${API_BASE}/api/summary/contextual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       credentials: 'include',
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(opts),
     })
     if (!res.ok) return ''
     const data = await res.json()
     return data.summary ?? ''
   } catch { return '' }
-}
-
-async function saveSummaryToDashboard(testName: string, scoreLabel: string, summaryText: string) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-  if (!token || !summaryText) return
-  try {
-    await fetch(`${API_BASE}/api/dashboard/summaries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      credentials: 'include',
-      body: JSON.stringify({ title: `${testName} · ${scoreLabel}`, content: summaryText, source: 'screening' }),
-    })
-  } catch { /* silent */ }
 }
 
 const RSES_REVERSED = new Set([2, 4, 7, 8, 9])
@@ -825,6 +820,7 @@ function SafeAnswerNudge({ nudge, onDismiss, onChange, color }: {
 }
 
 export default function ScreeningPage() {
+  usePsychWarmup('screening')
   const { theme } = useThemeStore()
   const isLight = theme === 'light'
   const [screen, setScreen] = useState<Screen>('categories')
@@ -952,10 +948,22 @@ HARD RULES:
 - Total output under 130 words`
 
     try {
-      const text = await fetchSummary(prompt)
+      const text = await fetchContextualSummary({
+        surface: 'screening',
+        base_prompt: prompt,
+        structured_data: {
+          type,
+          display_name: qd.name,
+          severity: severityLabel,
+          score,
+          answers: ans,
+          contexts: ctxs,
+        },
+        save_to_dashboard: true,
+        summary_title: `${qd.name} · ${severityLabel}`,
+      })
       const finalText = text?.trim() || ''
       setAiSummary(finalText)
-      if (finalText) await saveSummaryToDashboard(qd.name, severityLabel, finalText)
     } catch {
       setAiSummary('')
     } finally {

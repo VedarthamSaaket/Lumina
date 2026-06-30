@@ -10,6 +10,7 @@ import { CrisisBanner } from '@/components/crisis/CrisisBanner'
 import DarkVeil from '@/components/DarkVeil'
 import '@/components/DarkVeil.css'
 import { useThemeStore } from '@/lib/themeStore'
+import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import Grainient from '@/components/ui/Grainient'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -107,6 +108,7 @@ function getAuthHeader(): Record<string, string> {
 }
 
 export default function ChatPage() {
+  usePsychWarmup('chat')
   const router = useRouter()
   const { theme } = useThemeStore()
   const isLight = theme === 'light'
