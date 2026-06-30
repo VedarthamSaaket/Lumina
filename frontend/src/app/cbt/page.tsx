@@ -909,6 +909,7 @@ Rules:
                       border: `1px solid ${mod.color}22`,
                       color: 'var(--text-primary)',
                       backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
                       lineHeight: '1.65',
                       fontSize: '15px',
                     }} />

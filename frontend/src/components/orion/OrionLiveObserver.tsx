@@ -291,6 +291,7 @@ export default function OrionLiveObserver({ gameType }: OrionLiveObserverProps) 
                                     ? `0 4px 24px rgba(0,0,0,0.55), 0 0 0 1px ${palette.border}12`
                                     : `0 4px 20px rgba(20,50,100,0.12), 0 0 0 1px ${palette.border}12`,
                                 backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
                             }}
                         >
                             <div style={{

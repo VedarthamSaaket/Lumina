@@ -288,7 +288,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
 
     return (
         <div style={{
-            position: 'relative', width: '100%', height: '100vh',
+            position: 'relative', width: '100%', height: '100dvh',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             paddingTop: '62px',
         }}>

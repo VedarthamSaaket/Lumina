@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Libre+Baskerville:ital,wght@1,400&family=Philosopher:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap');
+/* Fonts are self-hosted via next/font in src/app/layout.tsx — every
+ * --font-* CSS variable used below is injected by next/font onto <html>.
+ * No runtime Google Fonts CDN call. Bytes ship from /_next/static/. */
 
 @tailwind base;
 @tailwind components;
@@ -8,18 +10,6 @@
    DESIGN TOKENS
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --font-cormorant: 'Cormorant Garamond', serif;
-  --font-eb-garamond: 'EB Garamond', serif;
-  --font-cinzel: 'Cinzel', serif;
-  --font-playfair: 'Playfair Display', serif;
-  --font-rajdhani: 'Rajdhani', sans-serif;
-  --font-space-mono: 'Space Mono', monospace;
-  --font-baskerville: 'Libre Baskerville', serif;
-  --font-philosopher: 'Philosopher', serif;
-  --font-jost: 'Jost', sans-serif;
-  --font-crimson: 'Crimson Pro', serif;
-  --font-dm-sans: 'DM Sans', sans-serif;
-  --font-fraunces: 'Fraunces', serif;
   --transition-theme: background 160ms ease, color 160ms ease, border-color 160ms ease;
 
   /* ── DARK (default) — rich warm chocolate */
@@ -132,13 +122,13 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
 }
 
 html {
   scroll-behavior: smooth;
+  /* Prevents iOS Safari rubber-band zoom on rotation. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -148,26 +138,45 @@ body {
   font-family: var(--font-eb-garamond);
   transition: var(--transition-theme);
   overflow-x: hidden;
+  /* 100dvh (dynamic viewport height) accounts for the iOS Safari URL bar
+   * showing/hiding. 100vh fallback for browsers without dvh support. */
   min-height: 100vh;
+  min-height: 100dvh;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
+  /* Scoped user-select: deny selection on UI chrome (buttons, headings),
+   * keep it open for text content. Component-level overrides via .no-select
+   * (UI controls) or .select-text (long-form content) still work. */
+  -webkit-user-select: text;
+  user-select: text;
+  /* iOS Safari tap-highlight is ugly; we have our own hover/active styles. */
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* UI controls — don't let drag-select drift across buttons during gestures. */
+button,
+a,
+[role="button"],
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Inputs keep selection regardless of parent rules. */
 input,
-textarea {
+textarea,
+[contenteditable="true"],
+.select-text {
   -webkit-user-select: text;
-  -moz-user-select: text;
   user-select: text;
 }
 
-.no-select {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
+/* Webkit scrollbar (Chrome/Safari/Edge). */
 ::-webkit-scrollbar {
   width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -177,6 +186,22 @@ textarea {
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 3px;
+}
+
+/* Firefox scrollbar — webkit-prefixed rules above don't apply there. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Touch device: hide native scrollbar entirely (we have our own visual
+ * affordances). Component-level sizing handles tap targets — universal
+ * min-height here would break dense layouts (chat input row, modal close X). */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1292,4 +1317,274 @@ textarea.journal-write-area,
   color: var(--text-primary);
   letter-spacing: 0.01em;
   line-height: 1.15;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RESPONSIVE BASELINE — Tablet PC + Mobile Phone
+   ─────────────────────────────────────────────────────────────────────────────
+   Every component still ships its own layout. These rules are a safety net so
+   nothing renders catastrophically on small viewports: shrink oversized
+   paddings, collapse fixed widths, untangle horizontal scroll, ensure tap
+   targets aren't sub-pixel.
+
+   Breakpoints used app-wide:
+     - tablet:        max-width 1024px (iPad landscape / Surface)
+     - small tablet:  max-width 768px  (iPad portrait / large phones landscape)
+     - phone:         max-width 600px
+     - small phone:   max-width 380px  (iPhone SE, older Android)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Cross-browser backdrop-filter — re-emits with -webkit- so iOS Safari ≤ 15
+ * + older macOS Safari render glassmorphism correctly. Components that use
+ * inline backdropFilter now get the prefix via this attribute selector. */
+[style*="backdrop-filter"],
+.glass,
+.glass-card,
+[class*="backdrop-blur"] {
+  -webkit-backdrop-filter: inherit;
+}
+
+/* Tablet PC — Surface, iPad landscape (≤ 1024px) */
+@media (max-width: 1024px) {
+  :root {
+    --page-pad-x: 1.25rem;
+  }
+  main {
+    padding-left:  max(var(--page-pad-x, 1.25rem), env(safe-area-inset-left));
+    padding-right: max(var(--page-pad-x, 1.25rem), env(safe-area-inset-right));
+  }
+  /* Multi-column grids: cap at 2 columns on tablet. */
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Small tablet / large phone landscape — single column from here down */
+@media (max-width: 768px) {
+  :root {
+    --page-pad-x: 1rem;
+  }
+  /* Force any fixed wide widths into the viewport. */
+  [class*="max-w-7xl"],
+  [class*="max-w-6xl"],
+  [class*="max-w-5xl"],
+  [class*="max-w-4xl"] {
+    max-width: 100% !important;
+  }
+  /* Collapse any flex-row chrome into stack on small viewport. */
+  .nav-row,
+  .chip-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  /* Multi-column → single column. */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
+    grid-template-columns: 1fr !important;
+  }
+  /* Headings: avoid massive serif type pushing horizontal scroll. */
+  h1, .page-heading-wrap {
+    font-size: clamp(1.6rem, 6vw, 2.4rem) !important;
+    line-height: 1.2 !important;
+  }
+  h2 { font-size: clamp(1.25rem, 5vw, 1.7rem) !important; }
+  /* Fixed-positioned panels (chat, orion, etc.) often use vw widths > viewport
+   * on mobile — clamp them. Components opt out by adding `.responsive-keep`. */
+  [class*="w-["]:not(.responsive-keep),
+  [class*="min-w-["]:not(.responsive-keep) {
+    max-width: 100vw;
+  }
+  /* Tighter card padding. */
+  .glass,
+  .glass-card,
+  [class*="rounded-2xl"] {
+    padding: 0.875rem !important;
+  }
+}
+
+/* Phone — ≤ 600px */
+@media (max-width: 600px) {
+  :root {
+    --page-pad-x: 0.75rem;
+  }
+  body {
+    font-size: 15px;
+  }
+  /* Buttons that were inline-block on desktop should fill their row on phones
+   * unless the component explicitly opts out with `.btn-inline`. */
+  button:not(.btn-inline):not([class*="rounded-full"]):not([class*="aspect-square"]) {
+    min-height: 40px;
+  }
+  /* Disable expensive grain shimmer on phones — saves battery, smooths scroll. */
+  .grain-overlay { display: none; }
+  /* Modals / drawers — full-bleed. */
+  [role="dialog"]:not([data-keep-narrow]) {
+    width: 100% !important;
+    border-radius: 0 !important;
+  }
+  /* Chat-style input bars stick to bottom safe area. */
+  .chat-input-bar,
+  .composer,
+  .input-bar {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Small phone — iPhone SE / older Android (≤ 380px) */
+@media (max-width: 380px) {
+  body {
+    font-size: 14px;
+  }
+  h1, .page-heading-wrap {
+    font-size: 1.4rem !important;
+  }
+  h2 {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Reduced motion — kill heavy animations app-wide. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LANDING PAGE — responsive layout overrides
+   ─────────────────────────────────────────────────────────────────────────────
+   The marketing landing page (src/app/page.tsx) uses inline-styled sections
+   with hard-coded 52px gutters and 1fr 1fr / 1fr 2fr / 1fr 1fr 1fr grids. On
+   tablet portrait and phone these overflow / cramp content. WebGL shaders +
+   their static fallback are NOT touched — only layout, padding, and grid
+   template columns shrink. Scoped via .landing-page so the rest of the app
+   is unaffected.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Tablet (≤ 1024px): drop gutters, collapse 3-col → 2-col. */
+@media (max-width: 1024px) {
+  .landing-page section,
+  .landing-page > div > div {
+    /* Most landing wrappers do `padding: '112px 52px'` or `padding: '0 52px 72px'`.
+     * Tighten horizontal axis while preserving vertical rhythm. */
+    padding-left:  clamp(20px, 4vw, 36px) !important;
+    padding-right: clamp(20px, 4vw, 36px) !important;
+  }
+  /* 3-column feature grid → 2-column. */
+  .landing-page [style*="grid-template-columns: 1fr 1fr 1fr"],
+  .landing-page [style*="gridTemplateColumns: '1fr 1fr 1fr'"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Tablet portrait + large phone landscape (≤ 900px): collapse all multi-cols. */
+@media (max-width: 900px) {
+  .landing-page [style*="grid-template-columns: 1fr 1fr"],
+  .landing-page [style*="gridTemplateColumns: '1fr 1fr'"],
+  .landing-page [style*="grid-template-columns: 1fr 2fr"],
+  .landing-page [style*="gridTemplateColumns: '1fr 2fr'"],
+  .landing-page [style*="grid-template-columns: 2fr 1fr 1fr"],
+  .landing-page [style*="gridTemplateColumns: '2fr 1fr 1fr'"] {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+  .landing-page section {
+    padding-top:    clamp(56px, 10vw, 96px) !important;
+    padding-bottom: clamp(56px, 10vw, 96px) !important;
+  }
+  /* The science section uses a full-bleed split. Stack it. */
+  .landing-page section#science {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+  }
+  /* Nav row inside landing — wrap items so they don't overflow. */
+  .landing-page nav,
+  .landing-page header {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    padding: 14px 20px !important;
+  }
+  .landing-page nav ul {
+    gap: 16px !important;
+  }
+}
+
+/* Phone (≤ 600px): tighter gutters, smaller display type, no horizontal scroll. */
+@media (max-width: 600px) {
+  .landing-page section,
+  .landing-page > div > div {
+    padding-left:  16px !important;
+    padding-right: 16px !important;
+  }
+  /* Display headlines: the hero uses font-size up to 9vw — clamp lower. */
+  .landing-page h1,
+  .landing-page h2,
+  .landing-page [style*="font-size: clamp"] {
+    font-size: clamp(28px, 8vw, 48px) !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+  }
+  /* Body / paragraph copy. */
+  .landing-page p {
+    font-size: clamp(14px, 4vw, 17px) !important;
+    line-height: 1.55 !important;
+  }
+  /* Buttons fill row, comfortable tap. */
+  .landing-page button {
+    min-height: 44px !important;
+    padding: 14px 22px !important;
+  }
+  /* CTA / signup chips that overflow on phones. */
+  .landing-page [style*="display: 'inline-flex'"],
+  .landing-page [style*="display:inline-flex"] {
+    flex-wrap: wrap !important;
+  }
+  /* The ticker bar (auto-scrolling text) is too tall on phones with 32px
+   * inline padding per span — tighten so it doesn't dominate the viewport. */
+  .landing-page [style*="whiteSpace: 'nowrap'"] span,
+  .landing-page [style*="white-space: nowrap"] span {
+    padding: 0 18px !important;
+  }
+  /* Footer column grid → stack. */
+  .landing-page [style*="grid-template-columns: 2fr 1fr 1fr"],
+  .landing-page [style*="gridTemplateColumns: '2fr 1fr 1fr'"] {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+}
+
+/* Small phone (≤ 380px): even tighter. */
+@media (max-width: 380px) {
+  .landing-page section,
+  .landing-page > div > div {
+    padding-left:  12px !important;
+    padding-right: 12px !important;
+  }
+  .landing-page h1,
+  .landing-page h2 {
+    font-size: clamp(24px, 7.5vw, 38px) !important;
+  }
+}
+
+/* Portrait orientation on touch devices: extra safety so wide hero copy
+ * doesn't push horizontal scroll (the landing's hero block has a max-width
+ * but its 52px gutters still cause overflow on portrait phones). */
+@media (orientation: portrait) and (pointer: coarse) {
+  .landing-page,
+  .landing-page * {
+    max-width: 100vw;
+  }
+  .landing-page {
+    overflow-x: hidden;
+  }
 }

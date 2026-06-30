@@ -50,9 +50,23 @@ RATE_LIMITS: Dict[str, Tuple[int, int]] = {
     "/api/auth/forgot-password": (60,   4),    # throttle reset-email sends
     "/api/auth/reset-password":  (60,  10),    # code guesses (also capped server-side)
     # AI generation – expensive
-    "/api/chat/stream":    (60,  20),    # 20 streaming messages / minute
-    "/api/chat/message":   (60,  20),
-    "/api/summary":        (60,  15),
+    "/api/chat/stream":               (60,  20),    # 20 streaming messages / minute
+    "/api/chat/message":              (60,  20),
+    "/api/summary":                   (60,  15),
+    # Orion AI surfaces — same budget envelope as Lumina chat (all hit Groq)
+    "/api/orion/stream":              (60,  20),
+    "/api/orion/message":             (60,  20),
+    "/api/orion/debrief":             (60,  15),
+    "/api/orion/live-event":          (60,  40),    # short bursts during gameplay
+    "/api/orion/right-panel-content": (60,  20),
+    # Dashboard AI insight generation
+    "/api/dashboard/generate-insight": (60,  10),
+    "/api/dashboard/summaries":        (60,  30),
+    # Specialty worker self-registration (Lightning / Kaggle ping in)
+    # — secret-gated already, this caps registry-churn DoS.
+    "/internal/specialty/register":    (60,  30),
+    "/internal/specialty/unregister":  (60,  30),
+    "/internal/specialty/shutdown":    (60,   8),
     # Data writes
     "/api/journal":        (60,  30),
     "/api/mood":           (60,  30),
@@ -178,7 +192,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 )
 
         # ── 4. Rate limiting ──────────────────────────────────────────────────
-        if path.startswith("/api/"):
+        # Apply to public API and internal worker self-registration paths.
+        if path.startswith("/api/") or path.startswith("/internal/"):
             window, max_req = _get_rate_key(path)
             rl_key          = f"{ip}:{path}"
             if _is_rate_limited(rl_key, window, max_req):
@@ -212,9 +227,20 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"]       = (
             "geolocation=(), microphone=(), camera=()"
         )
+        # CSP — backend serves only API + SSE streams, never HTML. A strict
+        # policy here neutralises any reflected-XSS payload that somehow lands
+        # in an error message and the browser tries to render. The frontend
+        # (Next.js) ships its own CSP for its HTML responses.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'none'; "
+            "form-action 'none'"
+        )
         if self.enforce_https:
+            # Add preload + 1y so the domain can be submitted to the HSTS preload list.
             response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
+                "max-age=31536000; includeSubDomains; preload"
             )
         # Prevent caching of sensitive API responses
         if path.startswith("/api/"):

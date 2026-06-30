@@ -11,6 +11,7 @@ import type { Sticker } from '@/components/journal/JournalStickers'
 import Grainient from '@/components/ui/Grainient'
 import { GoldHeading } from '@/components/ui/GoldHeading'
 import { usePsychWarmup } from '@/lib/usePsychWarmup'
+import LandscapePrompt from '@/components/ui/LandscapePrompt'
 
 const OpenBook = dynamic(() => import('@/components/journal/OpenBook'), { ssr: false })
 
@@ -461,6 +462,7 @@ export default function JournalPage() {
 
     return (
         <main className="bg-chat min-h-screen relative overflow-hidden">
+            <LandscapePrompt surface="The journal" />
             <ParticleCanvas colors={['#d4af37', '#f5ead8', '#b8860b']} count={18} />
             {!isDark && <Grainient color1="#c4a882" color2="#f5e6c8" color3="#7a5c38" timeSpeed={0.12} grainAmount={0.07} contrast={1.3} saturation={0.8} className="grainient-background" />}
 
@@ -481,7 +483,7 @@ export default function JournalPage() {
                 {stage === 'open' && (
                     <motion.div
                         key="open"
-                        style={{ position: 'relative', zIndex: 10, width: '100%', minHeight: '100vh' }}
+                        style={{ position: 'relative', zIndex: 10, width: '100%', minHeight: '100dvh' }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5 }}

@@ -120,9 +120,20 @@ export default function ChatPage() {
   const [online, setOnline] = useState(true)
   const [convos, setConvos] = useState<Convo[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [isCompact, setIsCompact] = useState(false)        // viewport ≤ 900px
+  const [sidebarOpen, setSidebarOpen] = useState(false)    // mobile drawer
   const bottomRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  // Mobile detection — keep sidebar collapsed on phones/tablets-portrait by default.
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 900px)')
+    const sync = () => setIsCompact(mql.matches)
+    sync()
+    mql.addEventListener('change', sync)
+    return () => mql.removeEventListener('change', sync)
+  }, [])
 
   // ── Redirect cooldown: track path -> timestamp of last redirect shown ──
   // A path is on cooldown for 4 messages after it was shown (dismissed or answered)
@@ -168,6 +179,7 @@ export default function ChatPage() {
         timestamp: new Date(x.created_at), riskLevel: 0 as RiskLevel,
       }))
       setMsgs(m.length ? m : [buildWelcome(userName)]); setActiveId(id)
+      if (isCompact) setSidebarOpen(false)
     } catch { }
   }
 
@@ -176,6 +188,7 @@ export default function ChatPage() {
     redirectCooldown.current.clear()
     msgCountRef.current = 1
     setMsgs([buildWelcome(userName)]); setActiveId(null); setRisk(0); setInput('')
+    if (isCompact) setSidebarOpen(false)
   }
 
   const deleteConvo = async (e: React.MouseEvent, id: string) => {
@@ -414,16 +427,63 @@ export default function ChatPage() {
         </motion.div>
       )}
 
-      <div style={{ display: 'flex', height: '100vh', paddingTop: '58px' }}>
+      {/* Compact (mobile / tablet portrait) hamburger that opens conversation drawer. */}
+      {isCompact && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open conversations"
+          style={{
+            position: 'fixed', top: 'calc(64px + 8px)', left: 12, zIndex: 60,
+            width: 40, height: 40, borderRadius: 12, cursor: 'pointer',
+            background: isLight ? 'rgba(255,245,220,0.85)' : 'rgba(20,12,6,0.85)',
+            border: `1px solid ${isLight ? 'rgba(180,150,100,0.30)' : 'rgba(212,175,55,0.25)'}`,
+            color: 'var(--gold)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+            fontFamily: 'var(--font-jost)', fontSize: 16,
+          }}
+        >☰</button>
+      )}
+
+      {/* Mobile drawer scrim */}
+      {isCompact && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.45)',
+          }}
+        />
+      )}
+
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        // @ts-ignore — dvh fallback for browsers without dynamic viewport units
+        ['height' as any]: '100dvh',
+        paddingTop: '58px',
+      }}>
 
         {/* ── SIDEBAR ── */}
         <div style={{
-          width: '300px', flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column',
+          width: isCompact ? 'min(86vw, 320px)' : '300px',
+          flexShrink: 0,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
           background: isLight ? 'linear-gradient(170deg, rgba(255,245,220,0.78) 0%, rgba(240,230,204,0.72) 50%, rgba(226,216,184,0.68) 100%)' : 'rgba(255,200,120,0.028)',
           backdropFilter: 'blur(40px) saturate(180%)',
           WebkitBackdropFilter: 'blur(40px) saturate(180%)',
           borderRight: isLight ? '1px solid rgba(180,150,100,0.18)' : '1px solid rgba(212,175,55,0.1)',
-    boxShadow: isLight ? '4px 0 28px rgba(160,130,90,0.15), inset 0 1px 0 rgba(255,255,255,0.5)' : 'none',
+          boxShadow: isLight ? '4px 0 28px rgba(160,130,90,0.15), inset 0 1px 0 rgba(255,255,255,0.5)' : 'none',
+          // Mobile: position over content as drawer; desktop: in-flow.
+          position: isCompact ? 'fixed' : 'relative',
+          top:      isCompact ? 0 : undefined,
+          left:     isCompact ? 0 : undefined,
+          bottom:   isCompact ? 0 : undefined,
+          zIndex:   isCompact ? 80 : 'auto',
+          paddingTop: isCompact ? 'calc(64px + env(safe-area-inset-top))' : 0,
+          transform: isCompact ? (sidebarOpen ? 'translateX(0)' : 'translateX(-110%)') : 'none',
+          transition: 'transform 0.28s ease',
         }}>
           <div style={{ padding: '14px 12px 8px', flexShrink: 0 }}>
             <button onClick={newChat} style={{
@@ -594,9 +654,10 @@ export default function ChatPage() {
           {risk < 2 && (
             <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.15, duration: 0.45 }}
+              className="chat-input-bar"
               style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                padding: '12px 24px 18px',
+                padding: '12px 16px max(18px, env(safe-area-inset-bottom))',
                 background: 'linear-gradient(to top, var(--input-bar-fade, rgba(8,3,0,0.94)) 60%, transparent)',
               }}>
               <div style={{ maxWidth: '700px', margin: '0 auto' }}>

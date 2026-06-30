@@ -194,7 +194,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         bottom: '80px',
                         right: '24px',
                         width: 'min(420px, calc(100vw - 32px))',
-                        height: 'min(560px, calc(100vh - 120px))',
+                        height: 'min(560px, calc(100dvh - 120px))',
                         zIndex: 200,
                         display: 'flex', flexDirection: 'column',
                         borderRadius: '20px', overflow: 'hidden',

@@ -1062,7 +1062,7 @@ function CTA() {
 
 export default function LuminaOrionLanding() {
   return (
-    <>
+    <div className="landing-page">
       <style suppressHydrationWarning>{`
         @import url(https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:ital,wght@0,200;0,300;0,400;1,200&family=IBM+Plex+Mono:wght@300;400&display=swap);
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1084,6 +1084,6 @@ export default function LuminaOrionLanding() {
       <InnerWork />
       <Privacy />
       <CTA />
-    </>
+    </div>
   )
-} 
+}

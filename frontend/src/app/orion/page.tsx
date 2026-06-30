@@ -8,6 +8,7 @@ import OrionRightPanel from '@/components/orion/OrionRightPanel'
 import { useThemeStore } from '@/lib/themeStore'
 import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import Grainient from '@/components/ui/Grainient'
+import LandscapePrompt from '@/components/ui/LandscapePrompt'
 
 const ORION_COLOR = '#5B9BD5'
 
@@ -120,6 +121,7 @@ export default function OrionPage() {
 
   return (
     <>
+      <LandscapePrompt surface="Orion" />
       <style>{GRAIN_STYLE}</style>
       <main className="orion-grain min-h-screen relative overflow-hidden" style={{ background: bgPanel }}>
         {/* Grainient background */}

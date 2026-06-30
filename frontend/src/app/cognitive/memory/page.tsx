@@ -348,8 +348,12 @@ export default function MemoryPage() {
 
       {orionRightContent && (
         <div style={{
-          position: 'fixed', right: '16px', bottom: '16px',
-          width: '320px', height: '420px', zIndex: 100,
+          position: 'fixed',
+          right:  'max(16px, env(safe-area-inset-right))',
+          bottom: 'max(16px, env(safe-area-inset-bottom))',
+          width:  'min(320px, calc(100vw - 32px))',
+          height: 'min(420px, calc(100dvh - 96px))',
+          zIndex: 100,
         }}>
           <OrionRightPanel
             contentType={orionRightContent}

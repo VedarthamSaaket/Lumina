@@ -123,19 +123,37 @@ GMAIL_USER         = settings.GMAIL_USER
 GMAIL_APP_PASSWORD = settings.GMAIL_APP_PASSWORD
 
 # ── Startup security checks ───────────────────────────────────────────────────
-def _validate_secrets():
-    issues = []
+INSECURE_SECRETS = {"change-this-secret", "change-me-in-production", "secret", "password", ""}
 
-    if settings.SECRET_KEY in ("change-this-secret", "secret", "password", ""):
-        issues.append(
-            "SECRET_KEY is insecure. Set a strong random value in your .env file.\n"
+
+def _validate_secrets():
+    """Warn on insecure secrets in dev; refuse to boot in production.
+    Production is detected via ENFORCE_HTTPS=true OR ENVIRONMENT in {prod, production}."""
+    issues: list[str] = []
+    fatal: list[str] = []
+
+    is_prod = (
+        settings.ENFORCE_HTTPS
+        or os.getenv("ENVIRONMENT", "").lower() in ("prod", "production")
+    )
+
+    if settings.SECRET_KEY in INSECURE_SECRETS or len(settings.SECRET_KEY) < 32:
+        msg = (
+            "SECRET_KEY is insecure. Set a strong random value (≥32 chars) in your .env.\n"
             "  Generate one with:  python -c \"import secrets; print(secrets.token_hex(32))\""
         )
+        (fatal if is_prod else issues).append(msg)
 
     if not settings.GROQ_API_KEY:
-        issues.append(
-            "GROQ_API_KEY is not set. Add it to your .env file:\n"
-            "  GROQ_API_KEY=gsk_..."
+        msg = "GROQ_API_KEY is not set. Add it to your .env file:\n  GROQ_API_KEY=gsk_..."
+        (fatal if is_prod else issues).append(msg)
+
+    # Specialty registry secret — only needed if the layer is enabled, but if
+    # workers are reporting in we must require a strong secret in production.
+    if is_prod and settings.ENABLE_SPECIALTY_PSYCH and settings.SPECIALTY_REGISTRY_SECRET in INSECURE_SECRETS:
+        fatal.append(
+            "SPECIALTY_REGISTRY_SECRET is unset in production while specialty psych "
+            "layer is enabled. Set a strong random value in your .env."
         )
 
     if issues:
@@ -145,5 +163,14 @@ def _validate_secrets():
         for issue in issues:
             print(f"  • {issue}")
         print("="*60 + "\n")
+
+    if fatal:
+        print("\n" + "="*60)
+        print("⛔  REFUSING TO BOOT — FATAL SECURITY MISCONFIGURATION")
+        print("="*60)
+        for f in fatal:
+            print(f"  • {f}")
+        print("="*60 + "\n")
+        sys.exit(2)
 
 _validate_secrets()
