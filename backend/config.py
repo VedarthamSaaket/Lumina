@@ -102,9 +102,17 @@ class Settings(BaseSettings):
     # How long worker can sit idle (no /infer hits) before self-terminating
     SPECIALTY_WORKER_IDLE_SECONDS: int = int(os.getenv("SPECIALTY_WORKER_IDLE_SECONDS", "1200"))
 
-    # ── Transactional email (Gmail SMTP) ──────────────────────────────────────
+    # ── Transactional email (Brevo API primary, Gmail SMTP fallback) ─────────
+    # Brevo (formerly Sendinblue) HTTP API — preferred since it works on hosts
+    # that block outbound SMTP and carries a higher free-tier quota than Gmail.
+    # BREVO_FROM_EMAIL must be a sender verified in the Brevo dashboard.
+    # email_service falls back to Gmail SMTP below when BREVO_API_KEY is unset.
+    BREVO_API_KEY:      str = ""
+    BREVO_FROM_EMAIL:   str = ""
+    BREVO_FROM_NAME:    str = "Lumina"
+
     # GMAIL_APP_PASSWORD is a 16-char app password (NOT the account password).
-    # Both must live in backend/.env, which is gitignored.
+    # All email settings live in backend/.env, which is gitignored.
     GMAIL_USER:         str = ""
     GMAIL_APP_PASSWORD: str = ""
     EMAIL_FROM_NAME:    str = "Lumina"

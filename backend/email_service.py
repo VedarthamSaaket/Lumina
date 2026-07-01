@@ -11,6 +11,7 @@ styles (no WebGL/canvas, no script). No em-dashes.
 
 import time
 import smtplib
+import httpx
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -18,8 +19,46 @@ from email.utils import formataddr
 from config import settings, logger
 
 
-# ── Low-level sender ──────────────────────────────────────────────────────────
-def send_email(to: str, subject: str, html: str, text: str | None = None) -> bool:
+# ── Low-level senders ─────────────────────────────────────────────────────────
+def _send_via_brevo(to: str, subject: str, html: str, text: str | None = None) -> bool:
+    """Send via the Brevo (Sendinblue) transactional HTTP API. Preferred over
+    SMTP since it works on hosts that block outbound SMTP and carries a higher
+    free-tier quota."""
+    if not settings.BREVO_FROM_EMAIL:
+        logger.error("[EMAIL] BREVO_API_KEY set but BREVO_FROM_EMAIL missing (must be a Brevo-verified sender)")
+        return False
+
+    payload = {
+        "sender":      {"name": settings.BREVO_FROM_NAME, "email": settings.BREVO_FROM_EMAIL},
+        "to":          [{"email": to}],
+        "subject":     subject,
+        "htmlContent": html,
+    }
+    if text:
+        payload["textContent"] = text
+
+    try:
+        r = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key":      settings.BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept":       "application/json",
+            },
+            json=payload,
+            timeout=15,
+        )
+        if 200 <= r.status_code < 300:
+            logger.info(f"[EMAIL] sent to {to} via Brevo")
+            return True
+        logger.error(f"[EMAIL] Brevo {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as exc:
+        logger.error(f"[EMAIL] Brevo transport error: {exc}")
+        return False
+
+
+def _send_via_smtp(to: str, subject: str, html: str, text: str | None = None) -> bool:
     """Send a single email via Gmail SMTP. Returns True on success.
 
     Retries once on transient errors; SMTPAuthenticationError fails fast.
@@ -50,7 +89,7 @@ def send_email(to: str, subject: str, html: str, text: str | None = None) -> boo
                 server.ehlo()
                 server.login(user, pwd)
                 server.sendmail(user, to, msg.as_string())
-            logger.info(f"[EMAIL] sent to {to}")
+            logger.info(f"[EMAIL] sent to {to} via SMTP")
             return True
         except smtplib.SMTPAuthenticationError:
             logger.error("[EMAIL] auth failed, check GMAIL_USER / GMAIL_APP_PASSWORD")
@@ -62,6 +101,15 @@ def send_email(to: str, subject: str, html: str, text: str | None = None) -> boo
             else:
                 logger.error(f"[EMAIL] {exc}")
     return False
+
+
+def send_email(to: str, subject: str, html: str, text: str | None = None) -> bool:
+    """Send transactional email. Uses Brevo's HTTP API when BREVO_API_KEY is
+    configured (works on hosts that block outbound SMTP, higher free quota);
+    falls back to Gmail SMTP otherwise."""
+    if settings.BREVO_API_KEY:
+        return _send_via_brevo(to, subject, html, text)
+    return _send_via_smtp(to, subject, html, text)
 
 
 # ── Design tokens (mirrored from the Lumina frontend) ─────────────────────────
