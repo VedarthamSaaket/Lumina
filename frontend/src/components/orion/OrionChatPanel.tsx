@@ -302,7 +302,6 @@ export default function OrionChatPanel({
             warpStrength={0}
             warpFrequency={3.5}
             warpSpeed={1.0}
-            style={{ width: '100%', height: '100%' }}
           />
         </div>
 

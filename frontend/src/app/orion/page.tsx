@@ -140,7 +140,6 @@ export default function OrionPage() {
             warpStrength={0}
             warpFrequency={3.5}
             warpSpeed={1.0}
-            style={{ width: '100%', height: '100%' }}
           />
         </div>
         <div style={{ position: 'relative', zIndex: 1 }}></div>

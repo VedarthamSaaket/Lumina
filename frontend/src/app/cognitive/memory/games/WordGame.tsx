@@ -199,7 +199,7 @@ export function WordGame({
             }
           </div>
           {lastCorrect && roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up -></p>
+            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! Moving up →</p>
           )}
         </motion.div>
       )}

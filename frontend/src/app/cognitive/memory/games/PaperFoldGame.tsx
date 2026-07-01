@@ -94,7 +94,7 @@ export function PaperFoldGame({ onQuit, onComplete }: {
             </p>
           )}
           {lastCorrect && ps.roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! -></p>
+            <p className="font-jost text-xs tracking-widest uppercase mt-1" style={{ color }}>Level complete! →</p>
           )}
         </motion.div>
       )}

@@ -127,7 +127,7 @@ function hexAlpha(color: string, alpha: number): string {
 
   // 3-digit hex
   if (/^#[0-9a-f]{3}$/i.test(color)) {
-    const [, r, g, b] = color
+    const r = color[1], g = color[2], b = color[3]
     return `#${r}${r}${g}${g}${b}${b}${hex2}`
   }
 

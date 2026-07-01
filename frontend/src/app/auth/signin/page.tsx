@@ -1,6 +1,6 @@
 'use client'
 // src/app/auth/signin/page.tsx
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -13,6 +13,14 @@ import toast from 'react-hot-toast'
 interface FormData { email: string; password: string }
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
+  )
+}
+
+function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)

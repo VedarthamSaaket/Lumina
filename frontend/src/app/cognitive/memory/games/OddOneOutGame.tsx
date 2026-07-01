@@ -89,7 +89,7 @@ export function OddOneOutGame({ onQuit, onComplete }: {
           <div className="text-3xl mb-1" style={{ color: lastCorrect ? SAGE : '#f87171' }}>{lastCorrect ? '+' : 'x'}</div>
           {!lastCorrect && <p className="font-body text-[11px]" style={{ color: 'var(--text-muted)' }}>Logic: {puzzle.rule}</p>}
           {lastCorrect && ps.roundInLevel + 1 >= ROUNDS_PER_LEVEL && (
-            <p className="font-jost text-[10px] tracking-widest uppercase" style={{ color }}>Level complete! -></p>
+            <p className="font-jost text-[10px] tracking-widest uppercase" style={{ color }}>Level complete! →</p>
           )}
         </motion.div>
       )}
