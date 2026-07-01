@@ -774,7 +774,12 @@ const CATEGORIES = {
 }
 
 type CategoryKey = keyof typeof CATEGORIES
-type Screen = 'categories' | 'category' | 'test' | 'result'
+type Screen = 'categories' | 'category' | 'preload' | 'test' | 'result'
+
+// Brief settling pause between choosing a check and seeing its questions.
+// Gives the specialty psych layer (Kaggle/Lightning worker) a head start on
+// loading before the real enrichment call at the end of the test needs it.
+const PRELOAD_MS = 25000
 
 // ── Fun terminology per test for the summary prompt ────────────────────────
 const FUN_FRAMEWORK: Record<string, string> = {
@@ -836,6 +841,7 @@ export default function ScreeningPage() {
   const [history, setHistory] = useState<{ type: QType; score: number; label: string }[]>([])
   const [dismissedNudges, setDismissedNudges] = useState<Set<number>>(new Set())
   const [activeNudge, setActiveNudge] = useState<{ qi: number; nudge: string } | null>(null)
+  const [preloadPct, setPreloadPct] = useState(0)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -846,6 +852,23 @@ export default function ScreeningPage() {
       start(testKey)
     }
   }, [])
+
+  useEffect(() => {
+    if (screen !== 'preload') return
+    setPreloadPct(0)
+    const stepMs = 100
+    const steps = PRELOAD_MS / stepMs
+    let count = 0
+    const id = setInterval(() => {
+      count += 1
+      setPreloadPct(Math.min(100, Math.round((count / steps) * 100)))
+      if (count >= steps) {
+        clearInterval(id)
+        setScreen('test')
+      }
+    }, stepMs)
+    return () => clearInterval(id)
+  }, [screen])
 
   const q = active ? Qs[active] : null
 
@@ -860,7 +883,7 @@ export default function ScreeningPage() {
     setActiveNudge(null)
     setResult(null)
     setAiSummary('')
-    setScreen('test')
+    setScreen('preload')
   }
 
   const pick = (qi: number, val: number) => {
@@ -1089,6 +1112,32 @@ HARD RULES:
                   )
                 })}
               </div>
+            </motion.div>
+          )}
+
+          {/* PRELOAD — brief settling pause before the check begins */}
+          {screen === 'preload' && active && q && (
+            <motion.div key="preload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center text-center py-20">
+              <button onClick={() => setScreen('category')}
+                className="mb-10 text-sm font-jost tracking-widest uppercase opacity-55 hover:opacity-100 self-start"
+                style={{ color: 'var(--text-primary)' }}>Back</button>
+              <motion.div
+                animate={{ scale: [1, 1.06, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-16 h-16 rounded-full mb-6"
+                style={{ background: `${q.color}14`, border: `1.5px solid ${q.color}38` }}
+              />
+              <h2 className="font-gothic text-lg mb-2" style={{ color: q.color, letterSpacing: '0.1em' }}>{q.name}</h2>
+              <p className="font-body text-sm italic max-w-md mb-8" style={{ color: 'var(--text-secondary)' }}>
+                Take a breath. Settle in. This is just for you.
+              </p>
+              <div className="w-full max-w-xs h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-glass)' }}>
+                <motion.div className="h-full rounded-full" style={{ background: q.color, width: `${preloadPct}%` }} />
+              </div>
+              <p className="mt-4 font-jost text-xs tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+                Preparing your reflection space...
+              </p>
             </motion.div>
           )}
 
