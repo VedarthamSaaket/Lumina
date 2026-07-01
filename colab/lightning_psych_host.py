@@ -71,7 +71,8 @@ HF_TOKEN           = os.getenv("HF_TOKEN", "")
 
 MODEL_REGISTRY: dict[str, str] = {
     "psyllm":        "GMLHUHE/PsyLLM-8B",
-    "psychocounsel": "Psychotherapy-LLM/PsychoCounsel-Llama3-8B",
+    "psychocounsel": "Psychotherapy-LLM/PsyCoPref-Llama3-8B",
+    "psycholex":     "aminabbasi/PsychoLexLLaMA-8B",  # gated — needs HF_TOKEN + accepted access
     "mentallama":    "klyang/MentaLLaMA-chat-7B-hf",
 }
 
@@ -163,6 +164,31 @@ def health():
         "provider": PROVIDER_NAME,
         "available": list(MODEL_REGISTRY.keys()),
     }
+
+
+class WarmBody(BaseModel):
+    model_key: Optional[str] = None
+
+
+@app.post("/warm")
+async def warm(body: WarmBody, model: Optional[str] = None):
+    """Kick off a background load for one model without blocking on it — lets
+    the backend say 'start loading psycholex' the moment a user opens the
+    screening test, so it's resident by the time they submit."""
+    model_key = model or body.model_key or "psyllm"
+    if model_key not in MODEL_REGISTRY:
+        return {"scheduled": False, "error": f"unknown model {model_key}"}
+    if _current.get("key") == model_key and _current.get("model") is not None:
+        return {"scheduled": False, "already_loaded": True}
+
+    def _bg():
+        try:
+            _load(model_key)
+        except Exception as e:
+            print(f"[warm] {model_key} FAILED {type(e).__name__}: {e}", flush=True)
+
+    threading.Thread(target=_bg, daemon=True).start()
+    return {"scheduled": True, "model_key": model_key}
 
 
 # ─── Self-register every URL with Lumina backend on startup ───────────────────

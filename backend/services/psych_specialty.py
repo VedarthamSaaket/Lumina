@@ -101,6 +101,36 @@ async def health_check(model_key: str, timeout: float = 5.0) -> bool:
         return False
 
 
+async def warm_worker(model_key: str, timeout: float = 5.0) -> Optional[dict]:
+    """
+    Tell the resolved worker to start loading model_key into VRAM right now,
+    without waiting for it to finish. Called from page-mount warmup so a
+    lazy-load worker (e.g. Kaggle P100 fallback) is resident by the time the
+    user submits, instead of paying full load latency on the real /infer call.
+
+    If no worker is live yet, fires ensure_warm to wake one instead — same
+    fail-soft contract as _call_worker: never raises, degrades silently.
+    """
+    if not _enabled():
+        return None
+    base_url = specialty_registry.resolve(model_key)
+    if not base_url:
+        asyncio.create_task(specialty_lifecycle.ensure_warm(model_key))
+        return {"action": "wake_scheduled"}
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                f"{base_url.rstrip('/')}/warm",
+                json={"model_key": model_key},
+                params={"model": model_key},
+            )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        print(f"[warm {model_key} @ {base_url}] {type(e).__name__}: {e}")
+        return None
+
+
 # ─── /cbt — PsyLLM (DSM-5 + CBT/ACT structured analysis) ──────────────────────
 async def psyllm_cbt_analyze(reframing_text: str, module_id: str) -> Optional[str]:
     if not reframing_text.strip():

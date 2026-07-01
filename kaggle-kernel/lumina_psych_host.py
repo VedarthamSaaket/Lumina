@@ -236,6 +236,35 @@ def health():
     }
 
 
+class WarmBody(BaseModel):
+    model_key: Optional[str] = None
+
+
+@app.post("/warm")
+async def warm(body: WarmBody, model: Optional[str] = None):
+    """Kick off a background load for one model without blocking on it — lets
+    the backend say 'start loading psycholex' the moment a user opens the
+    screening test, so it's resident by the time they submit, instead of
+    paying the full load latency on the real /infer call."""
+    global _last_request_time
+    _last_request_time = time.time()
+    model_key = model or body.model_key or "psyllm"
+    if model_key not in MODEL_REGISTRY:
+        return {"scheduled": False, "error": f"unknown model {model_key}"}
+    if model_key in _cache:
+        return {"scheduled": False, "already_loaded": True}
+
+    def _bg():
+        with _infer_lock:
+            try:
+                _load_one(model_key)
+            except Exception as e:
+                print(f"[warm] {model_key} FAILED {type(e).__name__}: {e}", flush=True)
+
+    threading.Thread(target=_bg, daemon=True).start()
+    return {"scheduled": True, "model_key": model_key}
+
+
 # ── Cloudflared tunnel + URL detection ───────────────────────────────────────
 _TUNNEL_RE = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
 

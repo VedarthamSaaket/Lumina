@@ -27,15 +27,15 @@ from services.psych_specialty import specialty_health_snapshot
 router = APIRouter(prefix="/api/psych", tags=["psych"])
 
 
-# Maps frontend page slugs to (small HF classifier model, specialty colab key)
+# Maps frontend page slugs to (small HF classifier model, specialty registry model_key)
 _PAGE_MAP: dict[str, tuple[str, str | None]] = {
-    "chat":      ("PSYCH_MODEL_CHAT",      "COLAB_URL_PSYCHOCOUNSEL"),
+    "chat":      ("PSYCH_MODEL_CHAT",      "psychocounsel"),
     "journal":   ("PSYCH_MODEL_JOURNAL",   None),
-    "cbt":       ("PSYCH_MODEL_CBT",       "COLAB_URL_PSYLLM"),
+    "cbt":       ("PSYCH_MODEL_CBT",       "psyllm"),
     "crisis":    ("PSYCH_MODEL_CRISIS",    None),
-    "screening": ("PSYCH_MODEL_SCREENING", "COLAB_URL_PSYCHOLEX"),
+    "screening": ("PSYCH_MODEL_SCREENING", "psycholex"),
     "orion":     ("PSYCH_MODEL_ORION",     None),
-    "dashboard": ("PSYCH_MODEL_DASHBOARD", "COLAB_URL_MENTALLAMA"),
+    "dashboard": ("PSYCH_MODEL_DASHBOARD", "mentallama"),
 }
 
 
@@ -55,26 +55,34 @@ async def warmup_all():
 @router.get("/warmup/{page}")
 async def warmup_page(page: str):
     """
-    Warm the layer-A classifier + probe the layer-B Colab worker for a single
-    page. The frontend should hit this in onMount of that page.
+    Warm the layer-A classifier for this page, and for layer-B: wake the
+    worker if none is live yet, or tell the live worker to start loading this
+    page's specific model into VRAM right now (fire-and-forget). By the time
+    the user finishes the test/entry, the model should be resident instead of
+    paying full load latency on the real inference call.
     """
     cfg = _PAGE_MAP.get(page)
     if not cfg:
         return {"page": page, "scheduled": False, "reason": "unknown page"}
-    hf_attr, specialty_attr = cfg
+    hf_attr, model_key = cfg
     hf_model = getattr(settings, hf_attr, "")
     asyncio.create_task(hf_warmup(hf_model))
-    specialty_url = getattr(settings, specialty_attr, "") if specialty_attr else ""
-    specialty_ok = None
-    if specialty_url:
-        from services.psych_specialty import health_check
-        specialty_ok = await health_check(specialty_url)
+
+    specialty_ready = None
+    specialty_action = None
+    if model_key:
+        from services import specialty_registry
+        from services.psych_specialty import warm_worker
+        specialty_ready = bool(specialty_registry.resolve(model_key))
+        specialty_action = await warm_worker(model_key)
+
     return {
         "page": page,
         "hf_model": hf_model,
         "hf_warmup_scheduled": True,
-        "specialty_model": specialty_attr,
-        "specialty_ready": specialty_ok,
+        "specialty_model": model_key,
+        "specialty_ready": specialty_ready,
+        "specialty_warm_action": specialty_action,
     }
 
 
