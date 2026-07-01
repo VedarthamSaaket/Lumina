@@ -39,6 +39,7 @@ if not os.path.exists(CF_BIN):
 import re
 import time
 import threading
+from collections import OrderedDict
 from typing import Optional
 
 import requests
@@ -73,9 +74,16 @@ IDLE_SHUTDOWN_SEC  = int(_s("SPECIALTY_WORKER_IDLE_SECONDS", "1200"))
 
 MODEL_REGISTRY: dict[str, str] = {
     "psyllm":        "GMLHUHE/PsyLLM-8B",
-    "psychocounsel": "Psychotherapy-LLM/PsychoCounsel-Llama3-8B",
+    "psychocounsel": "Psychotherapy-LLM/PsyCoPref-Llama3-8B",
+    "psycholex":     "aminabbasi/PsychoLexLLaMA-8B",  # gated — needs HF_TOKEN + accepted access
     "mentallama":    "klyang/MentaLLaMA-chat-7B-hf",
 }
+
+# One-time boot self-test: sequentially load+evict every model to prove each
+# one actually works on whatever GPU Kaggle handed out, before opening the
+# tunnel. Off by default (adds several minutes to every cold boot); set the
+# Kaggle secret SELFTEST_ALL_MODELS=true for a one-off verification run.
+SELFTEST_ALL = _s("SELFTEST_ALL_MODELS", "false").lower() in ("1", "true", "yes")
 
 
 # ── Idle tracking ────────────────────────────────────────────────────────────
@@ -83,8 +91,36 @@ _boot_time = time.time()
 _last_request_time = time.time()
 
 
-# ── Multi-model resident cache (eager-load all on boot) ──────────────────────
-_cache: dict[str, dict] = {}
+# ── GPU capability detection ─────────────────────────────────────────────────
+# bitsandbytes 4-bit (NF4) kernels aren't built for pre-Turing cards. Kaggle's
+# "GPU T4 x2" setting is a request, not a guarantee — when the T4 pool is full
+# it silently hands out an older P100 (capability 6.0) instead, which crashes
+# bnb with "named symbol not found" mid weight-load. Detect and degrade instead.
+def _bnb_capable() -> bool:
+    if not torch.cuda.is_available():
+        return False
+    return torch.cuda.get_device_capability(0) >= (7, 5)
+
+
+BNB_CAPABLE = _bnb_capable()
+# T4 x2 (32GB combined) fits all three 4-bit 8B models at once. Anything else
+# (e.g. a single 16GB P100) can only hold one fp16 8B model at a time.
+MAX_RESIDENT = len(MODEL_REGISTRY) if BNB_CAPABLE else 1
+
+if torch.cuda.is_available():
+    print(
+        f"[gpu] {torch.cuda.get_device_name(0)} "
+        f"capability={torch.cuda.get_device_capability(0)} → "
+        f"{'4-bit eager preload' if BNB_CAPABLE else 'fp16 lazy single-model mode'}",
+        flush=True,
+    )
+
+
+# ── Model cache: eager-preloaded on capable hardware, lazy + LRU-evicted
+# otherwise. Access serialized by _infer_lock so eviction can never free a
+# model tensor while another request is mid-generate() on it. ────────────────
+_cache: "OrderedDict[str, dict]" = OrderedDict()
+_infer_lock = threading.Lock()
 
 
 def _bnb_4bit() -> BitsAndBytesConfig:
@@ -98,19 +134,37 @@ def _bnb_4bit() -> BitsAndBytesConfig:
 
 def _load_one(model_key: str):
     if model_key in _cache:
+        _cache.move_to_end(model_key)
         return _cache[model_key]["tok"], _cache[model_key]["model"]
+
+    while len(_cache) >= MAX_RESIDENT:
+        evict_key, evicted = _cache.popitem(last=False)
+        del evicted["model"]
+        del evicted["tok"]
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print(f"[evict] {evict_key} (resident cap={MAX_RESIDENT})", flush=True)
+
     repo = MODEL_REGISTRY[model_key]
     print(f"[load] {model_key} ← {repo}", flush=True)
     t0 = time.time()
     tok = AutoTokenizer.from_pretrained(repo, token=HF_TOKEN or None)
     if tok.pad_token_id is None:
         tok.pad_token = tok.eos_token
-    mdl = AutoModelForCausalLM.from_pretrained(
-        repo,
-        token=HF_TOKEN or None,
-        quantization_config=_bnb_4bit(),
-        device_map="auto",
-    )
+    if BNB_CAPABLE:
+        mdl = AutoModelForCausalLM.from_pretrained(
+            repo,
+            token=HF_TOKEN or None,
+            quantization_config=_bnb_4bit(),
+            device_map="auto",
+        )
+    else:
+        mdl = AutoModelForCausalLM.from_pretrained(
+            repo,
+            token=HF_TOKEN or None,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        )
     mdl.eval()
     _cache[model_key] = {"tok": tok, "model": mdl}
     print(f"[load] {model_key} ready in {time.time() - t0:.1f}s", flush=True)
@@ -118,11 +172,25 @@ def _load_one(model_key: str):
 
 
 def _preload_all():
+    if not BNB_CAPABLE:
+        print("[preload] skipped — lazy single-model mode (low-VRAM GPU)", flush=True)
+        return
     for k in MODEL_REGISTRY:
         try:
             _load_one(k)
         except Exception as e:
             print(f"[preload] {k} FAILED {type(e).__name__}: {e}", flush=True)
+
+
+def _selftest_all():
+    print(f"[selftest] verifying all {len(MODEL_REGISTRY)} models load (resident cap={MAX_RESIDENT})...", flush=True)
+    for k in MODEL_REGISTRY:
+        try:
+            with _infer_lock:
+                _load_one(k)
+            print(f"[selftest] {k} OK", flush=True)
+        except Exception as e:
+            print(f"[selftest] {k} FAILED {type(e).__name__}: {e}", flush=True)
 
 
 # ── FastAPI ──────────────────────────────────────────────────────────────────
@@ -143,17 +211,18 @@ async def infer(body: InferBody, model: Optional[str] = None):
     model_key = model or body.model_key or "psyllm"
     if model_key not in MODEL_REGISTRY:
         return {"text": "", "error": f"unknown model {model_key}"}
-    tok, mdl = _load_one(model_key)
-    inputs = tok(body.prompt, return_tensors="pt", truncation=True, max_length=4096).to(mdl.device)
-    with torch.no_grad():
-        out = mdl.generate(
-            **inputs,
-            max_new_tokens=int(body.max_new_tokens),
-            temperature=float(max(0.01, body.temperature)),
-            do_sample=body.temperature > 0.01,
-            pad_token_id=tok.pad_token_id,
-        )
-    text = tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+    with _infer_lock:
+        tok, mdl = _load_one(model_key)
+        inputs = tok(body.prompt, return_tensors="pt", truncation=True, max_length=4096).to(mdl.device)
+        with torch.no_grad():
+            out = mdl.generate(
+                **inputs,
+                max_new_tokens=int(body.max_new_tokens),
+                temperature=float(max(0.01, body.temperature)),
+                do_sample=body.temperature > 0.01,
+                pad_token_id=tok.pad_token_id,
+            )
+        text = tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
     return {"text": text, "model": MODEL_REGISTRY[model_key]}
 
 
@@ -211,6 +280,8 @@ def _register(public_url: str):
 def _bootstrap():
     # 1. preload models so first user request doesn't pay load latency
     _preload_all()
+    if SELFTEST_ALL:
+        _selftest_all()
     # 2. spawn tunnel
     url = _spawn_tunnel(PORT)
     if not url:
