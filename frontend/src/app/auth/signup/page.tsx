@@ -235,7 +235,6 @@ export default function SignUpPage() {
             contrast={1.4}
             saturation={0.78}
             zoom={0.85}
-            style={{ width: '100%', height: '100%' }}
           />
         </div>
 
