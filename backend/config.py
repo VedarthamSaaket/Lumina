@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     MODEL_DASHBOARD_INSIGHT: str = os.getenv("MODEL_DASHBOARD_INSIGHT", "openai/gpt-oss-120b")
     MODEL_ORION_CHAT:        str = os.getenv("MODEL_ORION_CHAT",        "qwen/qwen3.8-27b")
     MODEL_ORION_LIVE_EVENT:  str = os.getenv("MODEL_ORION_LIVE_EVENT",  "qwen/qwen3.8-27b")
-    MODEL_ORION_DEBRIEF:     str = os.getenv("MODEL_ORION_DEBRIEF",     "qwen/qwen3.8-27b")
+    MODEL_ORION_DEBRIEF:     str = os.getenv("MODEL_ORION_DEBRIEF",     "openai/gpt-oss-120b")
     MODEL_ORION_RIGHT_PANEL: str = os.getenv("MODEL_ORION_RIGHT_PANEL", "qwen/qwen3.8-27b")
     MODEL_SUMMARY:           str = os.getenv("MODEL_SUMMARY",           "openai/gpt-oss-120b")
     MODEL_FALLBACK:          str = os.getenv("MODEL_FALLBACK",          "openai/gpt-oss-20b")

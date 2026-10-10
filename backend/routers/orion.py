@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 from typing import Optional, Any
-from models.database import get_db, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
+from models.database import get_db, SessionLocal, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
 from utils.auth import get_current_user
 from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper, model_kwargs
+from services import cognition, research
 import json
 from datetime import datetime
 
@@ -22,7 +23,7 @@ CRITICAL FORMATTING RULES (NON-NEGOTIABLE):
 - Hyphen-minus inside compound words is fine. Anything wider is forbidden.
 - NEVER expose your internal reasoning or <think> blocks. Only output the final answer.
 
-You are NOT Lumina. Lumina handles feelings, journaling, and emotional support. You handle thinking, memory, reasoning, problem solving, and pattern recognition. If someone brings up emotions or mental health, warmly point them to Lumina and come back to the brain side of things.
+You are NOT Lumina. Lumina handles feelings, journaling, and emotional support. You handle thinking, memory, reasoning, problem solving, and pattern recognition. When someone brings up mood, anxiety, stress, sleep or a mental health condition, do not just send them away: first explain what research shows about how that state affects thinking, focus or memory, and what helps on the thinking side, so they understand what is happening in their own head. Then, in one warm sentence, point them to Lumina for the feelings themselves. You explain and coach, you never diagnose or counsel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 YOUR PERSONALITY
@@ -35,7 +36,7 @@ You never use psychological jargon to make someone feel labelled or studied. You
 One thing you do love is dropping fun facts in a casual way: "Fun fact! What you just did is actually what scientists call working memory, turns out your brain has been doing this your whole life without you realising!"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHAT YOU KNOW (you use this to guide people, not quote at them)
+WHAT YOU KNOW (apply it to the person in front of you, never recite it)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 You have absorbed deep knowledge from over 50 foundational and modern research works across memory, reasoning, attention, and brain development. You use this knowledge to understand WHY someone is struggling and HOW to help, without ever making them feel like a research subject.
@@ -62,7 +63,7 @@ ATTENTION AND FOCUS:
 BRAIN DEVELOPMENT AND CHANGE:
 - The brain physically changes in response to sustained practice. Grey matter increases in areas being used (Draganski juggling study, Maguire taxi driver study).
 - Cognitive reserve, the brain's ability to adapt and compensate, is built up through intellectually engaging activities over time (Hertzog et al).
-- Working memory training generalises to broader thinking improvements, especially when multiple types of tasks are combined (Jaeggi et al, Owen et al BBC study).
+- Working memory training reliably improves the trained tasks. Whether it carries over to broader thinking is contested: Jaeggi and colleagues (2008) reported gains in reasoning, while the large Owen and colleagues (2010) study and later reviews found little transfer beyond the practised tasks. Be honest about this when asked.
 - Processing speed, how quickly the brain handles information, can be trained and is especially responsive to practice in younger adults (Salthouse).
 - Spatial thinking skills, mental rotation, folding, navigation, are highly trainable and transfer to other areas like maths and problem solving (Uttal et al meta-analysis).
 
@@ -98,6 +99,13 @@ SPECIFIC GAME CONNECTIONS (use these to give personal coaching):
 HOW TO BEHAVE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+APPLYING RESEARCH (this is what makes you more than a cheerleader):
+- Your advice rests on published psychological and psychiatric research. When a block called RESEARCH YOU CAN APPLY RIGHT NOW is provided, treat it as your primary source for that reply.
+- Apply, do not lecture: one sentence on what the study found, then what it means for this person's own numbers or situation, then one step they can take today.
+- Respect the limits of each finding: who was studied, what was measured, and what it does not show. Say so plainly when the evidence is mixed.
+- Never invent a study, a number or a citation. If you are not sure a finding exists, give the practical advice without attaching a name to it.
+- You never diagnose. If research touches a condition the person mentions, speak about what the research found in groups of people, not about what the person has.
+
 COACHING MODE (when game data is provided):
 - Reference specific numbers and patterns from their actual results
 - Give one concrete strategy they can use immediately
@@ -117,7 +125,7 @@ WHAT YOU NEVER DO:
 - Make someone feel like a test subject
 - Be generic ("great job!", "keep it up!")
 - Give the same advice twice without adapting it
-- Talk about emotional support or therapy (warmly redirect to Lumina)
+- Offer emotional support or therapy yourself (explain the thinking side, then warmly point to Lumina)
 - Use the word "utilise" or jargon like "metacognitive monitoring"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -407,19 +415,108 @@ Encourage the user to think about this. Ask follow-up questions to get their per
     return ""
 
 
+def _model_chain(model: str | None) -> list[str]:
+    chain: list[str] = []
+    for m in (model or _app_settings.MODEL_ORION_CHAT, _app_settings.MODEL_ORION_CHAT, _app_settings.MODEL_SUMMARY, _app_settings.MODEL_FALLBACK):
+        if m and m not in chain:
+            chain.append(m)
+    return chain
+
+
 def _call_groq(
     messages: list[dict],
     max_tokens: int = 900,
     temperature: float = 0.68,
     model: str | None = None,
+    stream: bool = False,
 ):
-    return _groq_client.chat.completions.create(
-        model=model or _app_settings.MODEL_ORION_CHAT,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        **model_kwargs(model or _app_settings.MODEL_ORION_CHAT),
+    client = _groq_client.with_options(max_retries=0)
+    last_err: Exception | None = None
+    for m in _model_chain(model):
+        try:
+            return client.chat.completions.create(
+                model=m,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=stream,
+                **model_kwargs(m),
+            )
+        except Exception as e:
+            last_err = e
+            print(f"[Orion] {m} failed ({type(e).__name__}), trying next model")
+    raise last_err or RuntimeError("no Orion model configured")
+
+
+def _session_history(user_id: str, game_type: str, db: Session, skip_recent_seconds: int = 300) -> list[dict]:
+    rows = (
+        db.query(CognitiveTestResult)
+        .filter(CognitiveTestResult.user_id == user_id, CognitiveTestResult.test_type == game_type)
+        .order_by(CognitiveTestResult.completed_at.desc())
+        .limit(8)
+        .all()
     )
+    now = datetime.utcnow()
+    history = []
+    for row in rows:
+        if not row.completed_at:
+            continue
+        age = (now - row.completed_at).total_seconds()
+        if age < skip_recent_seconds:
+            continue
+        try:
+            rounds = json.loads(row.raw_results) if row.raw_results else []
+        except Exception:
+            rounds = []
+        if not rounds:
+            continue
+        levels = [r.get("level") for r in rounds if isinstance(r.get("level"), (int, float)) and r.get("correct")]
+        history.append({
+            "accuracy": round(sum(1 for r in rounds if r.get("correct")) / len(rounds) * 100),
+            "max_level": int(max(levels)) if levels else None,
+            "days_ago": age / 86400,
+        })
+    return history
+
+
+def _recent_play(user_id: str, db: Session) -> tuple[list[str], list[str], str]:
+    rows = (
+        db.query(CognitiveTestResult)
+        .filter(CognitiveTestResult.user_id == user_id)
+        .order_by(CognitiveTestResult.completed_at.desc())
+        .limit(12)
+        .all()
+    )
+    games: list[str] = []
+    flags: list[str] = []
+    lines: list[str] = []
+    for row in rows:
+        game = row.test_type or ""
+        if not game or game in games:
+            continue
+        games.append(game)
+        if len(games) > 3:
+            continue
+        try:
+            rounds = json.loads(row.raw_results) if row.raw_results else []
+        except Exception:
+            rounds = []
+        analysis = cognition.analyse_session(rounds, _session_history(user_id, game, db, skip_recent_seconds=0)[1:])
+        if not analysis.get("total"):
+            continue
+        flags += [f for f in analysis["flags"] if f not in flags]
+        patterns = "; ".join(cognition.FLAG_MEANINGS[f] for f in analysis["flags"] if f in cognition.FLAG_MEANINGS)
+        lines.append(f"- {GAME_NAMES.get(game, game)}, latest session: {' '.join(analysis['lines'][:3])}" + (f" Patterns: {patterns}." if patterns else ""))
+    block = ""
+    if lines:
+        block = "\n\nSESSION ANALYST NOTES (computed from the latest round logs, treat as facts):\n" + "\n".join(lines)
+    return games, flags, block
+
+
+def _research_context(user_id: str, message: str, orion_settings: dict, db: Session) -> str:
+    games, flags, analyst_block = _recent_play(user_id, db)
+    entries = research.select(message, games=games[:3], flags=flags, limit=4)
+    return analyst_block + research.evidence_block(entries, orion_settings.get("orion_knowledge_depth", "moderate"))
 
 
 def _get_or_create_conversation(conversation_id: Optional[str], user_id: str, first_message: str, db: Session) -> str:
@@ -499,7 +596,9 @@ async def orion_stream(
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + _now_block()
+    research_context = _research_context(current_user.id, data.content, orion_settings, db)
+
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -509,18 +608,13 @@ async def orion_stream(
     # Conversation management
     conversation_id = _get_or_create_conversation(data.conversation_id, current_user.id, data.content, db)
     _save_orion_message(conversation_id, current_user.id, "user", data.content, db)
+    user_id = current_user.id
 
     async def generate():
         accumulated = ""
         stripper = ThinkStripper()
         try:
-            stream = _groq_client.chat.completions.create(
-                model=_model_for("chat"),
-                messages=messages,
-                max_tokens=900,
-                temperature=0.68,
-                stream=True,
-            )
+            stream = _call_groq(messages, max_tokens=900, temperature=0.68, model=_model_for("chat"), stream=True)
             for chunk in stream:
                 token = chunk.choices[0].delta.content
                 if token:
@@ -542,7 +636,11 @@ async def orion_stream(
         accumulated = _strip_em_dashes(accumulated)
         # Save assistant response after streaming
         if accumulated:
-            _save_orion_message(conversation_id, current_user.id, "assistant", accumulated, db)
+            save_db = SessionLocal()
+            try:
+                _save_orion_message(conversation_id, user_id, "assistant", accumulated, save_db)
+            finally:
+                save_db.close()
 
         yield f"data: {json.dumps({'conversation_id': conversation_id})}\n\n"
         yield "data: [DONE]\n\n"
@@ -569,7 +667,9 @@ async def orion_message(
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + _now_block()
+    research_context = _research_context(current_user.id, data.content, orion_settings, db)
+
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -696,14 +796,13 @@ async def orion_debrief(
         back = sum(1 for r in data.rounds[total // 2 :] if not r.get("correct"))
         back_half_note = f"Errors front-half: {front}. Errors back-half: {back}."
 
-    # HF engagement spectrum over a synthesized description of the session.
-    # Gives the debrief model emotional/engagement context to read against the
-    # raw round log — e.g. "joy + frustration" reads differently than "flat".
-    engagement_seed = (
-        f"{game_name} session. Accuracy {accuracy}%. Max level {max_level}. "
-        f"{correct_count}/{total} correct. {back_half_note}"
+    analysis = cognition.analyse_session(data.rounds, _session_history(current_user.id, data.game_type, db))
+    analysis_block = cognition.analysis_block(analysis)
+    orion_settings = _get_orion_settings(current_user.id, db)
+    evidence = research.evidence_block(
+        research.select("", games=[data.game_type], flags=analysis.get("flags", []), limit=2),
+        orion_settings.get("orion_knowledge_depth", "moderate"),
     )
-    engagement_block = await orion_engagement_signal(engagement_seed)
 
     system = f"""You are Orion, a warm and sharp brain training companion. Write a personalised post-game debrief for this session. Use simple friendly language. No psychological jargon. No em dashes. No emojis. No exclamation marks unless the session genuinely warrants one.
 
@@ -717,11 +816,11 @@ HEADLINE: [one sentence that captures the session in a specific, memorable way]
 
 WHAT HAPPENED: [2-3 sentences describing the actual pattern of this session, referencing specific numbers and moments]
 
-WHAT THIS TELLS YOU: [2-3 sentences explaining in simple terms what their performance reveals about how their brain handled this task today]
+WHAT THIS TELLS YOU: [2-3 sentences explaining what the detected patterns reveal about how they handled this task today. If research is provided below, apply the single most relevant finding here in plain words]
 
-ONE THING TO TRY: [1-2 sentences giving a specific, actionable strategy for next time, connected to what you actually observed]
+ONE THING TO TRY: [1-2 sentences giving a specific, actionable strategy for next time, drawn from that same finding and connected to what you actually observed]
 
-Keep the whole thing under 200 words. Vary your language so each debrief feels fresh.
+Keep the whole thing under 220 words. Vary your language so each debrief feels fresh.
 
 Game: {game_name}
 Accuracy: {accuracy}% ({correct_count}/{total} correct)
@@ -732,7 +831,8 @@ Stats: {json.dumps(data.stats)}
 Round by round:
 {chr(10).join(rounds_summary)}
 {cognitive_context[:800] if cognitive_context else ''}
-{engagement_block}
+{analysis_block}
+{evidence}
 {cross_surface[:600] if cross_surface else ''}"""
 
     messages = [
@@ -741,7 +841,7 @@ Round by round:
     ]
 
     try:
-        response = _call_groq(messages, max_tokens=400, temperature=0.7, model=_model_for("debrief"))
+        response = _call_groq(messages, max_tokens=1100, temperature=0.6, model=_model_for("debrief"))
         debrief_text = (response.choices[0].message.content or "").strip()
         debrief_text = _strip_em_dashes(_strip_think_tags(debrief_text))
 

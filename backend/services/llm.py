@@ -546,8 +546,9 @@ def _strip_em_dashes(text: str) -> str:
     if word-adjacent, otherwise dropped."""
     if not text:
         return text
-    DASHES = "‐‑‒–—―−﹘﹣－"
     import re
+    text = re.sub(r"(?<=\w)[‐‑﹣－](?=\w)", "-", text)
+    DASHES = "‐‑‒–—―−﹘﹣－"
     # Padded: ' — ' or ' -- ' style → ', '
     text = re.sub(rf"\s*[{DASHES}]+\s*", ", ", text)
     # Double-comma artifacts from chained replacements
