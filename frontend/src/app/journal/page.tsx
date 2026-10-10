@@ -477,6 +477,7 @@ export default function JournalPage() {
                         transition={{ duration: 0.3 }}
                     >
                         <BookScene onBookClick={handleBookClick} />
+                        <Navigation />
                     </motion.div>
                 )}
 
