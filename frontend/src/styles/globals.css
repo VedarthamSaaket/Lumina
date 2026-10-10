@@ -1216,6 +1216,11 @@ input:-webkit-autofill:focus,
 /* ─────────────────────────────────────────────────────────────────────────────
    JOURNAL TEXTAREA
    ───────────────────────────────────────────────────────────────────────────── */
+textarea.journal-entry-input::placeholder {
+  color: rgba(122, 84, 36, 0.6);
+  opacity: 1;
+}
+
 textarea.journal-write-area,
 .journal-write-area textarea {
   -webkit-user-select: text !important;

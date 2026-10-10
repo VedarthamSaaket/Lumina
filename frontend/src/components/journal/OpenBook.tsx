@@ -250,7 +250,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     }, [])
 
     const toggleSection = (s: ToolSection) => {
-        setActiveSection(prev => prev === s ? null : s)
+        setActiveSection(s)
     }
 
     // Handle style panel selection, if block-level style, it stays active until newline
@@ -497,7 +497,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Typeface" onClose={() => setActiveSection(null)} tb={TB} />
+                                    <PanelHeader title="Typeface" tb={TB} />
                                     <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '4px' }}>
                                             {WRITING_FONTS.map(f => (
@@ -523,7 +523,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Text Style" onClose={() => setActiveSection(null)} tb={TB} />
+                                    <PanelHeader title="Text Style" tb={TB} />
                                     <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
                                         <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: TB.labelColor, textTransform: 'uppercase', marginBottom: '6px' }}>
                                             Applies to next typed paragraph
@@ -562,18 +562,10 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Stickers" onClose={() => setActiveSection(null)} tb={TB} />
+                                    <PanelHeader title="Stickers" tb={TB} />
                                     <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                        <JournalStickers onSelect={handleStickerDrop} onClose={() => setActiveSection(null)} />
+                                        <JournalStickers onSelect={handleStickerDrop} onClose={() => setActiveSection('font')} />
                                     </div>
-                                </motion.div>
-                            )}
-                            {!activeSection && (
-                                <motion.div key="empty-panel"
-                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: 0.3 }}>
-                                    <span style={{ fontSize: '20px', color: TB.emptyColor }}>*</span>
-                                    <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: TB.emptyLabel }}>Tools</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -589,12 +581,12 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     style={{
                         flexShrink: 0, padding: '10px 80px 14px 80px',
                         display: 'flex', alignItems: 'center', gap: '20px',
-                        borderTop: '1px solid rgba(212,175,55,0.1)',
-                        background: 'rgba(8,4,0,0.6)',
+                        borderTop: isDark ? '1px solid rgba(212,175,55,0.1)' : '1px solid rgba(110,72,20,0.28)',
+                        background: isDark ? 'rgba(8,4,0,0.6)' : 'rgba(252,243,224,0.92)',
                         backdropFilter: 'blur(20px)',
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.45)' }}>Mood</span>
+                        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.2em', textTransform: 'uppercase', color: isDark ? 'rgba(212,175,55,0.45)' : 'rgba(84,52,8,0.85)' }}>Mood</span>
                         <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: moodInfo.color, boxShadow: `0 0 8px ${moodInfo.color}80`, transition: 'background 0.3s' }} />
                         <span style={{ fontFamily: 'var(--font-jost)', fontSize: '11px', color: moodInfo.color, minWidth: '60px', transition: 'color 0.3s' }}>{moodInfo.label}</span>
                     </div>
@@ -609,19 +601,13 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     )
 }
 
-function PanelHeader({ title, onClose, tb }: { title: string; onClose: () => void; tb: any }) {
+function PanelHeader({ title, tb }: { title: string; tb: any }) {
     return (
         <div style={{
-            padding: '12px 14px 8px', borderBottom: `1px solid ${tb.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+            padding: '14px 14px 10px', borderBottom: `1px solid ${tb.border}`,
+            display: 'flex', alignItems: 'center', flexShrink: 0,
         }}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '9px', letterSpacing: '0.18em', color: tb.headerColor, textTransform: 'uppercase' }}>{title}</span>
-            <button onClick={onClose} style={{
-                background: tb.closeBtnBg, border: `1px solid ${tb.closeBtnBorder}`,
-                borderRadius: '6px', cursor: 'pointer', width: '20px', height: '20px',
-                color: tb.closeBtnColor, fontSize: '9px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>x</button>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '10px', letterSpacing: '0.18em', color: tb.headerColor, textTransform: 'uppercase' }}>{title}</span>
         </div>
     )
 }
@@ -690,7 +676,7 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '22px', flexShrink: 0 }}>
                 {['Anxious', 'Calm', 'Hopeful', 'Tired', 'Grateful', 'Overwhelmed', 'Content', 'Melancholy', 'Excited', 'Conflicted', 'Tender', 'Resolved'].map(t => {
                     const selected = selectedTags.includes(t)
                     return (
@@ -707,6 +693,7 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
             </div>
 
             <textarea ref={textareaRef} value={content} onChange={e => setContent(e.target.value)}
+                className="journal-entry-input"
                 placeholder="Begin writing here…"
                 style={{
                     flex: 1, width: '100%', minHeight: '80px',
