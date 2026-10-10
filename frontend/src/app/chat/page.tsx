@@ -487,7 +487,7 @@ export default function ChatPage() {
         }}>
           <div style={{ padding: '14px 12px 8px', flexShrink: 0 }}>
             <button onClick={newChat} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '9px',
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
               padding: '11px 16px', borderRadius: '12px', cursor: 'pointer',
               background: 'rgba(212,175,55,0.08)',
               border: '1px solid rgba(212,175,55,0.2)',
@@ -550,7 +550,7 @@ export default function ChatPage() {
             flex: 1, overflowY: 'auto', padding: '24px 0 160px',
             scrollbarWidth: 'thin', scrollbarColor: 'rgba(212,175,55,0.1) transparent'
           }}>
-            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 28px' }}>
+            <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '0 44px' }}>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55 }}
@@ -578,7 +578,7 @@ export default function ChatPage() {
 
                     {msg.role === 'assistant' && <Avatar riskLevel={msg.riskLevel} />}
 
-                    <div style={{ maxWidth: '74%' }}>
+                    <div style={{ maxWidth: '62%' }}>
                       <div
                         className={msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-lumina'}
                         style={msg.riskLevel >= 2 ? {
@@ -660,7 +660,7 @@ export default function ChatPage() {
                 padding: '12px 16px max(18px, env(safe-area-inset-bottom))',
                 background: 'linear-gradient(to top, var(--input-bar-fade, rgba(8,3,0,0.94)) 60%, transparent)',
               }}>
-              <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+              <div style={{ maxWidth: '860px', margin: '0 auto' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 12px 10px 22px', borderRadius: '28px',
