@@ -111,12 +111,15 @@ interface Props {
 }
 
 const packCache: Record<string, Sticker[]> = {}
+const PAGE_SIZE = 48
 
 export default function JournalStickers({ onSelect, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('local')
   const [activePack, setActivePack] = useState(Object.keys(LOCAL_PACKS)[0])
   const [packStickers, setPackStickers] = useState<Sticker[]>([])
   const [loading, setLoading] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [emptyPacks, setEmptyPacks] = useState<Set<string>>(new Set())
   const [recent, setRecent] = useState<Sticker[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -127,20 +130,36 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
     let cancelled = false
     setLoading(true)
     setPackStickers([])
-    if (packCache[activePack]) {
+    setVisibleCount(PAGE_SIZE)
+    if (packCache[activePack]?.length) {
       setPackStickers(packCache[activePack])
       setLoading(false)
       return
     }
     probePack(activePack).then(stickers => {
       if (!cancelled) {
-        packCache[activePack] = stickers
+        if (stickers.length) packCache[activePack] = stickers
         setPackStickers(stickers)
         setLoading(false)
       }
     })
     return () => { cancelled = true }
   }, [activePack])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_BASE}/api/stickers/`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data?.packs) return
+        const counts = new Map<string, number>(data.packs.map((p: { id: string; count: number }) => [p.id, p.count]))
+        const empty = new Set(Object.keys(LOCAL_PACKS).filter(key => (counts.get(key) ?? 0) === 0))
+        setEmptyPacks(empty)
+        setActivePack(current => (empty.has(current) ? Object.keys(LOCAL_PACKS).find(key => !empty.has(key)) || current : current))
+      })
+      .catch(() => undefined)
+    return () => { cancelled = true }
+  }, [])
 
   const loadTrending = useCallback(() => {
     setSearchLoading(true)
@@ -172,7 +191,7 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
     onSelect(sticker)
   }, [onSelect])
 
-  const packs = Object.entries(LOCAL_PACKS)
+  const packs = Object.entries(LOCAL_PACKS).filter(([key]) => !emptyPacks.has(key))
 
   const giphyToSticker = (g: any): Sticker => ({
     id: `giphy-${g.id}`, label: g.title || 'Sticker', category: 'search',
@@ -229,7 +248,13 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
               }}>{pack.label}</button>
             ))}
           </div>
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}
+            onScroll={e => {
+              const el = e.currentTarget
+              if (el.scrollTop + el.clientHeight >= el.scrollHeight - 160) {
+                setVisibleCount(c => Math.min(c + PAGE_SIZE, packStickers.length))
+              }
+            }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px', color: 'rgba(212,175,55,0.38)', fontFamily: 'var(--font-jost)', fontSize: '10px' }}>Loading...</div>
             ) : packStickers.length === 0 ? (
@@ -241,8 +266,8 @@ export default function JournalStickers({ onSelect, onClose }: Props) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
-                {packStickers.map((sticker, i) => (
-                  <LocalStickerTile key={sticker.id} sticker={sticker} index={i}
+                {packStickers.slice(0, visibleCount).map((sticker, i) => (
+                  <LocalStickerTile key={sticker.id} sticker={sticker} index={i % PAGE_SIZE}
                     color={LOCAL_PACKS[activePack]?.color || '#d4af37'}
                     onClick={() => handleSelect(sticker)} />
                 ))}
@@ -310,7 +335,7 @@ function LocalStickerTile({ sticker, index, color, onClick }: { sticker: Sticker
         gap: '2px', padding: '6px 3px', borderRadius: '10px', minHeight: '58px',
         background: `${color}0c`, border: `1px solid ${color}20`, cursor: 'pointer',
       }}>
-      <img src={sticker.url} alt={sticker.label} width={38} height={38}
+      <img src={sticker.url} alt={sticker.label} width={38} height={38} loading="lazy" decoding="async"
         style={{ objectFit: 'contain', display: 'block', transform: `rotate(${sticker.rotation || 0}deg)`, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}
         onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
     </motion.button>
