@@ -508,7 +508,7 @@ export default function JournalPage() {
                                 fontSize: 'clamp(1.4rem, 2.2vw, 1.9rem)',
                                 margin: 0,
                                 letterSpacing: '0.02em',
-                                color: 'rgba(254,244,228,0.92)',
+                                color: isDark ? 'rgba(254,244,228,0.92)' : 'rgba(42,24,4,0.9)',
                                 lineHeight: 1.2,
                             }}>
                                 The Inner{' '}

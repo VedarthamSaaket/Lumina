@@ -15,7 +15,7 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"}
 
 # Allowed pack name pattern — alphanumeric, underscore, hyphen, single dot, no path separators.
 # Forward and back slashes, parent-dir tokens, NUL, leading dots etc. are all rejected.
-_SAFE_PACK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]{0,63}$")
+_SAFE_PACK_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_\-]| (?! )){0,63}$")
 
 _pack_cache: dict[str, list[str]] = {}
 

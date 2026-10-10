@@ -118,25 +118,25 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         emptyLabel: 'rgba(212,175,55,0.4)',
         scrollColor: 'rgba(212,175,55,0.18)',
     } : {
-        bg: 'rgba(230,210,175,0.97)',
-        border: 'rgba(140,95,30,0.18)',
-        iconBorder: 'rgba(140,95,30,0.10)',
-        activeItemBg: 'rgba(139,100,16,0.15)',
-        activeItemBorder: 'rgba(139,100,16,0.38)',
-        activeItemColor: 'rgba(60,35,5,0.95)',
-        inactiveItemColor: 'rgba(60,35,5,0.40)',
-        panelBtnActiveBg: 'rgba(139,100,16,0.12)',
-        panelBtnActiveBorder: 'rgba(139,100,16,0.35)',
-        panelBtnActiveColor: 'rgba(35,18,3,0.9)',
-        panelBtnInactiveColor: 'rgba(35,18,3,0.42)',
-        headerColor: 'rgba(100,65,12,0.65)',
-        closeBtnBg: 'rgba(139,100,16,0.08)',
-        closeBtnBorder: 'rgba(139,100,16,0.20)',
-        closeBtnColor: 'rgba(100,65,12,0.55)',
-        labelColor: 'rgba(100,65,12,0.42)',
-        emptyColor: 'rgba(139,100,16,0.55)',
-        emptyLabel: 'rgba(100,65,12,0.45)',
-        scrollColor: 'rgba(139,100,16,0.18)',
+        bg: 'rgba(252,243,224,0.94)',
+        border: 'rgba(110,72,20,0.42)',
+        iconBorder: 'rgba(110,72,20,0.24)',
+        activeItemBg: 'rgba(139,100,16,0.22)',
+        activeItemBorder: 'rgba(110,72,20,0.6)',
+        activeItemColor: 'rgba(48,27,4,1)',
+        inactiveItemColor: 'rgba(60,35,5,0.78)',
+        panelBtnActiveBg: 'rgba(139,100,16,0.2)',
+        panelBtnActiveBorder: 'rgba(110,72,20,0.55)',
+        panelBtnActiveColor: 'rgba(35,18,3,1)',
+        panelBtnInactiveColor: 'rgba(35,18,3,0.78)',
+        headerColor: 'rgba(84,52,8,0.95)',
+        closeBtnBg: 'rgba(139,100,16,0.14)',
+        closeBtnBorder: 'rgba(110,72,20,0.42)',
+        closeBtnColor: 'rgba(84,52,8,0.9)',
+        labelColor: 'rgba(84,52,8,0.8)',
+        emptyColor: 'rgba(110,72,20,0.9)',
+        emptyLabel: 'rgba(84,52,8,0.8)',
+        scrollColor: 'rgba(139,100,16,0.35)',
     }
 
     // Nav button palette
@@ -302,7 +302,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
             }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            > Close</button>
+            >← Close</button>
 
             {/* Main layout */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', alignItems: 'stretch' }}>
@@ -319,7 +319,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     <NavButton
                         onClick={goBackward}
                         disabled={currentPage <= 0 || isAnimating}
-                        label="<-"
+                        label="←"
                         title="Previous page"
                         nb={NB}
                     />
@@ -336,7 +336,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     <NavButton
                         onClick={goForward}
                         disabled={currentPage >= totalEntries || isAnimating}
-                        label="->"
+                        label="→"
                         title="Next page"
                         nb={NB}
                     />
@@ -456,6 +456,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     borderLeft: `1px solid ${TB.border}`,
                     background: TB.bg,
                     backdropFilter: 'blur(40px)',
+                    boxShadow: '-10px 0 30px -18px rgba(60,38,12,0.55)',
                     transition: 'background 0.3s',
                 }}>
                     {/* Icon strip, only font, style, stickers */}
@@ -474,7 +475,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                             <motion.button key={tool.id} onClick={() => toggleSection(tool.id)}
                                 title={tool.title} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
                                 style={{
-                                    width: '40px', height: '40px', display: 'flex', flexDirection: 'column',
+                                    width: '44px', height: '46px', display: 'flex', flexDirection: 'column',
                                     alignItems: 'center', justifyContent: 'center', gap: '2px',
                                     borderRadius: '10px', cursor: 'pointer',
                                     background: activeSection === tool.id ? TB.activeItemBg : 'transparent',
@@ -482,8 +483,8 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     color: activeSection === tool.id ? TB.activeItemColor : TB.inactiveItemColor,
                                     transition: 'all 0.15s',
                                 }}>
-                                <span style={{ fontSize: '11px', fontFamily: 'var(--font-jost)', fontWeight: 600 }}>{tool.icon}</span>
-                                <span style={{ fontSize: '7px', fontFamily: 'var(--font-jost)', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.7 }}>{tool.title}</span>
+                                <span style={{ fontSize: '14px', fontFamily: 'var(--font-jost)', fontWeight: 600 }}>{tool.icon}</span>
+                                <span style={{ fontSize: '8px', fontFamily: 'var(--font-jost)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tool.title}</span>
                             </motion.button>
                         ))}
                     </div>
@@ -865,7 +866,7 @@ function NavButton({ onClick, disabled, label, title, small, nb }: {
             style={{
                 width: small ? '36px' : '46px', height: small ? '36px' : '46px', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-cinzel)', fontSize: small ? '12px' : '20px',
+                fontFamily: 'var(--font-jost)', fontSize: small ? '13px' : '21px', lineHeight: 1,
                 cursor: disabled ? 'default' : 'pointer',
                 background: disabled ? nb.disabledBg : nb.enabledBg,
                 border: disabled ? `1.5px solid ${nb.disabledBorder}` : `1.5px solid ${nb.enabledBorder}`,
