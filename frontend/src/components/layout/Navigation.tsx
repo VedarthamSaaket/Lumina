@@ -11,11 +11,11 @@ export function Navigation() {
   const pathname = usePathname()
   const { theme } = useThemeStore()
   const [isAuthed, setIsAuthed] = useState(false)
-  const [isCompact, setIsCompact] = useState(false)   // viewport ≤ 900px
+  const [isCompact, setIsCompact] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 900px)')
+    const mql = window.matchMedia('(max-width: 1120px)')
     const sync = () => setIsCompact(mql.matches)
     sync()
     mql.addEventListener('change', sync)
@@ -137,6 +137,7 @@ export function Navigation() {
           style={{
             textDecoration: 'none', flexShrink: 0,
             marginRight:    isCompact ? 'auto' : '32px',
+            position:       'relative', zIndex: 1,
             display:        'flex', alignItems: 'center', gap: '11px',
           }}
         >
@@ -164,29 +165,39 @@ export function Navigation() {
 
         {/* ── DESKTOP NAV LINKS (hidden on compact) ── */}
         {!isCompact && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <div style={{ position: 'absolute', left: '50%', top: 0, height: '100%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
             {navLinks.map(l => renderNavLink(l))}
           </div>
         )}
 
         {/* ── DESKTOP RIGHT CONTROLS ── */}
         {!isCompact && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0, marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flexShrink: 0, marginLeft: 'auto', position: 'relative', zIndex: 1 }}>
             {isAuthed && (
               <>
                 <Link href="/settings" style={{ textDecoration: 'none' }}>
                   <motion.button
-                    whileHover={{ scale: 1.1, rotate: 20 }}
+                    whileHover={{ scale: 1.08, rotate: 45 }}
                     whileTap={{ scale: 0.92 }}
                     title="Settings"
+                    aria-label="Settings"
                     style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      width: '30px', height: '30px',
+                      background: isDark ? 'rgba(212,175,55,0.10)' : 'rgba(139,100,16,0.09)',
+                      border: `1px solid ${isDark ? 'rgba(212,175,55,0.26)' : 'rgba(139,100,16,0.24)'}`,
+                      cursor: 'pointer',
+                      width: '38px', height: '38px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: isDark ? 'rgba(254,244,228,0.32)' : 'rgba(42,26,8,0.32)',
-                      fontSize: '16px', transition: 'color 0.2s', borderRadius: '50%',
+                      color: logoColor, borderRadius: '50%',
                     }}
-                  >⚙</motion.button>
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => (
+                        <circle key={angle} cx="12" cy="4.3" r="2.5" fill="currentColor" transform={`rotate(${angle} 12 12)`} />
+                      ))}
+                      <circle cx="12" cy="12" r="6.9" fill="currentColor" />
+                      <circle cx="12" cy="12" r="2.8" fill={isDark ? '#140c05' : '#f3e6c3'} />
+                    </svg>
+                  </motion.button>
                 </Link>
                 <Link href="/dashboard" style={{ textDecoration: 'none' }}>
                   <motion.button
