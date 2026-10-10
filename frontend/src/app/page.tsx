@@ -178,6 +178,8 @@ function Grainient({
 
     const container = containerRef.current
     container.appendChild(canvas)
+    const hideOnLoss = () => { canvas.style.display = 'none' }
+    canvas.addEventListener('webglcontextlost', hideOnLoss)
 
     const geometry = new Triangle(gl)
     const program = new Program(gl, {
@@ -238,6 +240,7 @@ function Grainient({
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
+      canvas.removeEventListener('webglcontextlost', hideOnLoss)
       try {
         container.removeChild(canvas)
         const loseContextExt = gl.getExtension('WEBGL_lose_context')
@@ -250,8 +253,23 @@ function Grainient({
     <div
       ref={containerRef}
       className={className}
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', ...style }}
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: `linear-gradient(135deg, ${color1} 0%, ${color2} 50%, ${color3} 100%)`, ...style }}
     />
+  )
+}
+
+const GRAIN_TEXTURE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+
+function GrainOverlay({ z = 2, tone = 'dark', tint }: { z?: number; tone?: 'dark' | 'light'; tint?: string }) {
+  return (
+    <>
+      {tint && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: z, pointerEvents: 'none', background: tint, mixBlendMode: tone === 'dark' ? 'screen' : 'multiply', opacity: 0.9 }} />
+      )}
+      <div style={{ position: 'absolute', inset: 0, zIndex: z, overflow: 'hidden', pointerEvents: 'none', mixBlendMode: 'soft-light', opacity: tone === 'dark' ? 0.34 : 0.26 }}>
+        <div style={{ position: 'absolute', inset: -120, backgroundImage: GRAIN_TEXTURE, backgroundSize: '240px 240px', animation: 'grainShift 1.1s steps(6) infinite' }} />
+      </div>
+    </>
   )
 }
 
@@ -362,7 +380,7 @@ function Ticker() {
         <Grainient
           color1="#c4a882" color2="#ede0c4" color3="#5c3d28"
           timeSpeed={0.06} warpStrength={0.3} grainAmount={0.065}
-          contrast={1.2} saturation={0.7} zoom={1.2}
+          contrast={1.2} saturation={0.85} zoom={1.2}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
@@ -383,16 +401,16 @@ function Hero() {
     <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 52px 72px', overflow: 'hidden', background: 'radial-gradient(ellipse 90% 55% at 20% 10%, #6b3510 0%, transparent 50%), radial-gradient(ellipse 70% 60% at 85% 85%, #4b2308 0%, transparent 55%), #1c1410' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 90% 55% at 20% 10%, #6b3510 0%, transparent 50%), radial-gradient(ellipse 70% 60% at 85% 85%, #4b2308 0%, transparent 55%), #1c1410' }}>
         <Grainient
-          color1="#c4a882"
-          color2="#f0dfc0"
-          color3="#3a2a1e"
+          color1="#c9a06a"
+          color2="#ecd2a4"
+          color3="#3b2c1c"
           timeSpeed={0.14}
           warpStrength={0.9}
           warpFrequency={3.5}
           warpSpeed={1.2}
           grainAmount={0.0}
           contrast={1.4}
-          saturation={0.78}
+          saturation={0.85}
           zoom={0.85}
           style={{ width: '100%', height: '100%' }}
         />
@@ -401,35 +419,14 @@ function Hero() {
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
         background: [
-          'radial-gradient(ellipse 55% 55% at 0% 100%, rgba(88,102,118,0.62) 0%, transparent 60%)',
+          'radial-gradient(ellipse 55% 55% at 0% 100%, rgba(92,61,40,0.62) 0%, transparent 60%)',
           'radial-gradient(ellipse 60% 50% at 48% 5%, rgba(196,160,96,0.72) 0%, transparent 55%)',
           'radial-gradient(ellipse 50% 55% at 100% 100%, rgba(14,9,4,0.88) 0%, transparent 55%)',
           'linear-gradient(to bottom, rgba(28,20,16,0.15) 0%, rgba(28,20,16,0.7) 100%)', // Darkened slightly for contrast
         ].join(','),
       }} />
 
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-        mixBlendMode: 'overlay',
-      }}>
-        <Grainient
-          color1="#c9b99a"
-          color2="#b8a888"
-          color3="#9a8868"
-          timeSpeed={0.22}
-          warpStrength={0.2}
-          warpFrequency={8.0}
-          warpSpeed={3.5}
-          warpAmplitude={200}
-          grainAmount={0.18}
-          grainScale={1.8}
-          grainAnimated={true}
-          contrast={0.85}
-          saturation={0.3}
-          zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={2} tone="dark" />
 
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
         {[22, 44, 66].map(pct => <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${pct}%`, height: 1, background: 'rgba(250,243,232,0.04)' }} />)}
@@ -511,32 +508,14 @@ function Philosophy() {
           blendAngle={58}
           grainAmount={0.0}
           contrast={1.15}
-          saturation={0.58}
+          saturation={0.8}
           zoom={0.90}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(245,230,200,0.4)', zIndex: 1 }} />
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.035) 1px, transparent 1px)', backgroundSize: '18px 18px', zIndex: 2 }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none', mixBlendMode: 'multiply' }}>
-        <Grainient
-          color1="#e8dcc8"
-          color2="#e6d4b8"
-          color3="#c4b898"
-          timeSpeed={0.20}
-          warpStrength={0.15}
-          warpFrequency={9.0}
-          warpSpeed={3.2}
-          warpAmplitude={220}
-          grainAmount={0.16}
-          grainScale={1.9}
-          grainAnimated={true}
-          contrast={0.80}
-          saturation={0.2}
-          zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={3} tone="light" tint="#eadbc0" />
       <div style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%)', fontFamily: T.serif, fontStyle: 'italic', fontWeight: 900, fontSize: 'clamp(260px, 32vw, 440px)', color: 'rgba(28,20,16,0.035)', lineHeight: 1, pointerEvents: 'none', userSelect: 'none', zIndex: 4 }}>01</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center', position: 'relative', zIndex: 5, width: '100%', padding: '112px 52px', color: T.ink }}>
         <div>
@@ -575,51 +554,82 @@ function Philosophy() {
 // ─── S3: FEATURES GRID ────────────────────────────────────────────────────────
 
 function FeaturesGrid() {
+  const items = [
+    { icon: '◎', title: 'Self Reflection', sub: 'Know yourself honestly', body: 'Seven carefully chosen instruments from mood and anxiety to personality, attachment style, and emotional intelligence. All translated into warm, human language with zero clinical labels.', tag: '7 Instruments' },
+    { icon: '◈', title: 'Inner Work', sub: 'Change your patterns', body: 'Four guided modules built on the most effective frameworks in modern psychology. Reframe negative thoughts, activate yourself into motion, clarify what matters, and quiet the inner critic.', tag: '4 Modules' },
+    { icon: '◻', title: 'Inner Ledger', sub: 'Your story, your space', body: 'A 3D-rendered journal that feels like a physical object. Mood stickers, emotional timelines, and thought-dumping rituals that make daily reflection something you look forward to.', tag: '3D Book' },
+    { icon: '▲', title: 'Memory Games', sub: 'Train how you think', body: 'Eight cognitive exercises modelled after real brain health research. Working memory, fluid reasoning, processing speed, executive function. Not entertainment, understanding.', tag: '8 Games' },
+    { icon: '●', title: 'Orion Engine', sub: 'Your thinking companion', body: "Orion watches your game sessions, links your performance to your journal, notices patterns before you do, and debriefs every session with four precise observations. A personal trainer for your mind.", tag: 'Live Coaching' },
+    { icon: '◐', title: 'Local Privacy', sub: 'Your data stays yours', body: 'The deepest analysis happens on your device via Ollama. No journal ever leaves your machine. No data is sold. No cloud inference on your psychological profile.', tag: 'Zero Leakage' },
+  ]
+  const finishes = {
+    roast: {
+      background: 'rgba(43,28,18,0.38)',
+      border: '1px solid rgba(245,230,200,0.22)',
+      index: 'rgba(245,230,200,0.55)',
+      icon: '#f0d9a8',
+      title: T.cream,
+      sub: 'rgba(240,217,168,0.95)',
+      rule: 'rgba(245,230,200,0.18)',
+      body: 'rgba(245,230,200,0.84)',
+      tagText: '#f0d9a8',
+      tagBorder: 'rgba(240,217,168,0.5)',
+    },
+    cream: {
+      background: 'rgba(250,240,220,0.3)',
+      border: '1px solid rgba(250,240,220,0.5)',
+      index: 'rgba(58,42,30,0.5)',
+      icon: T.umber,
+      title: T.ink,
+      sub: 'rgba(92,61,40,0.85)',
+      rule: 'rgba(58,42,30,0.12)',
+      body: 'rgba(28,20,16,0.78)',
+      tagText: T.umber,
+      tagBorder: 'rgba(92,61,40,0.35)',
+    },
+  }
   return (
-    <section style={{ position: 'relative', color: T.cream, padding: '120px 52px', overflow: 'hidden', background: '#241a13' }} id="orion">
-      {/* UNIFIED MOCHA/ESPRESSO BACKGROUND - SPLIT REMOVED */}
+    <section style={{ position: 'relative', color: T.ink, padding: '120px 52px', overflow: 'hidden', background: '#a67c52' }} id="orion">
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Grainient
-          color1="#4a3018" color2="#2a1a10" color3="#140c06"
-          timeSpeed={0.06} warpStrength={0.8} warpFrequency={3.5} warpSpeed={1.0}
-          blendAngle={20} grainAmount={0.0} contrast={1.4} saturation={0.5} zoom={0.9}
+          color1="#cfae84" color2="#a67c52" color3="#7a5433"
+          timeSpeed={0.06} warpStrength={0.7} warpFrequency={3.2} warpSpeed={1.0}
+          blendAngle={24} grainAmount={0.0} contrast={1.12} saturation={1.0} zoom={0.9}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 85% 15%, rgba(120,70,20,0.25) 0%, transparent 65%)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, mixBlendMode: 'screen', opacity: 0.85, zIndex: 2 }}>
-        <Grainient
-          color1="#2a1f10" color2="#3a2a18" color3="#1c1409"
-          timeSpeed={0.24} warpStrength={0.12} warpFrequency={10.0} warpSpeed={4.0} warpAmplitude={250}
-          grainAmount={0.17} grainScale={1.7} grainAnimated={true} contrast={0.75} saturation={0.28} zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(250,243,232,0.02) 1px, transparent 1px)', backgroundSize: '22px 22px', zIndex: 3 }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 88% 8%, rgba(245,230,200,0.28) 0%, transparent 62%), radial-gradient(ellipse 60% 55% at 0% 100%, rgba(74,48,24,0.42) 0%, transparent 60%)', zIndex: 1 }} />
+      <GrainOverlay z={2} tone="light" />
 
       <div style={{ position: 'relative', zIndex: 4 }}>
-        <SectionRule label="What Lumina Offers" num="02" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-          {[
-            { icon: '◎', title: 'Self Reflection', sub: 'Know yourself honestly', body: 'Seven carefully chosen instruments from mood and anxiety to personality, attachment style, and emotional intelligence. All translated into warm, human language with zero clinical labels.', tag: '7 Instruments' },
-            { icon: '◈', title: 'Inner Work', sub: 'Change your patterns', body: 'Four guided modules built on the most effective frameworks in modern psychology. Reframe negative thoughts, activate yourself into motion, clarify what matters, and quiet the inner critic.', tag: '4 Modules' },
-            { icon: '◻', title: 'Inner Ledger', sub: 'Your story, your space', body: 'A 3D-rendered journal that feels like a physical object. Mood stickers, emotional timelines, and thought-dumping rituals that make daily reflection something you look forward to.', tag: '3D Book' },
-            { icon: '▲', title: 'Memory Games', sub: 'Train how you think', body: 'Eight cognitive exercises modelled after real brain health research. Working memory, fluid reasoning, processing speed, executive function. Not entertainment, understanding.', tag: '8 Games' },
-            { icon: '●', title: 'Orion Engine', sub: 'Your thinking companion', body: "Orion watches your game sessions, links your performance to your journal, notices patterns before you do, and debriefs every session with four precise observations. A personal trainer for your mind.", tag: 'Live Coaching' },
-            { icon: '◐', title: 'Local Privacy', sub: 'Your data stays yours', body: 'The deepest analysis happens on your device via Ollama. No journal ever leaves your machine. No data is sold. No cloud inference on your psychological profile.', tag: 'Zero Leakage' },
-          ].map(item => (
-            <div key={item.title} style={{ position: 'relative', padding: '44px 36px', background: 'rgba(250,243,232,0.04)', backdropFilter: 'blur(8px)', border: '1px solid rgba(250,243,232,0.08)', borderRadius: 4, overflow: 'hidden', transition: 'background 0.3s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(250,243,232,0.09)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(250,243,232,0.04)' }}
-            >
-              <div style={{ fontFamily: T.serif, fontSize: 28, color: T.gold, opacity: 0.8, marginBottom: 20, lineHeight: 1 }}>{item.icon}</div>
-              <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 22, color: T.cream, marginBottom: 6, lineHeight: 1.1 }}>{item.title}</div>
-              <div style={{ fontFamily: T.script, fontStyle: 'italic', fontSize: 16, color: 'rgba(196,160,96,0.7)', marginBottom: 16, lineHeight: 1 }}>{item.sub}</div>
-              <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 10.5, lineHeight: 1.88, letterSpacing: '0.04em', color: 'rgba(250,243,232,0.45)', marginBottom: 20 }}>{item.body}</p>
-              <div style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, border: `1px solid rgba(196,160,96,0.3)`, padding: '6px 12px', display: 'inline-block' }}>{item.tag}</div>
-            </div>
-          ))}
+        <SectionRule label="What Lumina Offers" num="02" light />
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 80, alignItems: 'end', marginBottom: 64 }}>
+          <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(46px, 6vw, 84px)', lineHeight: 0.92, letterSpacing: '-0.02em', color: T.ink }}>
+            Six rooms,<br />one <em style={{ fontStyle: 'italic', color: '#f9eeda' }}>sanctuary.</em>
+          </h2>
+          <p style={{ fontFamily: T.script, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(20px, 2.2vw, 28px)', lineHeight: 1.3, color: 'rgba(28,20,16,0.72)', maxWidth: 440 }}>
+            Everything here is made to be returned to. Pick the room that fits today, and the rest will keep.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+          {items.map((item, i) => {
+            const f = i % 2 === 0 ? finishes.roast : finishes.cream
+            return (
+              <div key={item.title}
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column', padding: '34px 32px 36px', background: f.background, border: f.border, borderRadius: 8, backdropFilter: 'blur(14px) saturate(1.15)', WebkitBackdropFilter: 'blur(14px) saturate(1.15)', boxShadow: '0 14px 34px -24px rgba(40,24,12,0.45)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 34 }}>
+                  <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 18, color: f.index, lineHeight: 1 }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 7.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: f.tagText, border: `1px solid ${f.tagBorder}`, borderRadius: 999, padding: '6px 12px' }}>{item.tag}</span>
+                </div>
+                <div style={{ fontFamily: T.serif, fontSize: 30, color: f.icon, marginBottom: 18, lineHeight: 1 }}>{item.icon}</div>
+                <div style={{ fontFamily: T.serif, fontWeight: 700, fontSize: 24, color: f.title, marginBottom: 6, lineHeight: 1.1 }}>{item.title}</div>
+                <div style={{ fontFamily: T.script, fontStyle: 'italic', fontSize: 18, color: f.sub, lineHeight: 1.1 }}>{item.sub}</div>
+                <div style={{ height: 1, background: f.rule, margin: '22px 0 20px' }} />
+                <p style={{ fontFamily: T.sans, fontWeight: 300, fontSize: 11, lineHeight: 1.85, letterSpacing: '0.03em', color: f.body }}>{item.body}</p>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -634,19 +644,13 @@ function OrionSection() {
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 60% 50% at 85% 10%, #3a2a10 0%, #1a1408 60%)' }}>
         <Grainient
           color1="#c4a060" color2="#3a2a1e" color3="#1a1408"
-          timeSpeed={0.10} warpStrength={1.1} warpFrequency={4.2} warpSpeed={1.5} blendAngle={-20} grainAmount={0.0} contrast={1.5} saturation={0.55} zoom={0.82} colorBalance={0.1}
+          timeSpeed={0.10} warpStrength={1.1} warpFrequency={4.2} warpSpeed={1.5} blendAngle={-20} grainAmount={0.0} contrast={1.5} saturation={0.75} zoom={0.82} colorBalance={0.1}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(26,20,8,0.88) 0%, rgba(28,20,8,0.70) 60%, rgba(45,34,16,0.60) 100%)', zIndex: 1 }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'radial-gradient(ellipse 55% 45% at 88% 8%, rgba(140,90,20,0.42) 0%, transparent 60%)' }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }}>
-        <Grainient
-          color1="#1e1a0e" color2="#2d2510" color3="#151208"
-          timeSpeed={0.22} warpStrength={0.12} warpFrequency={9.5} warpSpeed={3.8} warpAmplitude={240} grainAmount={0.17} grainScale={1.75} grainAnimated={true} contrast={0.75} saturation={0.2} zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={2} tone="dark" tint="#2b2010" />
       <div style={{ position: 'relative', zIndex: 3, padding: '120px 52px', color: T.cream }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 100, alignItems: 'start' }}>
           <div style={{ position: 'sticky', top: 120 }}>
@@ -712,19 +716,13 @@ function Diagnostics() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           <Grainient
             color1="#f5e6c8" color2="#c4a882" color3="#7a5c38"
-            timeSpeed={0.09} warpStrength={0.7} warpFrequency={3.0} blendAngle={70} grainAmount={0.0} contrast={1.2} saturation={0.65} zoom={0.95}
+            timeSpeed={0.09} warpStrength={0.7} warpFrequency={3.0} blendAngle={70} grainAmount={0.0} contrast={1.2} saturation={0.8} zoom={0.95}
             style={{ width: '100%', height: '100%' }}
           />
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,218,188,0.80)', zIndex: 1 }} />
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(circle, rgba(28,20,16,0.05) 1px, transparent 1px)', backgroundSize: '15px 15px', zIndex: 2 }} />
-        <div style={{ position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none', mixBlendMode: 'multiply' }}>
-          <Grainient
-            color1="#ddd0b8" color2="#ccc0a0" color3="#b8a888"
-            timeSpeed={0.21} warpStrength={0.12} warpFrequency={9.5} warpSpeed={3.6} warpAmplitude={230} grainAmount={0.17} grainScale={1.8} grainAnimated={true} contrast={0.78} saturation={0.18} zoom={1.0}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
+        <GrainOverlay z={3} tone="light" tint="#d6c3a0" />
         <div style={{ position: 'relative', zIndex: 4, padding: '100px 52px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <SectionRule label="Self Reflection" num="04" light />
@@ -760,19 +758,13 @@ function Diagnostics() {
           {/* UPDATED TO RICH CARAMEL / CHOCOLATE GRADIENT */}
           <Grainient
             color1="#8b5e34" color2="#4a3018" color3="#1a0f08"
-            timeSpeed={0.07} warpStrength={0.6} warpFrequency={3.8} warpSpeed={1.1} blendAngle={30} grainAmount={0.0} contrast={1.6} saturation={0.45} zoom={0.92}
+            timeSpeed={0.07} warpStrength={0.6} warpFrequency={3.8} warpSpeed={1.1} blendAngle={30} grainAmount={0.0} contrast={1.6} saturation={0.7} zoom={0.92}
             style={{ width: '100%', height: '100%' }}
           />
         </div>
         <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'radial-gradient(ellipse 60% 50% at 92% 12%, rgba(196,160,96,0.25) 0%, transparent 62%)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,15,8,0.4)', zIndex: 1 }} />
-        <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }}>
-          <Grainient
-            color1="#2a1a10" color2="#3e2716" color3="#1a0f08"
-            timeSpeed={0.22} warpStrength={0.12} warpFrequency={9.5} warpSpeed={3.8} warpAmplitude={240} grainAmount={0.17} grainScale={1.75} grainAnimated={true} contrast={0.75} saturation={0.25} zoom={1.0}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
+        <GrainOverlay z={2} tone="dark" tint="#3a2414" />
         <div style={{ position: 'relative', zIndex: 3, padding: '100px 52px' }}>
           <SectionRule label="Memory Games" num="05" />
           <h2 style={{ fontFamily: T.serif, fontWeight: 900, fontSize: 'clamp(40px, 5.5vw, 68px)', lineHeight: 0.92, letterSpacing: '-0.015em', color: T.cream, marginBottom: 32 }}>
@@ -810,18 +802,12 @@ function InnerWork() {
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 40% 40%, #d4c9a8 0%, #ede5d4 70%)' }}>
         <Grainient
           color1="#d4c9a8" color2="#b8a882" color3="#3a2a1e"
-          timeSpeed={0.07} warpStrength={0.48} warpFrequency={2.4} warpSpeed={0.75} blendAngle={-42} grainAmount={0.0} contrast={1.18} saturation={0.52} zoom={1.0}
+          timeSpeed={0.07} warpStrength={0.48} warpFrequency={2.4} warpSpeed={0.75} blendAngle={-42} grainAmount={0.0} contrast={1.18} saturation={0.75} zoom={1.0}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(238,224,196,0.84)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'multiply' }}>
-        <Grainient
-          color1="#d4c9b0" color2="#c4b89a" color3="#b0a480"
-          timeSpeed={0.20} warpStrength={0.12} warpFrequency={9.2} warpSpeed={3.5} warpAmplitude={225} grainAmount={0.16} grainScale={1.85} grainAnimated={true} contrast={0.78} saturation={0.18} zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={2} tone="light" tint="#d2c09c" />
       <div style={{ position: 'absolute', bottom: -30, left: -10, fontFamily: T.serif, fontWeight: 900, fontStyle: 'italic', fontSize: 'clamp(120px, 17vw, 210px)', lineHeight: 1, color: 'rgba(28,20,16,0.033)', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 3 }}>Inner Work</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, position: 'relative', zIndex: 4, width: '100%', padding: '112px 52px', color: T.ink }}>
         <div>
@@ -910,7 +896,7 @@ function Privacy() {
         {/* WARMED UP TO DEEP MAHOGANY/ESPRESSO */}
         <Grainient
           color1="#3e2211" color2="#1f1108" color3="#0a0502"
-          timeSpeed={0.06} warpStrength={0.8} warpFrequency={5.5} warpSpeed={2.0} blendAngle={15} grainAmount={0.0} contrast={1.6} saturation={0.4} zoom={0.78}
+          timeSpeed={0.06} warpStrength={0.8} warpFrequency={5.5} warpSpeed={2.0} blendAngle={15} grainAmount={0.0} contrast={1.6} saturation={0.65} zoom={0.78}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
@@ -922,13 +908,7 @@ function Privacy() {
           'radial-gradient(ellipse 35% 60% at 5% 88%, rgba(90,50,10,0.15) 0%, transparent 55%)',
         ].join(','),
       }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }}>
-        <Grainient
-          color1="#2a1a10" color2="#1f1108" color3="#0a0502"
-          timeSpeed={0.23} warpStrength={0.12} warpFrequency={10.0} warpSpeed={4.2} warpAmplitude={260} grainAmount={0.17} grainScale={1.7} grainAnimated={true} contrast={0.72} saturation={0.15} zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={2} tone="dark" tint="#24140a" />
       <svg style={{ position: 'absolute', top: '50%', right: -180, transform: 'translateY(-50%)', opacity: 0.055, pointerEvents: 'none', zIndex: 3 }} width="540" height="540" viewBox="0 0 540 540">
         {[36, 80, 128, 180, 234, 264].map((r, i) => <circle key={r} cx="270" cy="270" r={r} fill="none" stroke="#f5e6c8" strokeWidth={i < 4 ? 1 : 0.7} />)}
       </svg>
@@ -987,18 +967,12 @@ function CTA() {
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 30%, #4a3d2e 0%, #2d2318 70%)' }}>
         <Grainient
           color1="#c4a882" color2="#6a5440" color3="#2d2318"
-          timeSpeed={0.10} warpStrength={0.7} grainAmount={0.0} contrast={1.35} saturation={0.72} zoom={0.9} blendAngle={-10}
+          timeSpeed={0.10} warpStrength={0.7} grainAmount={0.0} contrast={1.35} saturation={0.85} zoom={0.9} blendAngle={-10}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(28,20,16,0.65) 0%, rgba(28,20,16,0.82) 100%)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.88 }}>
-        <Grainient
-          color1="#5a4a35" color2="#6a5a42" color3="#4a3a28"
-          timeSpeed={0.21} warpStrength={0.12} warpFrequency={9.0} warpSpeed={3.6} warpAmplitude={235} grainAmount={0.17} grainScale={1.8} grainAnimated={true} contrast={0.77} saturation={0.30} zoom={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
+      <GrainOverlay z={2} tone="dark" tint="#5e4a32" />
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', height: 5, zIndex: 3 }}>
         <span style={{ flex: 2, background: T.ink }} />
         <span style={{ flex: 1, background: `rgba(196,160,96,0.6)` }} />
@@ -1072,6 +1046,7 @@ export default function LuminaOrionLanding() {
         button { cursor: crosshair; background: none; }
         @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes textShimmer { to { background-position: -200% center; } }
+        @keyframes grainShift { 0% { transform: translate(0, 0); } 20% { transform: translate(-40px, 30px); } 40% { transform: translate(35px, -50px); } 60% { transform: translate(-60px, -20px); } 80% { transform: translate(50px, 45px); } 100% { transform: translate(0, 0); } }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
       `}</style>
       <Nav />
