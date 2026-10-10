@@ -43,12 +43,8 @@ _suspicious: Dict[str, int] = defaultdict(int)
 # (window_seconds, max_requests)
 RATE_LIMITS: Dict[str, Tuple[int, int]] = {
     # Auth  – very tight
-    "/api/auth/signin":          (60,   8),    # 8 attempts / minute
-    "/api/auth/signup":          (60,   5),    # 5 signups / minute
-    "/api/auth/verify-email":    (60,  10),    # code guesses (also capped server-side)
-    "/api/auth/resend-code":     (60,   3),    # throttle re-sends / quota burn
-    "/api/auth/forgot-password": (60,   4),    # throttle reset-email sends
-    "/api/auth/reset-password":  (60,  10),    # code guesses (also capped server-side)
+    "/api/auth/firebase":        (60,  10),
+    "/api/auth/profile":         (60,  20),
     # AI generation – expensive
     "/api/chat/stream":               (60,  20),    # 20 streaming messages / minute
     "/api/chat/message":              (60,  20),
@@ -62,11 +58,6 @@ RATE_LIMITS: Dict[str, Tuple[int, int]] = {
     # Dashboard AI insight generation
     "/api/dashboard/generate-insight": (60,  10),
     "/api/dashboard/summaries":        (60,  30),
-    # Specialty worker self-registration (Lightning / Kaggle ping in)
-    # — secret-gated already, this caps registry-churn DoS.
-    "/internal/specialty/register":    (60,  30),
-    "/internal/specialty/unregister":  (60,  30),
-    "/internal/specialty/shutdown":    (60,   8),
     # Data writes
     "/api/journal":        (60,  30),
     "/api/mood":           (60,  30),
@@ -176,7 +167,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             )
 
         # ── 3. Login lockout ──────────────────────────────────────────────────
-        if path == "/api/auth/signin" and request.method == "POST":
+        if path == "/api/auth/firebase" and request.method == "POST":
             if _is_login_locked(ip):
                 security_logger.warning(
                     "LOCKED_OUT_REQUEST ip=%s", ip

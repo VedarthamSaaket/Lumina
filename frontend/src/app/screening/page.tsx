@@ -777,9 +777,7 @@ type CategoryKey = keyof typeof CATEGORIES
 type Screen = 'categories' | 'category' | 'preload' | 'test' | 'result'
 
 // Brief settling pause between choosing a check and seeing its questions.
-// Gives the specialty psych layer (Kaggle/Lightning worker) a head start on
-// loading before the real enrichment call at the end of the test needs it.
-const PRELOAD_MS = 25000
+const PRELOAD_MS = 3000
 
 // ── Fun terminology per test for the summary prompt ────────────────────────
 const FUN_FRAMEWORK: Record<string, string> = {

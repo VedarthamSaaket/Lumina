@@ -6,8 +6,8 @@ import { psychAPI, type PsychPage } from './api'
 /**
  * Fire the psych-layer warmup for a page exactly once on mount.
  *
- * Why: the HF Serverless classifier cold-starts in ~10-20s and the Layer-B
- * Colab worker may be asleep. Calling this in the page component means the
+ * Why: the HF Serverless classifier cold-starts in ~10-20s and the local
+ * supervisor model may not be loaded yet. Calling this in the page component means the
  * warmup runs WHILE the user reads the page / takes the test. By the time
  * they submit, both layers are warm — the cold-start hides under the user's
  * own interaction time.

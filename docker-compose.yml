@@ -34,12 +34,7 @@ services:
       ENFORCE_HTTPS:               ${ENFORCE_HTTPS:-false}
       ENVIRONMENT:                 ${ENVIRONMENT:-development}
       GROQ_API_KEY:                ${GROQ_API_KEY}
-      HF_API_KEY:                  ${HF_API_KEY}
       OLLAMA_BASE_URL:             http://host.docker.internal:11434
-      SPECIALTY_REGISTRY_SECRET:   ${SPECIALTY_REGISTRY_SECRET}
-      KAGGLE_USERNAME:             ${KAGGLE_USERNAME}
-      KAGGLE_KEY:                  ${KAGGLE_KEY}
-      KAGGLE_KERNEL_SLUG:          ${KAGGLE_KERNEL_SLUG}
     depends_on:
       postgres:
         condition: service_healthy

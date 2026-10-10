@@ -1,14 +1,13 @@
-import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from routers import dashboard
 from models.database import engine, run_migrations
-from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion, stickers, psych_warmup, specialty_internal
+from routers import auth, chat, journal, mood, screening, cbt, crisis, summary, cognitive, settings as settings_router, orion, stickers, psych_warmup
 from config import settings
 from services.llm import warmup_model, close_http_client
-from services.psych_hf import warmup_all_psych_models
+from services import local_llm
 from middleware.security import SecurityMiddleware
 
 
@@ -30,12 +29,9 @@ async def lifespan(app: FastAPI):
     print("=== END DIAGNOSTIC ===")
 
     await warmup_model()
-    # Fire-and-forget psych warmup so we don't block boot for 7 cold-starts
-    # (HF free tier: each can take up to ~20s the first time). The classifiers
-    # become ready in the background; calls during warmup just fail-soft.
-    asyncio.create_task(warmup_all_psych_models())
     yield
 
+    local_llm.stop()
     await close_http_client()
 
 
@@ -73,7 +69,6 @@ app.include_router(settings_router.router)
 app.include_router(orion.router)
 app.include_router(stickers.router)
 app.include_router(psych_warmup.router)
-app.include_router(specialty_internal.router)
 
 
 @app.get("/health")
