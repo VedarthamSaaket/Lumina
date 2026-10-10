@@ -73,59 +73,103 @@ export const PROMPTS: PromptTemplate[] = [
 const svg = (body: string, w: number, h: number) =>
   `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'>${body}</svg>`)}`
 
-const TORN = 'M6 0 L234 0 L240 6 L235 12 L240 18 L235 24 L240 30 L235 36 L234 40 L6 40 L0 34 L5 28 L0 22 L5 16 L0 10 L5 4 Z'
+const TAPE_W = 240
+const TAPE_H = 64
 
-const tape = (base: string, pattern: string) =>
+const pinked = (() => {
+  const teeth = 8
+  const step = TAPE_H / teeth
+  let right = ''
+  let left = ''
+  for (let i = 0; i < teeth; i++) {
+    right += ` L${TAPE_W} ${i * step + step / 2} L${TAPE_W - 6} ${(i + 1) * step}`
+    left += ` L0 ${TAPE_H - (i * step + step / 2)} L6 ${TAPE_H - (i + 1) * step}`
+  }
+  return `M6 0 L${TAPE_W - 6} 0${right} L6 ${TAPE_H}${left} Z`
+})()
+
+const tape = (base: string, edge: string, pattern: string) =>
   svg(
-    `<defs><clipPath id='c'><path d='${TORN}'/></clipPath></defs>` +
-    `<g clip-path='url(#c)' opacity='0.9'><rect width='240' height='40' fill='${base}'/>${pattern}</g>`,
-    240, 40,
+    `<defs><clipPath id='c'><path d='${pinked}'/></clipPath>` +
+    `<linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff' stop-opacity='0.28'/><stop offset='0.45' stop-color='#fff' stop-opacity='0'/><stop offset='1' stop-color='#000' stop-opacity='0.08'/></linearGradient></defs>` +
+    `<g clip-path='url(#c)'><rect width='${TAPE_W}' height='${TAPE_H}' fill='${base}'/>${pattern}` +
+    `<rect width='${TAPE_W}' height='7' fill='${edge}'/><rect y='${TAPE_H - 7}' width='${TAPE_W}' height='7' fill='${edge}'/>` +
+    `<rect y='10' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/><rect y='${TAPE_H - 11.4}' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/>` +
+    `<rect width='${TAPE_W}' height='${TAPE_H}' fill='url(#g)'/></g>` +
+    `<path d='${pinked}' fill='none' stroke='${edge}' stroke-width='1.6' stroke-linejoin='round'/>`,
+    TAPE_W, TAPE_H,
   )
 
 const stripes = (color: string) =>
-  Array.from({ length: 18 }, (_, i) => `<rect x='${i * 16 - 20}' y='-10' width='7' height='70' fill='${color}' transform='rotate(25 ${i * 16} 20)'/>`).join('')
+  Array.from({ length: 16 }, (_, i) => `<rect x='${i * 20 - 30}' y='-20' width='9' height='110' fill='${color}' transform='rotate(28 ${i * 20} 32)'/>`).join('')
 
 const dots = (color: string) =>
-  Array.from({ length: 30 }, (_, i) => `<circle cx='${10 + (i % 15) * 16}' cy='${i < 15 ? 12 : 28}' r='3.2' fill='${color}'/>`).join('')
+  Array.from({ length: 3 }, (_, row) =>
+    Array.from({ length: 13 }, (_, i) => `<circle cx='${(row % 2 ? 20 : 10) + i * 20}' cy='${20 + row * 12}' r='3.4' fill='${color}'/>`).join('')
+  ).join('')
 
 const gingham = (color: string) =>
-  Array.from({ length: 12 }, (_, i) => `<rect x='${i * 20}' y='0' width='10' height='40' fill='${color}' opacity='0.45'/>`).join('') +
-  `<rect x='0' y='0' width='240' height='10' fill='${color}' opacity='0.45'/><rect x='0' y='20' width='240' height='10' fill='${color}' opacity='0.45'/>`
+  Array.from({ length: 12 }, (_, i) => `<rect x='${i * 22}' y='0' width='11' height='${TAPE_H}' fill='${color}' opacity='0.4'/>`).join('') +
+  [14, 36].map(y => `<rect x='0' y='${y}' width='${TAPE_W}' height='11' fill='${color}' opacity='0.4'/>`).join('')
 
 const blossoms = (petal: string, heart: string) =>
-  Array.from({ length: 8 }, (_, i) => {
-    const cx = 16 + i * 30, cy = i % 2 ? 14 : 26
-    const petals = [0, 72, 144, 216, 288].map(a => `<ellipse cx='${cx}' cy='${cy - 5}' rx='2.6' ry='4.4' fill='${petal}' transform='rotate(${a} ${cx} ${cy})'/>`).join('')
-    return `${petals}<circle cx='${cx}' cy='${cy}' r='2' fill='${heart}'/>`
+  Array.from({ length: 9 }, (_, i) => {
+    const cx = 14 + i * 27
+    const cy = i % 2 ? 24 : 41
+    const petals = [0, 72, 144, 216, 288].map(a => `<ellipse cx='${cx}' cy='${cy - 6.5}' rx='3.4' ry='5.6' fill='${petal}' transform='rotate(${a} ${cx} ${cy})'/>`).join('')
+    return `${petals}<circle cx='${cx}' cy='${cy}' r='2.6' fill='${heart}'/>`
   }).join('')
 
-const waves = (color: string) =>
-  [10, 20, 30].map(y => `<path d='M0 ${y} ${Array.from({ length: 12 }, (_, i) => `q10 ${i % 2 ? 6 : -6} 20 0`).join(' ')}' fill='none' stroke='${color}' stroke-width='2'/>`).join('')
+const vine = (stem: string, leaf: string) =>
+  `<path d='M0 32 ${Array.from({ length: 8 }, (_, i) => `q15 ${i % 2 ? 12 : -12} 30 0`).join(' ')}' fill='none' stroke='${stem}' stroke-width='2'/>` +
+  Array.from({ length: 8 }, (_, i) => {
+    const x = 15 + i * 30
+    const up = i % 2 === 0
+    return `<ellipse cx='${x}' cy='${up ? 21 : 43}' rx='4' ry='8' fill='${leaf}' transform='rotate(${up ? 35 : -35} ${x} ${up ? 21 : 43})'/>`
+  }).join('')
 
-const stamp = (top: string, middle: string, color: string) =>
+const scallops = (color: string) =>
+  [18, 32, 46].map((y, row) =>
+    Array.from({ length: 13 }, (_, i) => `<path d='M${(row % 2 ? -10 : 0) + i * 20} ${y} a10 10 0 0 0 20 0' fill='none' stroke='${color}' stroke-width='2'/>`).join('')
+  ).join('')
+
+const diamonds = (color: string, line: string) =>
+  Array.from({ length: 9 }, (_, i) => `<path d='M${i * 30 - 3} 32 l15 -17 l15 17 l-15 17 Z' fill='${color}'/>`).join('') +
+  `<path d='M0 15 ${Array.from({ length: 8 }, () => 'l15 17 l15 -17').join(' ')}' fill='none' stroke='${line}' stroke-width='1.2'/>` +
+  `<path d='M0 49 ${Array.from({ length: 8 }, () => 'l15 -17 l15 17').join(' ')}' fill='none' stroke='${line}' stroke-width='1.2'/>`
+
+const ring = (color: string, icon: string) =>
   svg(
-    `<g fill='none' stroke='${color}' opacity='0.82'><circle cx='60' cy='60' r='54' stroke-width='3'/><circle cx='60' cy='60' r='46' stroke-width='1.2' stroke-dasharray='3 4'/></g>` +
-    `<path id='a' d='M22 60 A38 38 0 0 1 98 60' fill='none'/>` +
-    `<text font-family='Georgia, serif' font-size='11' letter-spacing='3' fill='${color}' opacity='0.85'><textPath href='#a' startOffset='50%' text-anchor='middle'>${top}</textPath></text>` +
-    `<text x='60' y='70' text-anchor='middle' font-family='Georgia, serif' font-style='italic' font-size='19' fill='${color}' opacity='0.9'>${middle}</text>` +
-    `<path d='M40 82 h40' stroke='${color}' stroke-width='1.2' opacity='0.7'/>`,
+    `<g fill='none' stroke='${color}' stroke-linecap='round' stroke-linejoin='round' opacity='0.86'>` +
+    `<circle cx='60' cy='60' r='53' stroke-width='3.2'/><circle cx='60' cy='60' r='45' stroke-width='1.3' stroke-dasharray='2.5 4.5'/>${icon}</g>`,
     120, 120,
   )
 
+const SUN = `<circle cx='60' cy='60' r='12' stroke-width='3'/>` +
+  Array.from({ length: 12 }, (_, i) => `<path d='M60 ${i % 2 ? 38 : 34} V${i % 2 ? 42 : 41}' stroke-width='3' transform='rotate(${i * 30} 60 60)'/>`).join('')
+const MOON = `<path d='M70 38 a24 24 0 1 0 12 40 a19 19 0 0 1 -12 -40 Z' stroke-width='3'/><path d='M44 44 v6 M41 47 h6' stroke-width='2.2'/><circle cx='52' cy='70' r='1.6' stroke-width='2.2'/>`
+const SPRIG = `<path d='M60 86 C60 66 60 50 60 34' stroke-width='2.8'/>` +
+  [40, 52, 64, 76].map((y, i) => `<path d='M60 ${y} q${i % 2 ? 16 : -16} -3 ${i % 2 ? 19 : -19} -15 q${i % 2 ? -15 : 15} 1 ${i % 2 ? -19 : 19} 15 Z' stroke-width='2.4'/>`).join('')
+const HEART = `<path d='M60 82 C36 66 38 42 52 42 c5 0 8 4 8 8 c0 -4 3 -8 8 -8 c14 0 16 24 -8 40 Z' stroke-width='3'/><path d='M60 70 C50 62 50 53 55 52' stroke-width='2'/>`
+const SPIRAL = `<path d='M60 60 m0 -3 a3 3 0 0 1 3 3 a7 7 0 0 1 -7 7 a11 11 0 0 1 -11 -11 a15 15 0 0 1 15 -15 a19 19 0 0 1 19 19 a23 23 0 0 1 -23 23' stroke-width='3'/>`
+const HILLS = `<path d='M30 74 q15 -22 30 0 q15 -22 30 0' stroke-width='3'/><path d='M34 84 h52' stroke-width='2.4'/><circle cx='60' cy='44' r='7' stroke-width='2.8'/>`
+
 export const WASHI: Decor[] = [
-  { id: 'washi-caramel', label: 'Caramel stripe', url: tape('#e8cfa0', stripes('#b98a4c')), scale: 2.6 },
-  { id: 'washi-cocoa', label: 'Cocoa dots', url: tape('#6b4a30', dots('#f1dfbd')), scale: 2.6 },
-  { id: 'washi-gingham', label: 'Cream gingham', url: tape('#f6ead2', gingham('#b0763c')), scale: 2.6 },
-  { id: 'washi-blossom', label: 'Blossom', url: tape('#f3dccb', blossoms('#c9735a', '#8a3d1c')), scale: 2.6 },
-  { id: 'washi-sage', label: 'Sage waves', url: tape('#d9dcc0', waves('#6f7f55')), scale: 2.6 },
-  { id: 'washi-gold', label: 'Gold stripe', url: tape('#f5e2a8', stripes('#c9a13a')), scale: 2.6 },
-  { id: 'washi-rust', label: 'Rust dots', url: tape('#b65f38', dots('#f6ead2')), scale: 2.6 },
-  { id: 'washi-plum', label: 'Plum blossom', url: tape('#e6d3dd', blossoms('#7d4a6c', '#4d2b45')), scale: 2.6 },
+  { id: 'washi-caramel', label: 'Caramel stripe', url: tape('#f1dcb4', '#a8743a', stripes('#cfa468')), scale: 3 },
+  { id: 'washi-cocoa', label: 'Cocoa dots', url: tape('#6b4a30', '#3d2716', dots('#f1dfbd')), scale: 3 },
+  { id: 'washi-gingham', label: 'Cream gingham', url: tape('#f8eed8', '#a8743a', gingham('#b98350')), scale: 3 },
+  { id: 'washi-blossom', label: 'Blossom', url: tape('#f6e1d2', '#b65f38', blossoms('#cf7a5e', '#8a3d1c')), scale: 3 },
+  { id: 'washi-vine', label: 'Olive vine', url: tape('#ece6c8', '#6f7f55', vine('#6f7f55', '#8fa06f')), scale: 3 },
+  { id: 'washi-scallop', label: 'Gold scallop', url: tape('#f7e7b8', '#b08a2a', scallops('#b08a2a')), scale: 3 },
+  { id: 'washi-argyle', label: 'Rust argyle', url: tape('#f1d3bd', '#8a3d1c', diamonds('#c97a52', '#8a3d1c')), scale: 3 },
+  { id: 'washi-plum', label: 'Plum blossom', url: tape('#ecdbe3', '#5f3554', blossoms('#8a5a7a', '#4d2b45')), scale: 3 },
 ]
 
 export const STAMPS: Decor[] = [
-  { id: 'stamp-today', label: 'Today', url: stamp('THE INNER LEDGER', 'today', '#8a3d1c'), scale: 1.5 },
-  { id: 'stamp-grateful', label: 'Grateful', url: stamp('NOTE TO SELF', 'grateful', '#2f4a35'), scale: 1.5 },
-  { id: 'stamp-proud', label: 'Proud of this', url: stamp('KEEP THIS ONE', 'proud', '#7a5a10'), scale: 1.5 },
-  { id: 'stamp-rest', label: 'Rest day', url: stamp('PERMISSION GRANTED', 'rest', '#4d2b45'), scale: 1.5 },
+  { id: 'stamp-sun', label: 'Sun', url: ring('#a8601e', SUN), scale: 1.5 },
+  { id: 'stamp-moon', label: 'Moon', url: ring('#4d2b45', MOON), scale: 1.5 },
+  { id: 'stamp-sprig', label: 'Sprig', url: ring('#2f4a35', SPRIG), scale: 1.5 },
+  { id: 'stamp-heart', label: 'Heart', url: ring('#8a3d1c', HEART), scale: 1.5 },
+  { id: 'stamp-spiral', label: 'Spiral', url: ring('#7a5a10', SPIRAL), scale: 1.5 },
+  { id: 'stamp-hills', label: 'Hills', url: ring('#5c3d28', HILLS), scale: 1.5 },
 ]

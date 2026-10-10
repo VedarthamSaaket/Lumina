@@ -95,7 +95,7 @@ export function DecorPanel({ tb, onPick }: { tb: any; onPick: (decor: Decor) => 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '2px 14px 16px', scrollbarWidth: 'thin', scrollbarColor: `${tb.scrollColor} transparent` }}>
       <Label color={tb.labelColor}>Washi tape</Label>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
         {WASHI.map(tape => (
           <button key={tape.id} type="button" onClick={() => onPick(tape)} title={tape.label}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'block' }}>
@@ -104,10 +104,10 @@ export function DecorPanel({ tb, onPick }: { tb: any; onPick: (decor: Decor) => 
         ))}
       </div>
       <Label color={tb.labelColor}>Stamps</Label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
         {STAMPS.map(item => (
           <button key={item.id} type="button" onClick={() => onPick(item)} title={item.label}
-            style={{ background: 'rgba(255,250,238,0.6)', border: `1px solid ${tb.iconBorder}`, borderRadius: '10px', padding: '8px', cursor: 'pointer' }}>
+            style={{ background: 'rgba(255,250,238,0.6)', border: `1px solid ${tb.iconBorder}`, borderRadius: '10px', padding: '6px', cursor: 'pointer' }}>
             <img src={item.url} alt={item.label} style={{ width: '100%', height: 'auto', display: 'block', transform: 'rotate(-6deg)' }} />
           </button>
         ))}
