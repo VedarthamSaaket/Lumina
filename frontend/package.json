@@ -13,6 +13,7 @@
     "axios": "^1.7.3",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "firebase": "^13.0.0",
     "framer-motion": "^11.3.19",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.414.0",

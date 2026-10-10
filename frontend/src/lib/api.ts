@@ -1,5 +1,6 @@
 // src/lib/api.ts
 import axios from 'axios'
+import { signOutOfFirebase } from './firebase'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -37,35 +38,20 @@ api.interceptors.response.use(
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 export const authAPI = {
-  // Step 1 of signup — emails a 6-digit code; no account created yet.
-  signup: (
-    email: string,
-    password: string,
-    ageConfirmed: boolean,
-    profile?: { fullName?: string; age?: number; gender?: string }
-  ) =>
-    api.post('/api/auth/signup', {
-      email,
-      password,
-      age_confirmed: ageConfirmed,
-      full_name: profile?.fullName || null,
-      age:       profile?.age       || null,
-      gender:    profile?.gender    || null,
+  firebaseSignin: (idToken: string, remember = true) =>
+    api.post('/api/auth/firebase', { id_token: idToken, remember }),
+  updateProfile: (profile: { fullName?: string; age?: number; gender?: string; ageConfirmed?: boolean }) =>
+    api.post('/api/auth/profile', {
+      full_name:     profile.fullName ?? null,
+      age:           profile.age ?? null,
+      gender:        profile.gender ?? null,
+      age_confirmed: profile.ageConfirmed ?? null,
     }),
-  // Step 2 of signup — confirms the code, creates the account, signs in.
-  verifyEmail: (email: string, code: string, remember = false) =>
-    api.post('/api/auth/verify-email', { email, code, remember }),
-  resendCode:  (email: string) =>
-    api.post('/api/auth/resend-code', { email }),
-  signin:  (email: string, password: string, remember = false) =>
-    api.post('/api/auth/signin', { email, password, remember }),
-  signout: () => api.post('/api/auth/signout'),
+  signout: async () => {
+    await signOutOfFirebase().catch(() => undefined)
+    return api.post('/api/auth/signout')
+  },
   me:      () => api.get('/api/auth/me'),
-  // Forgot / reset password (6-digit code)
-  forgotPassword: (email: string) =>
-    api.post('/api/auth/forgot-password', { email }),
-  resetPassword:  (email: string, code: string, password: string) =>
-    api.post('/api/auth/reset-password', { email, code, password }),
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────
@@ -144,7 +130,7 @@ export const crisisAPI = {
 }
 
 // ── Psych augmentation warmup ──────────────────────────────────────────────
-// Hit on page-mount so the HF cold-start (~20s) and the Colab worker wake
+// Hit on page-mount so the HF cold-start (~20s) and the local supervisor load
 // happen WHILE the user is reading / taking a test. By the time they submit,
 // both layers are warm. Fire-and-forget — failures are swallowed so a cold
 // psych layer never blocks the page.
@@ -152,7 +138,7 @@ export type PsychPage =
   | 'chat' | 'journal' | 'cbt' | 'crisis' | 'screening' | 'orion' | 'dashboard'
 
 export const psychAPI = {
-  // Warm one page's layer-A classifier + probe its layer-B Colab worker.
+  // Warm one page's classifier and, on chat and cbt, the local supervisor model.
   warmupPage: (page: PsychPage) =>
     api.get(`/api/psych/warmup/${page}`).then(r => r.data).catch(() => null),
   // Warm everything (e.g. from the app shell once after sign-in).
