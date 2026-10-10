@@ -16,6 +16,7 @@ class JournalCreate(BaseModel):
     mood_score: Optional[int] = None
     tags: list[str] = []
     stickers: list[dict] = []
+    look: dict = {}
 
 
 @router.post("")
@@ -33,6 +34,7 @@ async def create_entry(
         mood_score = data.mood_score,
         tags       = merged_tags,
         stickers   = data.stickers,
+        look       = {k: str(v)[:40] for k, v in (data.look or {}).items() if k in ("paper", "ink", "font")},
     )
     db.add(entry)
 

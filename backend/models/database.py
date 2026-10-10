@@ -38,6 +38,7 @@ def run_migrations():
         ("users", "email_verified", "BOOLEAN DEFAULT TRUE"),  # existing rows are grandfathered as verified
         ("users", "firebase_uid", "VARCHAR"),
         ("journal_entries", "stickers", "JSON"),
+        ("journal_entries", "look", "JSON"),
     ]
     with engine.connect() as conn:
         inspector = sa_inspect(engine)
@@ -87,6 +88,7 @@ class JournalEntry(Base):
     mood_score = Column(Integer, nullable=True)
     tags = Column(JSON, default=list)
     stickers = Column(JSON, default=list)
+    look = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

@@ -13,6 +13,8 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import LandscapePrompt from '@/components/ui/LandscapePrompt'
 
+const asUtc = (value?: string) => (value && !/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? `${value}Z` : value)
+
 const OpenBook = dynamic(() => import('@/components/journal/OpenBook'), { ssr: false })
 
 type Stage = 'scene' | 'open'
@@ -24,6 +26,7 @@ interface JournalEntry {
     tags?: string[]
     created_at: string
     stickers?: (Sticker & { x: number; y: number; scale: number; stickerId: string })[]
+    look?: { paper?: string; ink?: string; font?: string }
 }
 
 // ─── BOOK SCENE ──────────────────────────────────────────────────────────────
@@ -406,7 +409,7 @@ export default function JournalPage() {
             const res = await journalAPI.list()
             const mapped = res.data.map((e: any) => ({
                 ...e,
-                created_at: e.created_at ?? e.createdAt,
+                created_at: asUtc(e.created_at ?? e.createdAt),
             }))
             setEntries(mapped)
         } catch { }
@@ -434,11 +437,11 @@ export default function JournalPage() {
         }
     }
 
-    const handleSave = async (content: string, mood: number, tags: string[], stickers: any[]) => {
+    const handleSave = async (content: string, mood: number, tags: string[], stickers: any[], look: Record<string, string>) => {
         setIsSaving(true)
         try {
             await Promise.all([
-                journalAPI.create(content, mood, tags, stickers),
+                journalAPI.create(content, mood, tags, stickers, look),
                 moodAPI.log(mood, '', tags),
             ])
             toast.success('Entry saved *', {

@@ -20,11 +20,12 @@ interface JournalEntry {
     tags?: string[]
     created_at: string
     stickers?: PlacedSticker[]
+    look?: { paper?: string; ink?: string; font?: string }
 }
 
 interface OpenBookProps {
     entries: JournalEntry[]
-    onSave: (content: string, mood: number, tags: string[], stickers: PlacedSticker[]) => Promise<void>
+    onSave: (content: string, mood: number, tags: string[], stickers: PlacedSticker[], look: Record<string, string>) => Promise<void>
     onDelete: (id: string) => Promise<void>
     onClose: () => void
     isSaving: boolean
@@ -72,6 +73,8 @@ const FONT_STYLES = [
 ]
 
 const DEFAULT_FONT_STYLE_ID = 'regular'
+
+const ENTRY_TAGS = ['Anxious', 'Calm', 'Hopeful', 'Tired', 'Grateful', 'Overwhelmed', 'Content', 'Melancholy', 'Excited', 'Conflicted', 'Tender', 'Resolved']
 
 // Paper colors
 const PAPER_TEXT = 'rgba(35,20,5,0.88)'
@@ -198,6 +201,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     const writingFont = WRITING_FONTS.find(f => f.id === writingFontId) || WRITING_FONTS[0]
     const fontStyle = FONT_STYLES.find(f => f.id === fontStyleId) || FONT_STYLES[4]
     const moodInfo = MOOD_LABELS[mood] || MOOD_LABELS[5]
+    const rightEntry = currentPage >= 1 ? entries[currentPage - 1] : null
     const paper = PAPERS.find(p => p.id === paperId) || PAPERS[0]
     const ink = (INKS.find(i => i.id === inkId) || INKS[0]).color
     const paperStyle = {
@@ -205,6 +209,14 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         backgroundImage: paper.image,
         backgroundSize: paper.size,
     }
+    const entryPaper = PAPERS.find(p => p.id === rightEntry?.look?.paper) || paper
+    const entryPaperStyle = {
+        backgroundColor: entryPaper.color,
+        backgroundImage: entryPaper.image,
+        backgroundSize: entryPaper.size,
+    }
+    const entryInk = INKS.find(i => i.id === rightEntry?.look?.ink)?.color || ink
+    const entryFont = WRITING_FONTS.find(f => f.id === rightEntry?.look?.font) || writingFont
 
     const isWritePage = currentPage === 0
     const totalEntries = entries.length
@@ -213,8 +225,6 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     // page 0 = write page (left=index, right=write)
     // page 1 = entries[0] on right, left blank
     // page 2 = entries[0] on left, entries[1] on right
-    const leftEntry = currentPage >= 2 ? entries[currentPage - 2] : null
-    const rightEntry = currentPage >= 1 ? entries[currentPage - 1] : null
 
     // Fix: swap direction, goForward increments, goBackward decrements
     const goForward = useCallback(() => {
@@ -240,7 +250,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
 
     const handleSave = async () => {
         if (!content.trim()) return
-        await onSave(content, mood, selectedTags, pageStickers)
+        await onSave(content, mood, selectedTags, pageStickers, { paper: paperId, ink: inkId, font: writingFontId })
         setContent('')
         setSelectedTags([])
         setPageStickers([])
@@ -419,17 +429,13 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                 }}
                             >
                                 <div style={{ padding: '22px 20px 16px 40px', height: '100%', overflow: 'hidden', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-                                    {isWritePage ? (
-                                        <IndexPage entries={entries} writingFont={writingFont}
-                                            onEntryClick={(idx) => {
-                                                if (isAnimating) return
-                                                setFlipDirection('forward')
-                                                setIsAnimating(true)
-                                                setTimeout(() => { setCurrentPage(idx + 1); setIsAnimating(false) }, 500)
-                                            }} />
-                                    ) : leftEntry ? (
-                                        <EntryContent entry={leftEntry} writingFont={writingFont} fontStyle={fontStyle} ink={ink} pageNum={currentPage - 1} />
-                                    ) : <BlankPage />}
+                                    <IndexPage entries={entries} writingFont={writingFont}
+                                        onEntryClick={(idx) => {
+                                            if (isAnimating) return
+                                            setFlipDirection('forward')
+                                            setIsAnimating(true)
+                                            setTimeout(() => { setCurrentPage(idx + 1); setIsAnimating(false) }, 500)
+                                        }} />
                                 </div>
                             </motion.div>
 
@@ -442,7 +448,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                 style={{
                                     flex: 1, position: 'relative', overflow: 'hidden',
                                     borderRadius: '0 5px 5px 0',
-                                    ...paperStyle,
+                                    ...(isWritePage || !rightEntry ? paperStyle : entryPaperStyle),
                                     transformOrigin: 'left center',
                                 }}
                                 data-page="right"
@@ -469,7 +475,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                             textareaRef={textareaRef}
                                         />
                                     ) : rightEntry ? (
-                                        <EntryContent entry={rightEntry} writingFont={writingFont} fontStyle={fontStyle} ink={ink} pageNum={currentPage} onDelete={handleDeleteEntry} />
+                                        <EntryContent entry={rightEntry} writingFont={entryFont} ink={entryInk} pageNum={currentPage} onDelete={handleDeleteEntry} />
                                     ) : <BlankPage />}
                                 </div>
                             </motion.div>
@@ -669,7 +675,7 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
             </div>
 
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '22px', flexShrink: 0 }}>
-                {['Anxious', 'Calm', 'Hopeful', 'Tired', 'Grateful', 'Overwhelmed', 'Content', 'Melancholy', 'Excited', 'Conflicted', 'Tender', 'Resolved'].map(t => {
+                {ENTRY_TAGS.map(t => {
                     const selected = selectedTags.includes(t)
                     return (
                         <button key={t} type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); toggleTag(t) }}
@@ -723,29 +729,28 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
     )
 }
 
-function EntryContent({ entry, writingFont, fontStyle, ink, pageNum, onDelete }: {
+function EntryContent({ entry, writingFont, ink, pageNum, onDelete }: {
     entry: JournalEntry
     ink: string
     writingFont: typeof WRITING_FONTS[0]
-    fontStyle: typeof FONT_STYLES[0]
     pageNum: number
     onDelete?: (id: string) => void
 }) {
     const moodInfo = entry.mood_score ? MOOD_LABELS[entry.mood_score] : null
     const [confirming, setConfirming] = useState(false)
+    const chosen = new Set((entry.tags || []).map(t => t.toLowerCase()))
     return (
         <>
-            {/* Saved stickers, rendered on top of the page */}
             {entry.stickers && entry.stickers.length > 0 && (
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, overflow: 'hidden' }}>
                     {entry.stickers.map((s: any) => (
                         <img key={s.stickerId || s.id + '-' + Math.random()}
                             src={s.url} alt={s.label || ''}
+                            width={60 * (s.scale || 1)} height={60 * (s.scale || 1)}
                             style={{
                                 position: 'absolute',
                                 left: `${s.x}%`, top: `${s.y}%`,
-                                width: `${60 * (s.scale || 1)}px`,
-                                height: `${60 * (s.scale || 1)}px`,
+                                display: 'block',
                                 objectFit: 'contain',
                                 transform: `rotate(${s.rotation || 0}deg)`,
                                 filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 3px white)',
@@ -757,22 +762,14 @@ function EntryContent({ entry, writingFont, fontStyle, ink, pageNum, onDelete }:
                     ))}
                 </div>
             )}
-            <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
-                        {format(new Date(entry.created_at), 'EEEE, MMMM d yyyy')}
-                        {moodInfo && <span style={{ marginLeft: '8px', color: moodInfo.color }}>· {moodInfo.label}</span>}
-                    </div>
-                    {entry.tags && entry.tags.length > 0 && (
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                            {entry.tags.map(t => (
-                                <span key={t} style={{ padding: '1px 6px', borderRadius: '8px', fontSize: '8px', fontFamily: 'var(--font-jost)', background: 'transparent', border: `1px solid ${PAPER_BORDER}`, color: PAPER_MUTED }}>{t}</span>
-                            ))}
-                        </div>
-                    )}
+            <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
+                <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
+                    {format(new Date(entry.created_at), 'EEEE, MMMM d yyyy')}
+                    {moodInfo && <span style={{ marginLeft: '8px', color: moodInfo.color }}>· {moodInfo.label}</span>}
                 </div>
+            </div>
                 {onDelete && (
-                    <div style={{ flexShrink: 0, zIndex: 25 }}>
+                    <div style={{ position: 'absolute', top: '16px', right: '18px', zIndex: 25 }}>
                         {!confirming ? (
                             <motion.button type="button"
                                 onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(true) }}
@@ -812,16 +809,28 @@ function EntryContent({ entry, writingFont, fontStyle, ink, pageNum, onDelete }:
                         )}
                     </div>
                 )}
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '22px', flexShrink: 0 }}>
+                {ENTRY_TAGS.map(t => {
+                    const selected = chosen.has(t.toLowerCase())
+                    return (
+                        <span key={t} style={{
+                            padding: '2px 7px', borderRadius: '10px', fontSize: '9px', fontFamily: 'var(--font-jost)',
+                            lineHeight: 'normal', display: 'inline-block', boxSizing: 'border-box',
+                            background: selected ? 'rgba(180,130,60,0.18)' : 'transparent',
+                            border: selected ? '1px solid rgba(180,130,60,0.4)' : `1px solid ${PAPER_BORDER}`,
+                            color: selected ? PAPER_TEXT : PAPER_MUTED,
+                        }}>{t}</span>
+                    )
+                })}
             </div>
-            {/* Entry content uses the font family only, NOT the currently-selected style
-                so that switching style in the toolbar doesn't reformat old entries */}
             <div style={{
                 fontFamily: writingFont.family,
                 fontStyle: 'normal',
                 fontWeight: '400',
                 fontSize: '14px',
                 lineHeight: '24px',
-                color: ink, overflow: 'auto', flex: 1, whiteSpace: 'pre-wrap',
+                padding: '2px',
+                color: ink, overflow: 'auto', flex: 1, whiteSpace: 'pre-wrap', overflowWrap: 'break-word',
                 WebkitUserSelect: 'text' as any, userSelect: 'text' as any,
             }}>{entry.content}</div>
             <div style={{ position: 'absolute', bottom: '14px', right: '20px', fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED }}>{pageNum}</div>
