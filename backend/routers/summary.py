@@ -5,9 +5,8 @@ Unified summary surface for Lumina.
 Every page that asks the LLM to generate a "session insight" funnels through
 here so the result is consistent across the app:
 
-    1. Pull the right per-surface HuggingFace psychological signal (spectrum,
-       not binary) and weave it into the prompt.  Spectrum data carries the
-       most important nuance; we never drop it.
+    1. On CBT, pull the local supervisor's note on the exercise and weave it
+       into the prompt.
     2. Pull cross-surface user context (mood, screening, CBT, journal, games)
        so each page's summary is aware of the WHOLE user, not just its own
        session.  This is what gives the dashboard its "unity" feel even
@@ -35,15 +34,7 @@ from models.database import (
     CognitiveTestResult, InsightSummary,
 )
 from utils.auth import get_current_user, get_optional_user
-from services.llm import generate_summary, build_user_context
-from services.psych_per_page import (
-    cbt_distortion_signal,
-    screening_sentiment_signal,
-    journal_emotion_spectrum,
-    dashboard_emotion_aggregate,
-    chat_emotion_signal,
-)
-from services.psych_hf import format_spectrum
+from services.llm import generate_summary, build_user_context, model_kwargs
 from config import settings
 
 router = APIRouter()
@@ -82,141 +73,47 @@ def _model_for_surface(surface: Surface) -> tuple[str, list[str]]:
     return settings.MODEL_SUMMARY, [settings.MODEL_LUMINA_CHAT, settings.MODEL_DASHBOARD_INSIGHT]
 
 
-def _extract_freetext(structured: Optional[dict]) -> str:
-    """Best-effort extraction of free-text fields from a structured payload so
-    the HF classifier has something meaningful to read."""
-    if not structured:
-        return ""
-    pieces: list[str] = []
-    # Responses (CBT) — list of strings/dicts/numbers
-    responses = structured.get("responses")
-    if isinstance(responses, list):
-        for r in responses:
-            if isinstance(r, str) and r.strip():
-                pieces.append(r.strip())
-            elif isinstance(r, dict):
-                # split-style answer
-                for v in r.values():
-                    if isinstance(v, str) and v.strip():
-                        pieces.append(v.strip())
-    # Screening contexts (per-question free text)
-    contexts = structured.get("contexts") or structured.get("question_contexts")
-    if isinstance(contexts, list):
-        for c in contexts:
-            if isinstance(c, str) and c.strip():
-                pieces.append(c.strip())
-    # Journal body
-    content = structured.get("content")
-    if isinstance(content, str) and content.strip():
-        pieces.append(content.strip())
-    # Severity / score for screening — these are signals too
-    severity = structured.get("severity")
-    if isinstance(severity, str) and severity.strip():
-        pieces.append(severity.strip())
-    return " ".join(pieces).strip()
+def _load_json(value) -> dict:
+    try:
+        data = json.loads(value) if isinstance(value, str) else value
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
-async def _psych_signal_for(
-    surface: Surface,
-    user_id: str,
-    reference_id: Optional[str],
-    structured: Optional[dict],
-    db: Session,
-) -> tuple[str, dict]:
-    """Return (prompt_block, spectrum_dict). The prompt_block is a ready-to-
-    inject natural-language paragraph that surfaces the FULL distribution to
-    the Groq summarizer. spectrum_dict is the raw structured form we can
-    persist or log."""
-    freetext = _extract_freetext(structured)
-
-    # ── CBT ──────────────────────────────────────────────────────────────────
-    if surface == "cbt":
-        spectrum: dict = {}
-        # 1) Prefer the signal already persisted by /api/cbt/modules/.../progress
-        if reference_id:
-            row = (
-                db.query(CBTProgress)
-                .filter(CBTProgress.user_id == user_id, CBTProgress.module_id == reference_id)
-                .first()
-            )
-            if row and row.responses:
-                try:
-                    raw = json.loads(row.responses) if isinstance(row.responses, str) else row.responses
-                    if isinstance(raw, dict):
-                        spectrum = raw.get("psych_signal", {}) or {}
-                except Exception:
-                    spectrum = {}
-        # 2) Otherwise call live HF on the freetext
-        if not spectrum and freetext:
-            spectrum = await cbt_distortion_signal(freetext)
-        return _spectrum_to_prompt_block(spectrum, surface_label="cbt"), spectrum
-
-    # ── Screening ────────────────────────────────────────────────────────────
+def _supervisor_note_for(surface: Surface, user_id: str, reference_id: Optional[str], structured: Optional[dict], db: Session) -> str:
+    if surface == "cbt" and reference_id:
+        row = (
+            db.query(CBTProgress)
+            .filter(CBTProgress.user_id == user_id, CBTProgress.module_id == reference_id)
+            .first()
+        )
+        analysis = _load_json(row.responses).get("specialty_analysis") if row and row.responses else None
+        if not analysis:
+            return ""
+        return (
+            "\n\nSUPERVISOR NOTE on this exercise (internal, from a CBT-trained reviewer). "
+            "Let it steer which pattern you reflect back and which next step you suggest. "
+            "Translate it into plain friendly language and never quote it or use its technical terms:\n"
+            + analysis
+        )
     if surface == "screening":
-        spectrum: dict = {}
+        query = db.query(ScreeningResult).filter(ScreeningResult.user_id == user_id)
+        test_type = (structured or {}).get("type")
         if reference_id:
-            row = db.query(ScreeningResult).filter(
-                ScreeningResult.id == reference_id,
-                ScreeningResult.user_id == user_id,
-            ).first()
-            if row and row.question_contexts:
-                try:
-                    raw = json.loads(row.question_contexts) if isinstance(row.question_contexts, str) else row.question_contexts
-                    if isinstance(raw, dict):
-                        spectrum = raw.get("psych_signal", {}) or {}
-                except Exception:
-                    spectrum = {}
-        if not spectrum:
-            contexts = (structured or {}).get("contexts") or (structured or {}).get("question_contexts") or []
-            if isinstance(contexts, list) and contexts:
-                spectrum = await screening_sentiment_signal(contexts)
-        return _spectrum_to_prompt_block(spectrum, surface_label="screening"), spectrum
-
-    # ── Journal ──────────────────────────────────────────────────────────────
-    if surface == "journal":
-        spectrum: dict = {}
-        if freetext:
-            spectrum = await journal_emotion_spectrum(freetext)
-        return _spectrum_to_prompt_block(spectrum, surface_label="journal"), spectrum
-
-    # ── Chat ─────────────────────────────────────────────────────────────────
-    if surface == "chat":
-        block = await chat_emotion_signal(freetext) if freetext else ""
-        return block, {}
-
-    # ── Dashboard / Generic ──────────────────────────────────────────────────
-    if surface == "dashboard":
-        block = await dashboard_emotion_aggregate(freetext) if freetext else ""
-        return block, {}
-
-    return "", {}
-
-
-def _spectrum_to_prompt_block(spectrum: dict, surface_label: str) -> str:
-    """Render a stored spectrum payload (top label + full distribution) into a
-    natural-language block the summarizer can read. We surface EVERY label and
-    score because, per the project rule, the spectrum carries the signal."""
-    if not spectrum:
-        return ""
-    items = spectrum.get("spectrum") or []
-    if not items:
-        return ""
-    rendered = ", ".join(
-        f"{d.get('label')}: {float(d.get('score', 0.0)):.2f}"
-        for d in items
-        if d.get("label")
-    )
-    if not rendered:
-        return ""
-    top = spectrum.get("top") or items[0].get("label")
-    return (
-        f"\n\nPSYCH_SPECTRUM ({surface_label}) — internal classifier reading, "
-        "never name labels back to the user, but let this shape your tone, "
-        f"warmth and emphasis:\n- top signal: {top}\n- full distribution: {rendered}\n"
-        "- High concentration in one label = strong single state; a flatter "
-        "spread = ambivalence. Acknowledge the mix when more than one label "
-        "carries weight."
-    )
+            query = query.filter(ScreeningResult.id == reference_id)
+        elif test_type:
+            query = query.filter(ScreeningResult.type == test_type)
+        row = query.order_by(desc(ScreeningResult.completed_at)).first()
+        note = _load_json(row.question_contexts).get("specialty_enrichment") if row and row.question_contexts else None
+        if not note:
+            return ""
+        return (
+            "\n\nPSYCHOLOGY NOTE on this result (internal). Work its idea into the summary as one gentle, "
+            "plain-language line. Never use its technical terms and never present it as a diagnosis:\n"
+            + note
+        )
+    return ""
 
 
 def _cross_surface_context(user_id: str, db: Session) -> str:
@@ -335,9 +232,7 @@ async def contextual_summary(
     """Unified summary entry point — every page's session-complete summary
     should funnel through here. Returns (and optionally persists) a Groq
     summary enriched with HF psychological spectrum + cross-surface context."""
-    psych_block, spectrum = await _psych_signal_for(
-        body.surface, current_user.id, body.reference_id, body.structured_data, db
-    )
+    psych_block = _supervisor_note_for(body.surface, current_user.id, body.reference_id, body.structured_data, db)
     user_ctx = _cross_surface_context(current_user.id, db)
 
     # Hard server-side rule on top of every contextual summary. Frontend prompts
@@ -393,8 +288,7 @@ async def contextual_summary(
     return {
         "summary": text,
         "model_used": model_used,
-        "psych_used": bool(psych_block),
-        "spectrum": spectrum or None,
+        "supervisor_used": bool(psych_block),
         "summary_id": persisted_id,
     }
 
@@ -445,6 +339,7 @@ async def stream_summary(body: SummaryRequest):
                 max_tokens=600,
                 temperature=0.75,
                 stream=True,
+                **model_kwargs(settings.MODEL_SUMMARY),
             )
             for chunk in stream:
                 token = chunk.choices[0].delta.content

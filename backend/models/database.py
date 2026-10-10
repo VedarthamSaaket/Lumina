@@ -36,8 +36,7 @@ def run_migrations():
         ("users", "gender", "VARCHAR"),
         ("users", "settings_json", "TEXT"), # ← settings storage
         ("users", "email_verified", "BOOLEAN DEFAULT TRUE"),  # existing rows are grandfathered as verified
-        ("users", "reset_code_hash", "VARCHAR"),
-        ("users", "reset_code_expires", "TIMESTAMPTZ"),
+        ("users", "firebase_uid", "VARCHAR"),
         ("journal_entries", "stickers", "JSON"),
     ]
     with engine.connect() as conn:
@@ -51,6 +50,12 @@ def run_migrations():
                     print(f"[migrations] Added column '{col}' to '{table}'")
             except Exception:
                 pass # table may not exist yet - Base.metadata.create_all handles it
+        try:
+            conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_firebase_uid ON users (firebase_uid)"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
     # Create any new tables that don't exist yet
     Base.metadata.create_all(bind=engine)
@@ -60,7 +65,8 @@ class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=generate_uuid)
     email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
+    firebase_uid = Column(String, nullable=True, unique=True, index=True)
     age_confirmed = Column(Boolean, default=False)
     theme = Column(String, default="dark")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -71,27 +77,6 @@ class User(Base):
     # Email verification: new accounts are only ever created post-verification,
     # so this is True by construction. Kept for auditing / future re-verification.
     email_verified = Column(Boolean, default=True, nullable=False)
-    # Password reset (6-digit code). Hash + aware expiry; cleared after use.
-    reset_code_hash    = Column(String, nullable=True)
-    reset_code_expires = Column(DateTime(timezone=True), nullable=True)
-
-
-class PendingSignup(Base):
-    """Holds a not-yet-verified signup. The real User row is created only once
-    the emailed code is confirmed, so unverified attempts never become accounts.
-    Rows are keyed by email and overwritten on resend / re-attempt."""
-    __tablename__ = "pending_signups"
-    id = Column(String, primary_key=True, default=generate_uuid)
-    email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
-    age_confirmed = Column(Boolean, default=False)
-    full_name = Column(String, nullable=True)
-    age = Column(Integer, nullable=True)
-    gender = Column(String, nullable=True)
-    code_hash = Column(String, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    attempts = Column(Integer, default=0, nullable=False)  # wrong-code guesses
-    created_at = Column(DateTime(timezone=True), default=utcnow)
 
 
 class JournalEntry(Base):
@@ -201,3 +186,17 @@ class OrionMessage(Base):
     role = Column(String, nullable=False)  # "user" or "assistant"
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WellbeingProfile(Base):
+    __tablename__ = "wellbeing_profiles"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    signals = Column(JSON, default=dict)
+    signs = Column(JSON, default=list)
+    summary = Column(Text, nullable=True)
+    approach = Column(Text, nullable=True)
+    history = Column(JSON, default=list)
+    analyses = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
