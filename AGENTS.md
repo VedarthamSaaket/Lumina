@@ -56,7 +56,9 @@ The project is split into two distinct yet integrated cognitive-emotional engine
 ## 3. Technical Architecture
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS, Framer Motion for premium animations.
-- **Backend**: Python (FastAPI), Groq (Llama 3.3 70B), local-first data principles.
+- **Backend**: Python (FastAPI), Groq (chat on `qwen/qwen3.8-27b`, summaries on `openai/gpt-oss-120b`, set in `backend/config.py`), local-first data principles.
+- **Local supervisor**: one GGUF model run through `llama-server` (`backend/services/local_llm.py`), started on chat or CBT activity and stopped when idle. It writes the private `wellbeing_profiles` table (`backend/services/wellbeing.py`), which no API route returns.
+- **Launch**: `start_lumina.command` at the repo root (Desktop shortcut `Lumina.command`) starts Postgres, backend and frontend.
 - **Key Files**:
   - `backend/services/llm.py`: The brain of the interaction, containing system prompts and tool redirect logic.
   - `frontend/src/styles/globals.css`: The source of truth for the design system (CSS variables, animations).
