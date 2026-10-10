@@ -1,12 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Cookies from 'js-cookie'
 import toast from 'react-hot-toast'
 import { authAPI } from '@/lib/api'
-import { firebaseConfigured, signInWithGoogle } from '@/lib/firebase'
+import { firebaseConfigured, prepareFirebase, signInWithGoogle } from '@/lib/firebase'
 import Grainient from '@/components/ui/Grainient'
 
 type Mode = 'signin' | 'signup'
@@ -56,6 +56,8 @@ export default function GoogleAuthCard({ mode }: { mode: Mode }) {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const copy = COPY[mode]
+
+  useEffect(() => { prepareFirebase() }, [])
 
   const handleGoogle = async () => {
     if (!firebaseConfigured) {

@@ -17,6 +17,10 @@ function firebaseAuth() {
   return getAuth(app)
 }
 
+export function prepareFirebase(): void {
+  if (firebaseConfigured) firebaseAuth()
+}
+
 export async function signInWithGoogle(): Promise<string> {
   const provider = new GoogleAuthProvider()
   provider.setCustomParameters({ prompt: 'select_account' })
