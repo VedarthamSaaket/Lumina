@@ -3,6 +3,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import JournalStickers, { type Sticker } from './JournalStickers'
+import { DecorPanel, PagePanel, PromptsPanel } from './LedgerPanels'
+import { INKS, PAPERS, type Decor, type PromptTemplate } from './ledgerLooks'
 
 interface PlacedSticker extends Sticker {
     stickerId: string
@@ -72,13 +74,13 @@ const FONT_STYLES = [
 const DEFAULT_FONT_STYLE_ID = 'regular'
 
 // Paper colors
-const PAPER_BG = '#f5ead0'
 const PAPER_TEXT = 'rgba(35,20,5,0.88)'
 const PAPER_MUTED = 'rgba(100,70,30,0.5)'
 const PAPER_BORDER = 'rgba(180,140,80,0.22)'
-const PAPER_DOT = 'rgba(0,0,0,0.12)'
 
-type ToolSection = 'font' | 'style' | 'stickers' | null
+type ToolSection = 'page' | 'prompts' | 'decor' | 'stickers'
+
+const LOOK_KEY = 'lumina_ledger_look'
 
 // Toolbar palette, adapts to theme
 function useToolbarPalette() {
@@ -159,7 +161,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     const [currentPage, setCurrentPage] = useState(0)
     const [flipDirection, setFlipDirection] = useState<'forward' | 'backward'>('forward')
     const [isAnimating, setIsAnimating] = useState(false)
-    const [activeSection, setActiveSection] = useState<ToolSection>('font')
+    const [activeSection, setActiveSection] = useState<ToolSection>('page')
 
     const [content, setContent] = useState('')
     const [mood, setMood] = useState(5)
@@ -168,10 +170,27 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     const [activeStickerId, setActiveStickerId] = useState<string | null>(null)
 
     const [writingFontId, setWritingFontId] = useState('garamond')
-    // The "active" style for the textarea, reverts to default after block-level newline
-    const [fontStyleId, setFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
-    // The style selected in the panel (persists for user preference display)
-    const [panelFontStyleId, setPanelFontStyleId] = useState(DEFAULT_FONT_STYLE_ID)
+    const [paperId, setPaperId] = useState('dotted')
+    const [inkId, setInkId] = useState('espresso')
+    const [lookLoaded, setLookLoaded] = useState(false)
+    const fontStyleId = DEFAULT_FONT_STYLE_ID
+
+    useEffect(() => {
+        try {
+            const saved = JSON.parse(window.localStorage.getItem(LOOK_KEY) || '{}')
+            if (PAPERS.some(p => p.id === saved.paper)) setPaperId(saved.paper)
+            if (INKS.some(i => i.id === saved.ink)) setInkId(saved.ink)
+            if (WRITING_FONTS.some(f => f.id === saved.font)) setWritingFontId(saved.font)
+        } catch { }
+        setLookLoaded(true)
+    }, [])
+
+    useEffect(() => {
+        if (!lookLoaded) return
+        try {
+            window.localStorage.setItem(LOOK_KEY, JSON.stringify({ paper: paperId, ink: inkId, font: writingFontId }))
+        } catch { }
+    }, [lookLoaded, paperId, inkId, writingFontId])
 
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const prevContentRef = useRef('')
@@ -179,6 +198,13 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
     const writingFont = WRITING_FONTS.find(f => f.id === writingFontId) || WRITING_FONTS[0]
     const fontStyle = FONT_STYLES.find(f => f.id === fontStyleId) || FONT_STYLES[4]
     const moodInfo = MOOD_LABELS[mood] || MOOD_LABELS[5]
+    const paper = PAPERS.find(p => p.id === paperId) || PAPERS[0]
+    const ink = (INKS.find(i => i.id === inkId) || INKS[0]).color
+    const paperStyle = {
+        backgroundColor: paper.color,
+        backgroundImage: paper.image,
+        backgroundSize: paper.size,
+    }
 
     const isWritePage = currentPage === 0
     const totalEntries = entries.length
@@ -234,15 +260,37 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
     }
 
-    const handleStickerDrop = useCallback((sticker: Sticker) => {
+    const handleStickerDrop = useCallback((sticker: Sticker, scale = 1) => {
         const id = `${sticker.id}-${Date.now()}`
         setPageStickers(prev => [...prev, {
             ...sticker, stickerId: id,
-            x: 15 + Math.random() * 60,
+            x: 15 + Math.random() * (scale > 1 ? 30 : 60),
             y: 20 + Math.random() * 50,
-            scale: 1,
+            scale,
         }])
     }, [])
+
+    const handleDecorDrop = useCallback((decor: Decor) => {
+        handleStickerDrop({
+            id: decor.id, label: decor.label, category: 'decor',
+            url: decor.url, thumbUrl: decor.url, color: '#b98a4c',
+            rotation: Math.floor(Math.random() * 9) - 4, source: 'local',
+        }, decor.scale)
+    }, [handleStickerDrop])
+
+    const insertPrompt = (prompt: PromptTemplate) => {
+        const next = content.trim() ? `${content.replace(/\s+$/, '')}\n\n${prompt.text}` : prompt.text
+        prevContentRef.current = next
+        setContent(next)
+        if (currentPage !== 0) goToWritePage()
+        setTimeout(() => {
+            const el = textareaRef.current
+            if (!el) return
+            el.focus()
+            el.setSelectionRange(next.length, next.length)
+            el.scrollTop = el.scrollHeight
+        }, currentPage !== 0 ? 600 : 30)
+    }
 
     const removeSticker = useCallback((stickerId: string) => {
         setPageStickers(prev => prev.filter(s => s.stickerId !== stickerId))
@@ -253,23 +301,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         setActiveSection(s)
     }
 
-    // Handle style panel selection, if block-level style, it stays active until newline
-    const handleStyleSelect = (styleId: string) => {
-        setFontStyleId(styleId)
-        setPanelFontStyleId(styleId)
-        textareaRef.current?.focus()
-    }
-
-    // Detect newline to revert block styles back to default (iPhone Notes behavior)
     const handleContentChange = (val: string) => {
-        const prev = prevContentRef.current
-        const isNewline = val.length > prev.length && val[val.length - 1] === '\n'
-        if (isNewline) {
-            const currentStyleDef = FONT_STYLES.find(f => f.id === fontStyleId)
-            if (currentStyleDef?.isBlock) {
-                setFontStyleId(DEFAULT_FONT_STYLE_ID)
-            }
-        }
         prevContentRef.current = val
         setContent(val)
     }
@@ -382,9 +414,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                 style={{
                                     flex: 1, position: 'relative', overflow: 'hidden',
                                     borderRadius: '2px 0 0 2px',
-                                    backgroundColor: PAPER_BG,
-                                    backgroundImage: `radial-gradient(circle, ${PAPER_DOT} 1px, transparent 1px)`,
-                                    backgroundSize: '18px 18px',
+                                    ...paperStyle,
                                     transformOrigin: 'right center',
                                 }}
                             >
@@ -398,7 +428,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                                 setTimeout(() => { setCurrentPage(idx + 1); setIsAnimating(false) }, 500)
                                             }} />
                                     ) : leftEntry ? (
-                                        <EntryContent entry={leftEntry} writingFont={writingFont} fontStyle={fontStyle} pageNum={currentPage - 1} />
+                                        <EntryContent entry={leftEntry} writingFont={writingFont} fontStyle={fontStyle} ink={ink} pageNum={currentPage - 1} />
                                     ) : <BlankPage />}
                                 </div>
                             </motion.div>
@@ -412,9 +442,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                 style={{
                                     flex: 1, position: 'relative', overflow: 'hidden',
                                     borderRadius: '0 5px 5px 0',
-                                    backgroundColor: PAPER_BG,
-                                    backgroundImage: `radial-gradient(circle, ${PAPER_DOT} 1px, transparent 1px)`,
-                                    backgroundSize: '18px 18px',
+                                    ...paperStyle,
                                     transformOrigin: 'left center',
                                 }}
                                 data-page="right"
@@ -436,12 +464,12 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                             content={content} setContent={handleContentChange}
                                             mood={mood} moodInfo={moodInfo}
                                             selectedTags={selectedTags} toggleTag={toggleTag}
-                                            writingFont={writingFont} fontStyle={fontStyle}
+                                            writingFont={writingFont} fontStyle={fontStyle} ink={ink}
                                             isSaving={isSaving} onSave={handleSave}
                                             textareaRef={textareaRef}
                                         />
                                     ) : rightEntry ? (
-                                        <EntryContent entry={rightEntry} writingFont={writingFont} fontStyle={fontStyle} pageNum={currentPage} onDelete={handleDeleteEntry} />
+                                        <EntryContent entry={rightEntry} writingFont={writingFont} fontStyle={fontStyle} ink={ink} pageNum={currentPage} onDelete={handleDeleteEntry} />
                                     ) : <BlankPage />}
                                 </div>
                             </motion.div>
@@ -468,9 +496,10 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                         borderRight: `1px solid ${TB.iconBorder}`,
                     }}>
                         {[
-                            { id: 'font' as ToolSection, icon: 'Aa', title: 'Font' },
-                            { id: 'style' as ToolSection, icon: 'Bb', title: 'Style' },
-                            { id: 'stickers' as ToolSection, icon: '*', title: 'Stickers' },
+                            { id: 'page' as ToolSection, icon: '❏', title: 'Page' },
+                            { id: 'prompts' as ToolSection, icon: '✎', title: 'Prompts' },
+                            { id: 'decor' as ToolSection, icon: '≋', title: 'Washi' },
+                            { id: 'stickers' as ToolSection, icon: '✿', title: 'Stickers' },
                         ].map(tool => (
                             <motion.button key={tool.id} onClick={() => toggleSection(tool.id)}
                                 title={tool.title} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
@@ -492,69 +521,31 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                     {/* Expanded panel */}
                     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         <AnimatePresence mode="wait">
-                            {activeSection === 'font' && (
-                                <motion.div key="font-panel"
+                            {activeSection === 'page' && (
+                                <motion.div key="page-panel"
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Typeface" tb={TB} />
-                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '4px' }}>
-                                            {WRITING_FONTS.map(f => (
-                                                <button key={f.id} onClick={() => setWritingFontId(f.id)}
-                                                    style={{
-                                                        textAlign: 'left', padding: '8px 10px', borderRadius: '8px',
-                                                        fontFamily: f.family, fontStyle: f.style as any, fontSize: '14px',
-                                                        cursor: 'pointer',
-                                                        background: writingFontId === f.id ? TB.panelBtnActiveBg : 'transparent',
-                                                        border: writingFontId === f.id ? `1px solid ${TB.panelBtnActiveBorder}` : '1px solid transparent',
-                                                        color: writingFontId === f.id ? TB.panelBtnActiveColor : TB.panelBtnInactiveColor,
-                                                        transition: 'all 0.12s',
-                                                    }}>
-                                                    {f.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <PanelHeader title="Page" tb={TB} />
+                                    <PagePanel tb={TB} paperId={paperId} inkId={inkId} fontId={writingFontId} fonts={WRITING_FONTS} onPaper={setPaperId} onInk={setInkId} onFont={setWritingFontId} />
                                 </motion.div>
                             )}
-                            {activeSection === 'style' && (
-                                <motion.div key="style-panel"
+                            {activeSection === 'prompts' && (
+                                <motion.div key="prompts-panel"
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Text Style" tb={TB} />
-                                    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'thin', scrollbarColor: `${TB.scrollColor} transparent` }}>
-                                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', color: TB.labelColor, textTransform: 'uppercase', marginBottom: '6px' }}>
-                                            Applies to next typed paragraph
-                                        </p>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
-                                            {FONT_STYLES.map(fs => (
-                                                <button key={fs.id} onClick={() => handleStyleSelect(fs.id)}
-                                                    style={{
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                        padding: '9px 10px', borderRadius: '8px', cursor: 'pointer',
-                                                        background: panelFontStyleId === fs.id ? TB.panelBtnActiveBg : 'transparent',
-                                                        border: panelFontStyleId === fs.id ? `1px solid ${TB.panelBtnActiveBorder}` : '1px solid transparent',
-                                                        color: panelFontStyleId === fs.id ? TB.activeItemColor : TB.panelBtnInactiveColor,
-                                                        transition: 'all 0.12s',
-                                                    }}>
-                                                    <span style={{
-                                                        fontFamily: writingFont.family,
-                                                        fontWeight: fs.weight, fontStyle: fs.style as any,
-                                                        fontSize: Math.min(parseInt(fs.size), 16) + 'px', lineHeight: 1,
-                                                    }}>{fs.label}</span>
-                                                    <span style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', opacity: 0.4 }}>
-                                                        {fs.weight === '700' ? 'Bold' : fs.weight === '300' ? 'Light' : 'Normal'}{fs.style === 'italic' ? ' / Italic' : ''}
-                                                        {fs.isBlock ? ' ¶' : ''}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <p style={{ fontFamily: 'var(--font-jost)', fontSize: '8px', color: TB.labelColor, marginTop: '8px', lineHeight: 1.5 }}>
-                                            ¶ Block styles revert to Regular after a new line
-                                        </p>
-                                    </div>
+                                    <PanelHeader title="Prompts" tb={TB} />
+                                    <PromptsPanel tb={TB} onPick={insertPrompt} />
+                                </motion.div>
+                            )}
+                            {activeSection === 'decor' && (
+                                <motion.div key="decor-panel"
+                                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                                    transition={{ duration: 0.18 }}
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                    <PanelHeader title="Washi and Stamps" tb={TB} />
+                                    <DecorPanel tb={TB} onPick={handleDecorDrop} />
                                 </motion.div>
                             )}
                             {activeSection === 'stickers' && (
@@ -564,7 +555,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                     <PanelHeader title="Stickers" tb={TB} />
                                     <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                        <JournalStickers onSelect={handleStickerDrop} onClose={() => setActiveSection('font')} />
+                                        <JournalStickers onSelect={handleStickerDrop} onClose={() => setActiveSection('page')} />
                                     </div>
                                 </motion.div>
                             )}
@@ -654,8 +645,9 @@ function IndexPage({ entries, writingFont, onEntryClick }: {
     )
 }
 
-function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTag, writingFont, fontStyle, isSaving, onSave, textareaRef }: {
+function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTag, writingFont, fontStyle, ink, isSaving, onSave, textareaRef }: {
     content: string
+    ink: string
     setContent: (v: string) => void
     mood: number
     moodInfo: { label: string; color: string }
@@ -703,7 +695,7 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                     fontWeight: fontStyle.weight as any,
                     fontSize: fontStyle.size,
                     lineHeight: fontStyle.lh,
-                    color: PAPER_TEXT, caretColor: 'rgba(100,60,10,0.9)',
+                    color: ink, caretColor: ink,
                     overflowY: 'auto', boxSizing: 'border-box',
                     WebkitUserSelect: 'text' as any, userSelect: 'text' as any, cursor: 'text',
                     zIndex: 20, position: 'relative',
@@ -731,8 +723,9 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
     )
 }
 
-function EntryContent({ entry, writingFont, fontStyle, pageNum, onDelete }: {
+function EntryContent({ entry, writingFont, fontStyle, ink, pageNum, onDelete }: {
     entry: JournalEntry
+    ink: string
     writingFont: typeof WRITING_FONTS[0]
     fontStyle: typeof FONT_STYLES[0]
     pageNum: number
@@ -828,7 +821,7 @@ function EntryContent({ entry, writingFont, fontStyle, pageNum, onDelete }: {
                 fontWeight: '400',
                 fontSize: '14px',
                 lineHeight: '24px',
-                color: PAPER_TEXT, overflow: 'auto', flex: 1,
+                color: ink, overflow: 'auto', flex: 1, whiteSpace: 'pre-wrap',
                 WebkitUserSelect: 'text' as any, userSelect: 'text' as any,
             }}>{entry.content}</div>
             <div style={{ position: 'absolute', bottom: '14px', right: '20px', fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED }}>{pageNum}</div>
