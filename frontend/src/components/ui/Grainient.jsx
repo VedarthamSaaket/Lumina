@@ -8,6 +8,20 @@ const hexToRgb = hex => {
     return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
 };
 
+const CLOCK_KEY = 'lumina_grainient_clock';
+
+const sharedSeconds = () => {
+    let start = Date.now();
+    try {
+        const saved = Number(window.sessionStorage.getItem(CLOCK_KEY));
+        if (saved > 0) start = saved;
+        else window.sessionStorage.setItem(CLOCK_KEY, String(start));
+    } catch {
+        return performance.now() * 0.001;
+    }
+    return ((Date.now() - start) % 3600000) * 0.001;
+};
+
 const vertex = `#version 300 es
 in vec2 position;
 void main() {
@@ -194,9 +208,8 @@ const Grainient = ({
         setSize();
 
         let raf = 0;
-        const t0 = performance.now();
-        const loop = t => {
-            program.uniforms.iTime.value = (t - t0) * 0.001;
+        const loop = () => {
+            program.uniforms.iTime.value = sharedSeconds();
             renderer.render({ scene: mesh });
             raf = requestAnimationFrame(loop);
         };
