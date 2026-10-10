@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from google.auth.transport import requests as google_requests
@@ -101,8 +102,14 @@ async def firebase_signin(data: FirebaseSigninRequest, response: Response, db: S
 
 @router.post("/profile")
 def update_profile(data: ProfileRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if data.full_name is not None:
-        current_user.full_name = data.full_name.strip()[:80] or current_user.full_name
+    if data.full_name is not None and data.full_name.strip():
+        current_user.full_name = data.full_name.strip()[:80]
+        try:
+            stored = json.loads(current_user.settings_json) if current_user.settings_json else {}
+        except Exception:
+            stored = {}
+        stored["preferred_name"] = current_user.full_name
+        current_user.settings_json = json.dumps(stored)
     if data.age is not None:
         if not 13 <= data.age <= 120:
             raise HTTPException(status_code=400, detail="Please enter a valid age")

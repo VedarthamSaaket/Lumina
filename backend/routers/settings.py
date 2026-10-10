@@ -65,6 +65,8 @@ def get_settings(
             stored = {}
 
     merged = {**_defaults(), **stored}
+    if not (merged.get("preferred_name") or "").strip() and current_user.full_name:
+        merged["preferred_name"] = current_user.full_name
     return merged
 
 

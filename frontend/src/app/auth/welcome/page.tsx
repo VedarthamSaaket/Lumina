@@ -42,6 +42,10 @@ function WelcomeForm() {
   }, [router])
 
   const save = async () => {
+    if (!name.trim()) {
+      toast.error('Tell Lumina what to call you first.')
+      return
+    }
     const parsedAge = age.trim() ? Number(age) : undefined
     if (parsedAge !== undefined && (!Number.isInteger(parsedAge) || parsedAge < 13 || parsedAge > 120)) {
       toast.error('Please enter a valid age, or leave it empty.')
@@ -105,7 +109,7 @@ function WelcomeForm() {
             className="font-display italic"
             style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 300, lineHeight: 1.4 }}
           >
-            A few optional details help Lumina speak to you, not to a stranger. Skip anything you like.
+            Choose the name Lumina should use for you. The rest is optional and helps it speak to you, not to a stranger.
           </p>
         </div>
 
@@ -176,16 +180,6 @@ function WelcomeForm() {
             {saving ? 'Saving...' : 'Save and enter'}
           </motion.button>
 
-          <button
-            type="button"
-            onClick={() => router.push(next)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--font-eb-garamond)', fontSize: '14px', color: 'var(--gold)',
-            }}
-          >
-            Skip for now
-          </button>
         </div>
       </motion.div>
     </main>
