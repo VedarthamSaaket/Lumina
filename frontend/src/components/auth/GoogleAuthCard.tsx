@@ -30,6 +30,16 @@ const COPY: Record<Mode, { title: string; subtitle: string; button: string; swit
   },
 }
 
+const SIGNIN_ERRORS: Record<string, string> = {
+  'auth/operation-not-allowed': 'Google sign-in is not switched on in the Firebase console (Authentication, Sign-in method).',
+  'auth/configuration-not-found': 'Firebase Authentication is not set up for this project yet. Open Authentication in the console and press Get started.',
+  'auth/unauthorized-domain': 'This address is not in Firebase authorized domains (Authentication, Settings).',
+  'auth/invalid-api-key': 'The Firebase API key in the frontend env file is not valid.',
+  'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'The Firebase API key in the frontend env file is not valid.',
+  'auth/popup-blocked': 'The browser blocked the Google popup. Allow popups for this site and try again.',
+  'auth/network-request-failed': 'Could not reach Google. Check your connection and try again.',
+}
+
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -71,8 +81,10 @@ export default function GoogleAuthCard({ mode }: { mode: Mode }) {
       }
     } catch (err) {
       const code = (err as { code?: string })?.code || ''
+      const status = (err as { response?: { status?: number } })?.response?.status
+      console.error('[auth] Google sign-in failed', code || status || err)
       if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
-        toast.error('Could not sign you in with Google. Please try again.')
+        toast.error(SIGNIN_ERRORS[code] || (status ? `Lumina's server refused the sign-in (${status}).` : `Could not sign you in with Google${code ? ` (${code})` : ''}.`), { duration: 9000 })
       }
     } finally {
       setLoading(false)
