@@ -652,9 +652,10 @@ async def generate_summary(
                 chain.append(m)
 
     last_err: Exception | None = None
+    client = _client.with_options(max_retries=0)
     for m in chain:
         try:
-            response = _client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=m,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,

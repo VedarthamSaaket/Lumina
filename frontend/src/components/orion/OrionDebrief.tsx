@@ -189,8 +189,11 @@ export default function OrionDebrief({
 
         // 2) Ask Orion for the debrief narrative. Saves its own InsightSummary
         //    (source = 'orion_debrief') so the dashboard surfaces it too.
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 25000)
         fetch(`${API}/api/orion/debrief`, {
             method: 'POST',
+            signal: controller.signal,
             credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
             body: JSON.stringify({
@@ -217,6 +220,7 @@ export default function OrionDebrief({
                 setLoading(false)
             })
             .catch(() => setLoading(false))
+            .finally(() => clearTimeout(timeout))
     }, [])
 
     // Build stat cards from actual observed data
