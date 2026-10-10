@@ -3,10 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
+from services.signals import screening_note
 from models.database import get_db, User, ScreeningResult
 from utils.auth import get_current_user
-from services.psych_per_page import screening_sentiment_signal
-from services.psych_specialty import psycholex_screening_enrich
 import json
 
 router = APIRouter(prefix="/api/screening", tags=["screening"])
@@ -190,17 +189,8 @@ async def submit_screening(
         for i, ans in enumerate(data.answers)
     ]
 
-    # Layer A — small HF sentiment classifier spectrum.
-    psych_signal = await screening_sentiment_signal(data.question_contexts or [])
-    # Layer B — PsychoLexLLaMA-8B on Colab T4: academic-theory enrichment note.
-    specialty_enrichment = await psycholex_screening_enrich(
-        data.type, severity, data.question_contexts or []
-    )
-    payload = {
-        "answers": structured,
-        "psych_signal": psych_signal,
-        "specialty_enrichment": specialty_enrichment,
-    }
+    enrichment = await screening_note(data.type, severity, score, data.question_contexts or [])
+    payload = {"answers": structured, "specialty_enrichment": enrichment}
 
     result = ScreeningResult(
         user_id           = user.id,
@@ -218,8 +208,6 @@ async def submit_screening(
         "score": score,
         "severity": severity,
         "type": data.type,
-        "psych_signal": psych_signal,
-        "specialty_enrichment": specialty_enrichment,
     }
 
 

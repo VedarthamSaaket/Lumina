@@ -7,8 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from models.database import get_db, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
 from utils.auth import get_current_user
-from services.psych_per_page import orion_engagement_signal
-from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper
+from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper, model_kwargs
 import json
 from datetime import datetime
 
@@ -419,6 +418,7 @@ def _call_groq(
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
+        **model_kwargs(model or _app_settings.MODEL_ORION_CHAT),
     )
 
 
@@ -498,9 +498,8 @@ async def orion_stream(
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
-    engagement_signal = await orion_engagement_signal(data.content)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + engagement_signal + _now_block()
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -569,9 +568,8 @@ async def orion_message(
     orion_settings = _get_orion_settings(current_user.id, db)
     settings_prompt = _build_orion_settings_prompt(orion_settings)
     right_panel_prompt = _build_right_panel_prompt(data.right_panel_context)
-    engagement_signal = await orion_engagement_signal(data.content)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + engagement_signal + _now_block()
+    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:

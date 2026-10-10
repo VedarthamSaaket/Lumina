@@ -8,8 +8,6 @@ from models.database import (
 )
 from utils.auth import get_current_user
 from services.llm import generate_summary
-from services.psych_per_page import dashboard_emotion_aggregate
-from services.psych_specialty import mentallama_dashboard_justify
 from config import settings
 from middleware.ownership import require_owner
 from pydantic import BaseModel
@@ -197,8 +195,6 @@ async def generate_insight(
     cbt_summary     = f"CBT modules completed: {len(completed_modules)} of 6." if completed_modules else "No CBT modules completed yet."
     journal_summary = f"Journal entries written: {journal_count}." if journal_count else ""
 
-    aggregated_text = " ".join(filter(None, [mood_summary, screening_summary, cbt_summary, journal_summary]))
-    emotion_aggregate = await dashboard_emotion_aggregate(aggregated_text)
 
     prompt = f"""You are Lumina, a warm AI companion. Based on the following data about a user, write a short, warm, personal insight summary (3 paragraphs, no headers, no diagnoses). Speak directly to the user as "you". Be human and gentle.
 
@@ -209,7 +205,6 @@ DATA:
 {screening_summary}
 {cbt_summary}
 {journal_summary}
-{emotion_aggregate}
 
 Focus on patterns you notice, what seems to be going well, and one gentle suggestion. Under 200 words."""
 

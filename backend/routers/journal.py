@@ -6,7 +6,7 @@ from typing import Optional
 from models.database import get_db, User, JournalEntry, MoodLog
 from utils.auth import get_current_user
 from middleware.ownership import require_owner
-from services.psych_per_page import journal_emotion_tags
+from services.signals import journal_tags
 
 router = APIRouter(prefix="/api/journal", tags=["journal"])
 
@@ -24,9 +24,7 @@ async def create_entry(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # Psych augmentation: auto-tag emotion themes from the entry text using
-    # the GoEmotions classifier. Merged with any user-supplied tags.
-    auto_emotion_tags = await journal_emotion_tags(data.content)
+    auto_emotion_tags = await journal_tags(data.content)
     merged_tags = list(dict.fromkeys((data.tags or []) + auto_emotion_tags))
 
     entry = JournalEntry(

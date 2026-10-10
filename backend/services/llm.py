@@ -9,6 +9,12 @@ from config import settings
 # per-surface model strings live in config.py so swaps are one env var each.
 _client = Groq(api_key=settings.GROQ_API_KEY)
 
+
+def model_kwargs(model: str) -> dict:
+    if model.startswith("openai/gpt-oss"):
+        return {"reasoning_effort": "low"}
+    return {}
+
 PLATFORM_KNOWLEDGE = """
 YOU HAVE BUILT-IN TOOLS. When a user asks about any of the features below, ALWAYS redirect them using TOOL_REDIRECT. Never describe how to do something externally when an in-app path exists.
 
@@ -240,35 +246,16 @@ def detect_risk_level(text: str) -> int:
 
 
 async def detect_risk_full(text: str) -> dict:
-    """
-    Spectrum-aware risk detection. Combines the keyword detector with the HF
-    suicide-ideation classifier (per-page model for /crisis) and returns the
-    full picture instead of a single int:
-
-        {
-            "level":            int 0..3   — quantized for branching
-            "classifier_score": float 0..1 — raw HF probability (continuous)
-            "keyword_level":    int 0..3   — keyword-only signal
-        }
-
-    `level` is the MAX of the keyword level and the quantized classifier level
-    so we never under-call risk. The float `classifier_score` is preserved for
-    logging and downstream context. Fail-soft — if HF is down, the float
-    collapses to 0.0 and `level` falls back to the keyword result.
-    """
     keyword_level = detect_risk_level(text)
-    classifier_score = 0.0
-    classifier_level = 0
+    classifier_level = None
     try:
-        # Local import to avoid a circular import at module load
-        from services.psych_per_page import crisis_risk_score, risk_score_to_level
-        classifier_score = await crisis_risk_score(text)
-        classifier_level = risk_score_to_level(classifier_score)
+        from services.signals import classify_risk
+        classifier_level = await classify_risk(text)
     except Exception as e:
-        print(f"[risk augment error] {type(e).__name__}: {e}")
+        print(f"[risk check error] {type(e).__name__}: {e}")
     return {
-        "level": max(keyword_level, classifier_level),
-        "classifier_score": float(classifier_score),
+        "level": max(keyword_level, classifier_level or 0),
+        "classifier_level": classifier_level,
         "keyword_level": keyword_level,
     }
 
@@ -423,8 +410,9 @@ def _build_messages(
     risk_level:      int,
     user_context:    str,
     settings_prompt: str = "",
+    priority_prompt: str = "",
 ) -> list[dict]:
-    system = _SYSTEM_PROMPT_CACHED
+    system = priority_prompt + _SYSTEM_PROMPT_CACHED
     # Inject settings before context so preferences shape everything
     if settings_prompt:
         system += settings_prompt
@@ -448,24 +436,46 @@ def _build_messages(
 # STREAMING CHAT  (Lumina chat surface → Groq, MODEL_LUMINA_CHAT)
 # ─────────────────────────────────────────────
 # Function names kept stable so routers/chat.py imports don't shift.
-# Routes to settings.MODEL_LUMINA_CHAT (Kimi K2 by default) on Groq.
+# Routes to settings.MODEL_LUMINA_CHAT on Groq.
+def _chat_models() -> list[str]:
+    chain: list[str] = []
+    for m in (settings.MODEL_LUMINA_CHAT, settings.MODEL_SUMMARY, settings.MODEL_FALLBACK):
+        if m and m not in chain:
+            chain.append(m)
+    return chain
+
+
+def _create_chat(messages: list[dict], stream: bool):
+    client = _client.with_options(max_retries=0)
+    last_err: Exception | None = None
+    for m in _chat_models():
+        try:
+            return client.chat.completions.create(
+                model=m,
+                messages=messages,
+                max_tokens=1024,
+                temperature=0.7,
+                stream=stream,
+                **model_kwargs(m),
+            )
+        except Exception as e:
+            last_err = e
+            print(f"[Groq chat] {m} failed ({type(e).__name__}), trying next model")
+    raise last_err or RuntimeError("no chat model configured")
+
+
 async def chat_with_llama_stream(
     user_message:    str,
     history:         list[dict],
     risk_level:      int = 0,
     user_context:    str = "",
     settings_prompt: str = "",
+    priority_prompt: str = "",
 ):
-    messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt)
+    messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt, priority_prompt)
     stripper = ThinkStripper()
     try:
-        stream = _client.chat.completions.create(
-            model=settings.MODEL_LUMINA_CHAT,
-            messages=messages,
-            max_tokens=1024,
-            temperature=0.7,
-            stream=True,
-        )
+        stream = _create_chat(messages, stream=True)
         for chunk in stream:
             token = chunk.choices[0].delta.content
             if token:
@@ -488,15 +498,11 @@ async def chat_with_llama(
     risk_level:      int = 0,
     user_context:    str = "",
     settings_prompt: str = "",
+    priority_prompt: str = "",
 ) -> str:
-    messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt)
+    messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt, priority_prompt)
     try:
-        response = _client.chat.completions.create(
-            model=settings.MODEL_LUMINA_CHAT,
-            messages=messages,
-            max_tokens=1024,
-            temperature=0.7,
-        )
+        response = _create_chat(messages, stream=False)
         text = response.choices[0].message.content or ""
         return _strip_em_dashes(_strip_think_tags(text))
     except Exception as e:
@@ -515,16 +521,7 @@ async def warmup_model():
     print(f"  Orion debrief      → {settings.MODEL_ORION_DEBRIEF}")
     print(f"  Orion right-panel  → {settings.MODEL_ORION_RIGHT_PANEL}")
     print(f"  Screening summary  → {settings.MODEL_SUMMARY}")
-    aug = "ON" if (settings.ENABLE_PSYCH_AUGMENT and settings.HF_API_KEY) else "OFF"
-    print(f"[Psych] Augmentation layer (HuggingFace Inference API): {aug}")
-    if aug == "ON":
-        print(f"  /chat       → {settings.PSYCH_MODEL_CHAT}")
-        print(f"  /journal    → {settings.PSYCH_MODEL_JOURNAL}")
-        print(f"  /cbt        → {settings.PSYCH_MODEL_CBT}")
-        print(f"  /crisis     → {settings.PSYCH_MODEL_CRISIS}")
-        print(f"  /screening  → {settings.PSYCH_MODEL_SCREENING}")
-        print(f"  /orion      → {settings.PSYCH_MODEL_ORION}")
-        print(f"  /dashboard  → {settings.PSYCH_MODEL_DASHBOARD}")
+    print(f"  Crisis risk check  → {settings.MODEL_RISK}")
 
 # ─────────────────────────────────────────────
 # SUMMARY GENERATION  (Groq, per-surface model + fallback chain)
@@ -648,7 +645,7 @@ async def generate_summary(
             settings.MODEL_LUMINA_CHAT,
             settings.MODEL_DASHBOARD_INSIGHT,
             settings.MODEL_SUMMARY,
-            "llama-3.1-8b-instant",
+            settings.MODEL_FALLBACK,
         ):
             if m and m not in chain:
                 chain.append(m)
@@ -661,6 +658,7 @@ async def generate_summary(
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature,
+                **model_kwargs(m),
             )
             msg = response.choices[0].message
             text = (getattr(msg, "content", None) or "").strip()

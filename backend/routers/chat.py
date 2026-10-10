@@ -14,8 +14,8 @@ from services.llm import (
     detect_risk_level, detect_risk_augmented, detect_risk_full,
     post_process_response, build_user_context,
 )
-from services.psych_per_page import chat_emotion_signal
-from services.psych_specialty import psychocounsel_critic
+from services import wellbeing
+from services.signals import review_reply
 from middleware.ownership import require_owner
 from datetime import datetime
 import json, re
@@ -385,12 +385,9 @@ async def stream_message(
     convo      = _get_or_create_convo(data, current_user.id, db)
     risk        = await detect_risk_full(data.content)
     risk_level  = risk["level"]
-    risk_score  = risk["classifier_score"]
 
     if risk_level >= 1:
-        # Persist the continuous spectrum score alongside the discrete level
-        # so audits can see how confident the classifier was at log time.
-        log_content = f"[score={risk_score:.3f} kw={risk['keyword_level']}] {data.content[:480]}"
+        log_content = f"[model={risk['classifier_level']} kw={risk['keyword_level']}] {data.content[:480]}"
         db.add(CrisisLog(user_id=current_user.id, level=risk_level, content=log_content))
         db.commit()
 
@@ -430,9 +427,7 @@ async def stream_message(
     user_settings          = _get_user_settings(current_user.id, db)
     user_context           = _get_user_context(current_user.id, db, user_settings)
     settings_prompt        = _build_settings_prompt(user_settings)
-    # Psych augmentation: pre-classify the current message and inject as hidden
-    # PSYCH_SIGNAL block. Fail-soft — empty string when HF is down or disabled.
-    settings_prompt       += await chat_emotion_signal(data.content)
+    priority_prompt        = wellbeing.priority_block(current_user.id, db)
 
     async def generate():
         full_response = ""
@@ -442,12 +437,15 @@ async def stream_message(
                 risk_level=risk_level,
                 user_context=user_context,
                 settings_prompt=settings_prompt,
+                priority_prompt=priority_prompt,
             ):
                 full_response += token
-                yield f"data: {json.dumps({'text': token})}\n\n"
+                if risk_level < 1:
+                    yield f"data: {json.dumps({'text': token})}\n\n"
         except Exception as e:
             error_msg = "Something went wrong mid-response. Please try again."
-            yield f"data: {json.dumps({'text': error_msg})}\n\n"
+            if risk_level < 1:
+                yield f"data: {json.dumps({'text': error_msg})}\n\n"
             full_response = full_response or error_msg
 
         tool_redirect = None
@@ -461,21 +459,13 @@ async def stream_message(
 
         full_response = post_process_response(full_response, risk_level)
 
-        # Layer B critic — PsychoCounsel-Llama3 on Colab T4. Only fires for
-        # risk_level >= 1 so the latency cost is paid where safety matters.
-        # Fails soft → keeps the original draft if Colab is unreachable.
-        critic_diff = None
+        reviewed = False
         if risk_level >= 1:
-            edited = await psychocounsel_critic(data.content, full_response, risk_level)
-            if edited and edited != full_response:
-                critic_diff = {"before": full_response[:400], "after": edited[:400]}
+            edited = await review_reply(data.content, full_response, risk_level)
+            if edited:
                 full_response = edited
-                # Replay the corrected tail so the user sees the final text.
-                # Build the JSON outside the f-string: an f-string expression
-                # part cannot contain a backslash on Python < 3.12, and the SSE
-                # payload needs literal newlines in the replaced text.
-                replace_payload = json.dumps({"text": "\n\n" + edited, "replace": True})
-                yield f"data: {replace_payload}\n\n"
+                reviewed = True
+            yield f"data: {json.dumps({'text': full_response})}\n\n"
 
         try:
             db.add(ChatMessage(
@@ -490,7 +480,9 @@ async def stream_message(
             print(f"[Chat/stream] DB save error: {type(e).__name__}: {e}")
             db.rollback()
 
-        yield f"data: {json.dumps({'conversation_id': str(convo.id), 'risk_level': risk_level, 'tool_redirect': tool_redirect, 'critic_edited': critic_diff is not None})}\n\n"
+        wellbeing.schedule_chat_review(current_user.id, str(convo.id))
+
+        yield f"data: {json.dumps({'conversation_id': str(convo.id), 'risk_level': risk_level, 'tool_redirect': tool_redirect, 'reviewed': reviewed})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
@@ -514,10 +506,9 @@ async def send_message(
     convo      = _get_or_create_convo(data, current_user.id, db)
     risk        = await detect_risk_full(data.content)
     risk_level  = risk["level"]
-    risk_score  = risk["classifier_score"]
 
     if risk_level >= 1:
-        log_content = f"[score={risk_score:.3f} kw={risk['keyword_level']}] {data.content[:480]}"
+        log_content = f"[model={risk['classifier_level']} kw={risk['keyword_level']}] {data.content[:480]}"
         db.add(CrisisLog(user_id=current_user.id, level=risk_level, content=log_content))
         db.commit()
 
@@ -551,22 +542,21 @@ async def send_message(
     user_settings   = _get_user_settings(current_user.id, db)
     user_context    = _get_user_context(current_user.id, db, user_settings)
     settings_prompt = _build_settings_prompt(user_settings)
-    settings_prompt += await chat_emotion_signal(data.content)
+    priority_prompt = wellbeing.priority_block(current_user.id, db)
 
     response = await chat_with_llama(
         data.content, history, risk_level,
         user_context=user_context,
         settings_prompt=settings_prompt,
+        priority_prompt=priority_prompt,
     )
     response = post_process_response(response, risk_level)
-
-    # Layer B critic — PsychoCounsel-Llama3 for risk_level >= 1.
-    critic_edited = False
+    reviewed = False
     if risk_level >= 1:
-        edited = await psychocounsel_critic(data.content, response, risk_level)
-        if edited and edited != response:
+        edited = await review_reply(data.content, response, risk_level)
+        if edited:
             response = edited
-            critic_edited = True
+            reviewed = True
 
     tool_redirect = None
     tool_match    = re.search(r'TOOL_REDIRECT:(\{[^}]+\})', response)
@@ -583,10 +573,12 @@ async def send_message(
     convo.updated_at = datetime.utcnow()
     db.commit()
 
+    wellbeing.schedule_chat_review(current_user.id, str(convo.id))
+
     return {
         "response":         response,
         "risk_level":       risk_level,
         "conversation_id":  convo.id,
         "tool_redirect":    tool_redirect,
-        "critic_edited":    critic_edited,
+        "reviewed":         reviewed,
     }
