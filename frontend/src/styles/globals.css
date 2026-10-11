@@ -145,11 +145,9 @@ body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
-  /* Scoped user-select: deny selection on UI chrome (buttons, headings),
-   * keep it open for text content. Component-level overrides via .no-select
-   * (UI controls) or .select-text (long-form content) still work. */
-  -webkit-user-select: text;
-  user-select: text;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   /* iOS Safari tap-highlight is ugly; we have our own hover/active styles. */
   -webkit-tap-highlight-color: transparent;
 }
@@ -167,8 +165,7 @@ a,
 /* Inputs keep selection regardless of parent rules. */
 input,
 textarea,
-[contenteditable="true"],
-.select-text {
+[contenteditable="true"] {
   -webkit-user-select: text;
   user-select: text;
 }
@@ -664,7 +661,7 @@ textarea,
    Use .lumina-page-title + optional .gold span everywhere
    ───────────────────────────────────────────────────────────────────────────── */
 .lumina-page-title {
-  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif !important;
+  font-family: var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif !important;
   font-weight: 400 !important;
   font-style: italic !important;
   letter-spacing: -0.01em !important;
@@ -697,7 +694,7 @@ textarea,
 }
 
 .lumina-page-subtitle {
-  font-family: 'Cormorant Garamond', serif !important;
+  font-family: var(--font-cormorant), serif !important;
   font-style: italic !important;
   font-weight: 300 !important;
   color: var(--text-secondary) !important;
@@ -706,7 +703,7 @@ textarea,
 
 /* Wrapper helper */
 .lumina-heading-wrap {
-  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif;
+  font-family: var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif;
   font-weight: 400;
   font-style: italic;
   font-size: clamp(2.2rem, 5vw, 4rem);
@@ -1295,7 +1292,7 @@ textarea.journal-write-area,
    LEGACY SHIMMER HELPERS (kept for backward compat)
    ───────────────────────────────────────────────────────────────────────────── */
 .lumina-section-heading {
-  font-family: "Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif;
+  font-family: var(--font-baskerville), "Baskerville", "Book Antiqua", Georgia, serif;
   font-weight: 400;
   letter-spacing: -0.01em;
   background: linear-gradient(90deg,
@@ -1315,7 +1312,7 @@ textarea.journal-write-area,
 }
 
 .page-heading-wrap {
-  font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif;
+  font-family: var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif;
   font-weight: 400;
   font-style: italic;
   font-size: clamp(2rem, 4vw, 3.2rem);

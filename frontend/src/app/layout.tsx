@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
+import { CopyGuard } from '@/components/layout/CopyGuard'
 import { Toaster } from 'react-hot-toast'
 import localFont from 'next/font/local'
 
@@ -164,6 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={FONT_VARS} suppressHydrationWarning>
       <body>
         <ThemeProvider>
+          <CopyGuard />
           <div className="grain-overlay" aria-hidden="true" />
           {children}
           <Toaster
