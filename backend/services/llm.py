@@ -474,15 +474,16 @@ async def chat_with_llama_stream(
 ):
     messages = _build_messages(user_message, history, risk_level, user_context, settings_prompt, priority_prompt)
     stripper = ThinkStripper()
+    dashes = DashStripper()
     try:
         stream = _create_chat(messages, stream=True)
         for chunk in stream:
             token = chunk.choices[0].delta.content
             if token:
-                safe = stripper.feed(token)
+                safe = dashes.feed(stripper.feed(token))
                 if safe:
                     yield safe
-        tail = stripper.flush()
+        tail = dashes.feed(stripper.flush()) + dashes.flush()
         if tail:
             yield tail
     except Exception as e:
@@ -551,6 +552,7 @@ def _strip_em_dashes(text: str) -> str:
     DASHES = "‐‑‒–—―−﹘﹣－"
     # Padded: ' — ' or ' -- ' style → ', '
     text = re.sub(rf"\s*[{DASHES}]+\s*", ", ", text)
+    text = re.sub(r"(?<=\w)\s+--\s+(?=\w)", ", ", text)
     # Double-comma artifacts from chained replacements
     text = re.sub(r",\s*,", ",", text)
     # Comma at start of line after replacement
@@ -570,6 +572,28 @@ def _strip_think_tags(text: str) -> str:
     cleaned = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
     cleaned = re.sub(r'</?think>', '', cleaned, flags=re.IGNORECASE)
     return cleaned.strip()
+
+
+class DashStripper:
+    HOLD = " \t\r\n-‐‑‒–—―−﹘﹣－"
+
+    def __init__(self):
+        self._raw = ""
+        self._sent = ""
+
+    def _emit(self, clean: str) -> str:
+        out = clean[len(self._sent):]
+        self._sent += out
+        return out
+
+    def feed(self, token: str) -> str:
+        if not token:
+            return ""
+        self._raw += token
+        return self._emit(_strip_em_dashes(self._raw.rstrip(self.HOLD)))
+
+    def flush(self) -> str:
+        return self._emit(_strip_em_dashes(self._raw))
 
 
 class ThinkStripper:

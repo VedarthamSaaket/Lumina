@@ -34,7 +34,7 @@ from models.database import (
     CognitiveTestResult, InsightSummary,
 )
 from utils.auth import get_current_user, get_optional_user
-from services.llm import generate_summary, build_user_context, model_kwargs
+from services.llm import generate_summary, build_user_context, model_kwargs, DashStripper
 from config import settings
 
 router = APIRouter()
@@ -341,10 +341,15 @@ async def stream_summary(body: SummaryRequest):
                 stream=True,
                 **model_kwargs(settings.MODEL_SUMMARY),
             )
+            dashes = DashStripper()
             for chunk in stream:
                 token = chunk.choices[0].delta.content
-                if token:
-                    yield f"data: {json.dumps({'text': token})}\n\n"
+                safe = dashes.feed(token) if token else ""
+                if safe:
+                    yield f"data: {json.dumps({'text': safe})}\n\n"
+            tail = dashes.flush()
+            if tail:
+                yield f"data: {json.dumps({'text': tail})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             print(f"[Groq summary stream error] {type(e).__name__}: {e}")
