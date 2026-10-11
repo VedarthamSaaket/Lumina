@@ -183,7 +183,7 @@ export default function OrionPage() {
               <GoldHeading prefix="" gold="Orion" size="clamp(2rem, 5vw, 3.5rem)" />
             </div>
             <p style={{
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "var(--font-cormorant), serif",
               fontStyle: 'italic', fontWeight: 300,
               fontSize: '1.1rem',
               color: `${ORION_COLOR}cc`,

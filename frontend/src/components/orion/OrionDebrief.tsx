@@ -293,8 +293,8 @@ export default function OrionDebrief({
                 <div style={{ padding: '20px 24px 16px', background: isDark ? 'rgba(8,10,26,0.99)' : 'rgba(218,232,252,0.99)', borderBottom: `1px solid ${borderColor}`, display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ fontSize: '28px', color, filter: `drop-shadow(0 0 8px ${color}50)` }}>{icon}</div>
                     <div>
-                        <p style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', letterSpacing: '0.14em', color: orionColor, margin: '0 0 2px' }}>ORION DEBRIEF</p>
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.1rem', color: textPrimary, margin: 0 }}>{gameTitle}</p>
+                        <p style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '10px', letterSpacing: '0.14em', color: orionColor, margin: '0 0 2px' }}>ORION DEBRIEF</p>
+                        <p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.1rem', color: textPrimary, margin: 0 }}>{gameTitle}</p>
                     </div>
                     {detailedStats.fatiguedPattern && (
                         <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '8px', background: 'rgba(201,137,122,0.12)', border: '1px solid rgba(201,137,122,0.28)' }}>
@@ -309,7 +309,7 @@ export default function OrionDebrief({
                         {statCards.map(({ label, value }) => (
                             <div key={label} style={{ background: cardBg, border: cardBorder, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
                                 <p style={{ fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', color: textMuted, margin: '0 0 4px' }}>{label}</p>
-                                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1.8rem', color, lineHeight: 1, margin: 0 }}>{value}</p>
+                                <p style={{ fontFamily: "var(--font-cormorant), serif", fontWeight: 300, fontSize: '1.8rem', color, lineHeight: 1, margin: 0 }}>{value}</p>
                             </div>
                         ))}
                     </div>
@@ -339,7 +339,7 @@ export default function OrionDebrief({
                     <div style={{ background: cardBg, border: cardBorder, borderRadius: '14px', padding: '18px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
                             <div style={{ width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, background: `${orionColor}18`, border: `1px solid ${orionColor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: orionColor }}>*</div>
-                            <p style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.14em', color: orionColor, margin: 0 }}>ORION'S ANALYSIS</p>
+                            <p style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '9px', letterSpacing: '0.14em', color: orionColor, margin: 0 }}>ORION'S ANALYSIS</p>
                         </div>
 
                         {loading && (
@@ -360,7 +360,7 @@ export default function OrionDebrief({
                         {!loading && debrief && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                 {debrief.headline && (
-                                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.1rem', color: textPrimary, lineHeight: '1.55', margin: 0 }}>{debrief.headline}</p>
+                                    <p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.1rem', color: textPrimary, lineHeight: '1.55', margin: 0 }}>{debrief.headline}</p>
                                 )}
                                 {debrief.what_happened && (
                                     <div>

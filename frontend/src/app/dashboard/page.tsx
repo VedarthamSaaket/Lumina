@@ -77,7 +77,7 @@ const GAME_DISPLAY: Record<string, { name: string; color: string; icon: string }
   // Fluid intelligence (Cattell Culture Fair)
   matrix: { name: 'Matrix Reasoning', color: '#d4af37', icon: '⊞' },
   oddoneout: { name: 'Odd One Out', color: '#c9897a', icon: '◉' },
-  series: { name: 'Series Completion', color: '#5b9bd5', icon: '->' },
+  series: { name: 'Series Completion', color: '#5b9bd5', icon: '→' },
   analogy: { name: 'Visual Analogy', color: '#8b7355', icon: '∷' },
   paperfold: { name: 'Paper Folding', color: '#d4af37', icon: '◱' },
 }
@@ -853,7 +853,7 @@ export default function DashboardPage() {
                       <Card key={s.id} color="#b8a070">
                         <div className="flex items-center justify-between mb-3">
                           <p style={{
-                            fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+                            fontFamily: "var(--font-baskerville), Baskerville, Georgia, serif",
                             fontWeight: 400, fontStyle: 'italic',
                             fontSize: '0.95rem', color: 'var(--text-primary)',
                           }}>{s.title}</p>

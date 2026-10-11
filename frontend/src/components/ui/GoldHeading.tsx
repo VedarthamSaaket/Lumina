@@ -26,7 +26,7 @@ export function GoldHeading({ prefix, gold, suffix, size, className }: GoldHeadi
         <h1
             className={className}
             style={{
-                fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+                fontFamily: "var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif",
                 fontWeight: 400,
                 fontStyle: 'italic',
                 fontSize: size || 'clamp(2.2rem, 5vw, 4rem)',
@@ -70,7 +70,7 @@ export function GoldHeading({ prefix, gold, suffix, size, className }: GoldHeadi
 // Just copy-paste this pattern anywhere:
 /*
 <h1 style={{
-  fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+  fontFamily: "var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif",
   fontWeight: 400, fontStyle: 'italic',
   fontSize: 'clamp(2.2rem, 5vw, 4rem)',
   color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15,

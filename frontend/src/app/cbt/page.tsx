@@ -589,7 +589,7 @@ Rules:
             <div className="text-center mb-6">
               <div className="text-5xl mb-3" style={{ color: completedMod.color }}>{completedMod.icon}</div>
               <h2 style={{
-                fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+                fontFamily: "var(--font-baskerville), Baskerville, Georgia, serif",
                 fontWeight: 400, fontStyle: 'italic',
                 fontSize: '1.6rem', color: 'var(--text-primary)',
                 letterSpacing: '-0.01em', marginBottom: '4px',
@@ -720,7 +720,7 @@ Rules:
 
         <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-12">
           <GoldHeading prefix="Inner" gold="Work" />
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '1.15rem', color: 'var(--text-secondary)' }}>
+          <p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 300, fontSize: '1.15rem', color: 'var(--text-secondary)' }}>
             Guided exercises for real change. Use when you need it.
           </p>
         </motion.div>
@@ -744,7 +744,7 @@ Rules:
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 style={{
-                        fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+                        fontFamily: "var(--font-baskerville), Baskerville, Georgia, serif",
                         fontWeight: 400, fontStyle: 'italic',
                         fontSize: '1.05rem', color: 'var(--text-primary)',
                         letterSpacing: '-0.01em', marginBottom: '3px',
@@ -787,7 +787,7 @@ Rules:
                   </div>
                   <div>
                     <h2 style={{
-                      fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+                      fontFamily: "var(--font-baskerville), Baskerville, Georgia, serif",
                       fontWeight: 400, fontStyle: 'italic',
                       fontSize: '1.5rem', color: 'var(--text-primary)', letterSpacing: '-0.01em',
                     }}>
@@ -847,7 +847,7 @@ Rules:
                   {cur.q}
                 </h3>
                 {cur.hint && (
-                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                  <p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                     {cur.hint}
                   </p>
                 )}
@@ -885,7 +885,7 @@ Rules:
                         borderRadius: '10px',
                         background: `${mod.color}0c`,
                         border: `1px solid ${mod.color}1f`,
-                        fontFamily: "'Cormorant Garamond', serif",
+                        fontFamily: "var(--font-cormorant), serif",
                         fontStyle: 'italic',
                         fontWeight: 300,
                         fontSize: '0.92rem',
@@ -920,7 +920,7 @@ Rules:
                   <div className="py-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>{cur.min ?? 0}</span>
-                      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '3.5rem', color: mod.color, lineHeight: 1 }}>{slider}</span>
+                      <span style={{ fontFamily: "var(--font-cormorant), serif", fontWeight: 300, fontSize: '3.5rem', color: mod.color, lineHeight: 1 }}>{slider}</span>
                       <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>{cur.max ?? 10}</span>
                     </div>
                     <input type="range" min={cur.min ?? 0} max={cur.max ?? 10} value={slider}
@@ -955,7 +955,7 @@ Rules:
                             <div>
                               <div className="font-body text-sm" style={{ color: 'var(--text-primary)' }}>{opt.label}</div>
                               {opt.sub && (
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                <div style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 300, fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                   {opt.sub}
                                 </div>
                               )}

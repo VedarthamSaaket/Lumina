@@ -492,7 +492,7 @@ export default function SettingsPage() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <h1 style={{
-            fontFamily: "'Libre Baskerville', Baskerville, Georgia, serif",
+            fontFamily: "var(--font-baskerville), Baskerville, Georgia, serif",
             fontWeight: 400, fontStyle: 'italic',
             fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
             color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.12,

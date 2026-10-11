@@ -3,116 +3,130 @@ import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { Toaster } from 'react-hot-toast'
-import {
-  Cormorant_Garamond,
-  EB_Garamond,
-  Cinzel,
-  Playfair_Display,
-  Rajdhani,
-  Space_Mono,
-  Libre_Baskerville,
-  Philosopher,
-  Jost,
-  Crimson_Pro,
-  DM_Sans,
-  Fraunces,
-} from 'next/font/google'
+import localFont from 'next/font/local'
 
-// ─── Self-hosted Google Fonts (build-time bundled, no runtime CDN call) ───────
-// Each font keeps the same CSS-variable name the rest of the app already uses
-// via tailwind.config + globals.css, so no downstream class/utility changes.
-
-const cormorant = Cormorant_Garamond({
+const cormorant = localFont({
   variable: '--font-cormorant',
-  weight:   ['300', '400', '600', '700'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/cormorant-garamond-italic-300-700.woff2', weight: '300 700', style: 'italic' },
+    { path: '../fonts/cormorant-garamond-normal-300-700.woff2', weight: '300 700', style: 'normal' },
+  ],
 })
 
-const ebGaramond = EB_Garamond({
+const ebGaramond = localFont({
   variable: '--font-eb-garamond',
-  weight:   ['400', '500', '600'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/eb-garamond-italic-400-600.woff2', weight: '400 600', style: 'italic' },
+    { path: '../fonts/eb-garamond-normal-400-600.woff2', weight: '400 600', style: 'normal' },
+  ],
 })
 
-const cinzel = Cinzel({
+const cinzel = localFont({
   variable: '--font-cinzel',
-  weight:   ['400', '600', '700', '900'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/cinzel-normal-400-900.woff2', weight: '400 900', style: 'normal' },
+  ],
 })
 
-const playfair = Playfair_Display({
+const playfair = localFont({
   variable: '--font-playfair',
-  weight:   ['400', '700', '900'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/playfair-display-italic-400-900.woff2', weight: '400 900', style: 'italic' },
+    { path: '../fonts/playfair-display-normal-400-900.woff2', weight: '400 900', style: 'normal' },
+  ],
 })
 
-const rajdhani = Rajdhani({
+const rajdhani = localFont({
   variable: '--font-rajdhani',
-  weight:   ['300', '400', '500', '600', '700'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/rajdhani-normal-300.woff2', weight: '300', style: 'normal' },
+    { path: '../fonts/rajdhani-normal-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/rajdhani-normal-500.woff2', weight: '500', style: 'normal' },
+    { path: '../fonts/rajdhani-normal-600.woff2', weight: '600', style: 'normal' },
+    { path: '../fonts/rajdhani-normal-700.woff2', weight: '700', style: 'normal' },
+  ],
 })
 
-const spaceMono = Space_Mono({
+const spaceMono = localFont({
   variable: '--font-space-mono',
-  weight:   ['400', '700'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/space-mono-italic-400.woff2', weight: '400', style: 'italic' },
+    { path: '../fonts/space-mono-italic-700.woff2', weight: '700', style: 'italic' },
+    { path: '../fonts/space-mono-normal-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/space-mono-normal-700.woff2', weight: '700', style: 'normal' },
+  ],
 })
 
-const libreBaskerville = Libre_Baskerville({
+const libreBaskerville = localFont({
   variable: '--font-baskerville',
-  weight:   ['400'],
-  style:    ['italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/libre-baskerville-italic-400.woff2', weight: '400', style: 'italic' },
+  ],
 })
 
-const philosopher = Philosopher({
+const philosopher = localFont({
   variable: '--font-philosopher',
-  weight:   ['400', '700'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/philosopher-italic-400.woff2', weight: '400', style: 'italic' },
+    { path: '../fonts/philosopher-italic-700.woff2', weight: '700', style: 'italic' },
+    { path: '../fonts/philosopher-normal-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/philosopher-normal-700.woff2', weight: '700', style: 'normal' },
+  ],
 })
 
-const jost = Jost({
+const jost = localFont({
   variable: '--font-jost',
-  weight:   ['300', '400', '500'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/jost-normal-300-500.woff2', weight: '300 500', style: 'normal' },
+  ],
 })
 
-const crimson = Crimson_Pro({
+const crimson = localFont({
   variable: '--font-crimson',
-  weight:   ['300', '400', '500'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/crimson-pro-italic-300-500.woff2', weight: '300 500', style: 'italic' },
+    { path: '../fonts/crimson-pro-normal-300-500.woff2', weight: '300 500', style: 'normal' },
+  ],
 })
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
   variable: '--font-dm-sans',
-  weight:   ['300', '400', '500'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/dm-sans-italic-300-500.woff2', weight: '300 500', style: 'italic' },
+    { path: '../fonts/dm-sans-normal-300-500.woff2', weight: '300 500', style: 'normal' },
+  ],
 })
 
-const fraunces = Fraunces({
+const fraunces = localFont({
   variable: '--font-fraunces',
-  weight:   ['300', '400'],
-  style:    ['normal', 'italic'],
-  subsets:  ['latin'],
-  display:  'swap',
+  display: 'block',
+  adjustFontFallback: false,
+  src: [
+    { path: '../fonts/fraunces-italic-300-400.woff2', weight: '300 400', style: 'italic' },
+    { path: '../fonts/fraunces-normal-300-400.woff2', weight: '300 400', style: 'normal' },
+  ],
 })
 
 const FONT_VARS = [

@@ -306,7 +306,7 @@ background: isDark ? 'rgba(10,14,32,0.99)' : 'rgba(220,232,248,0.99)',
 }}>
 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 <span style={{ fontSize: '14px', color }}>{icon}</span>
-<p style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', letterSpacing: '0.14em', color, margin: 0 }}>
+<p style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '10px', letterSpacing: '0.14em', color, margin: 0 }}>
 {label.toUpperCase()}
 </p>
 </div>
@@ -385,7 +385,7 @@ style={{ background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(212,175,55,0.08)',
 {contentType === 'exercise' && (
 <>
 <div>
-<p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.25rem', color: textPrimary, margin: '0 0 4px' }}>{content.title}</p>
+<p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.25rem', color: textPrimary, margin: '0 0 4px' }}>{content.title}</p>
 <div style={{ height: '1px', background: `linear-gradient(90deg, ${color}40, transparent)`, marginBottom: '14px' }} />
 </div>
 <div style={{ background: cardBg, border: cardBorder, borderRadius: '12px', padding: '16px' }}>
@@ -403,7 +403,7 @@ style={{ background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(212,175,55,0.08)',
 <>
 <div style={{ background: `${color}12`, border: `1px solid ${color}28`, borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
 <span style={{ fontSize: '22px', display: 'block', marginBottom: '10px' }}>*</span>
-<p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '1.15rem', color: textPrimary, lineHeight: '1.65', margin: 0 }}>{content.hook}</p>
+<p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontSize: '1.15rem', color: textPrimary, lineHeight: '1.65', margin: 0 }}>{content.hook}</p>
 </div>
 <p style={{ fontFamily: 'var(--font-jost)', fontSize: '13px', color: textSecondary, lineHeight: '1.85', margin: 0 }}>{content.detail}</p>
 <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(212,175,55,0.07)', border: `1px solid ${goldColor}20`, borderRadius: '10px', padding: '12px' }}>
@@ -416,7 +416,7 @@ style={{ background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(212,175,55,0.08)',
 {contentType === 'curiosity_prompt' && (
 <>
 <div style={{ background: `${color}10`, border: `1px solid ${color}25`, borderRadius: '12px', padding: '18px' }}>
-<p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '1.2rem', color: textPrimary, lineHeight: '1.65', margin: 0 }}>{content.question}</p>
+<p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontSize: '1.2rem', color: textPrimary, lineHeight: '1.65', margin: 0 }}>{content.question}</p>
 </div>
 <p style={{ fontFamily: 'var(--font-jost)', fontSize: '13px', color: textSecondary, lineHeight: '1.85', margin: 0 }}>{content.explore}</p>
 <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(212,175,55,0.07)', border: `1px solid ${goldColor}20`, borderRadius: '10px', padding: '12px' }}>
@@ -429,7 +429,7 @@ style={{ background: isDark ? 'rgba(212,175,55,0.06)' : 'rgba(212,175,55,0.08)',
 <>
 <div>
 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
-<p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.25rem', color: textPrimary, margin: 0 }}>{content.challenge}</p>
+<p style={{ fontFamily: "var(--font-cormorant), serif", fontStyle: 'italic', fontWeight: 400, fontSize: '1.25rem', color: textPrimary, margin: 0 }}>{content.challenge}</p>
 {content.level && (
 <span style={{
 fontFamily: 'var(--font-jost)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase',

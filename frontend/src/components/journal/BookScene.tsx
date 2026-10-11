@@ -310,7 +310,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                         transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
                         style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid rgba(212,175,55,0.12)', borderTopColor: 'rgba(212,175,55,0.72)', marginBottom: '14px' }}
                     />
-                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.35)' }}>Opening the ledger...</span>
+                    <span style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.35)' }}>Opening the ledger...</span>
                 </div>
             )}
 
@@ -344,7 +344,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                         </motion.div>
 
                         <h1 style={{
-                            fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+                            fontFamily: "var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif",
                             fontWeight: 400, fontStyle: 'italic',
                             fontSize: 'clamp(3rem, 7vw, 5.5rem)',
                             margin: '0 0 12px', letterSpacing: '0.02em',
@@ -366,7 +366,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 1.1, duration: 0.9 }}
                             style={{
-                                fontFamily: "'Cormorant Garamond', serif",
+                                fontFamily: "var(--font-cormorant), serif",
                                 fontStyle: 'italic', fontWeight: 300,
                                 fontSize: 'clamp(1rem, 2vw, 1.3rem)',
                                 color: 'rgba(212,175,55,0.65)',
@@ -396,7 +396,7 @@ export default function BookScene3D({ onBookClick }: BookScene3DProps) {
                         <motion.div
                             animate={{ opacity: [0.4, 1, 0.4] }}
                             transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.65)' }}
+                            style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '9px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.65)' }}
                         >
                             Click to open your journal
                         </motion.div>
