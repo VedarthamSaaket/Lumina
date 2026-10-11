@@ -7,9 +7,10 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from models.database import get_db, SessionLocal, User, CognitiveTestResult, InsightSummary, OrionConversation, OrionMessage
 from utils.auth import get_current_user
-from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper, model_kwargs
+from services.llm import _now_block, _strip_think_tags, _strip_em_dashes, ThinkStripper, DashStripper, model_kwargs
 from services import cognition, research
 import json
+import re
 from datetime import datetime
 
 router = APIRouter(prefix="/api/orion", tags=["orion"])
@@ -143,6 +144,35 @@ GAME_NAMES = {
     "oddoneout": "Odd One Out", "series": "Series Completion",
     "analogy": "Visual Analogy", "paperfold": "Paper Folding",
 }
+
+GAME_BUTTON_PROMPT = """
+
+GAME BUTTONS (NON-NEGOTIABLE):
+Whenever you suggest playing a game, or trying a harder level of a game, end your message with exactly one final line in this format. The app turns it into a button that opens that game:
+GAME_REDIRECT:{"game":"<id>","level":<number>}
+Valid ids: """ + ", ".join(f"{gid} ({name})" for gid, name in GAME_NAMES.items()) + """
+- "level" is the level the game should start at. Use 1 unless you are recommending a harder level. Base it on the levels in their recorded play and never go more than one level above what they have reached.
+- One button per message, for the game you most recommend.
+- Put it on its own last line. Never mention the button code in your sentences and never place it mid-message.
+- Leave it out when you are not recommending play.
+- Once they open the game through the button you watch the session live and comment as they play, so you can say you will be watching."""
+
+_GAME_REDIRECT_RE = re.compile(r"GAME_REDIRECT:\{[^}]*\}")
+_SUGGEST_RE = re.compile(r"\b(try|play|have a go|give it a go|go for|start with|jump into|harder|challenge|next step|recommend|suggest|level)\b", re.I)
+_LEVEL_RE = re.compile(r"(?:try|attempt|aim for|go for|start (?:at|from|on)|jump to|push (?:to|for)|tackle|move (?:up )?to)\s+level\s+(\d{1,2})", re.I)
+
+
+def _missing_game_redirect(text: str) -> str:
+    if not text or _GAME_REDIRECT_RE.search(text) or not _SUGGEST_RE.search(text):
+        return ""
+    lowered = text.lower()
+    hits = sorted((lowered.find(name.lower()), gid) for gid, name in GAME_NAMES.items() if name.lower() in lowered)
+    if not hits:
+        return ""
+    match = _LEVEL_RE.search(text)
+    level = max(1, min(12, int(match.group(1)))) if match else 1
+    return "\nGAME_REDIRECT:" + json.dumps({"game": hits[0][1], "level": level}, separators=(",", ":"))
+
 
 from groq import Groq
 from config import settings as _app_settings
@@ -598,7 +628,7 @@ async def orion_stream(
 
     research_context = _research_context(current_user.id, data.content, orion_settings, db)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
+    system_prompt = ORION_SYSTEM_PROMPT + GAME_BUTTON_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -613,16 +643,17 @@ async def orion_stream(
     async def generate():
         accumulated = ""
         stripper = ThinkStripper()
+        dashes = DashStripper()
         try:
             stream = _call_groq(messages, max_tokens=900, temperature=0.68, model=_model_for("chat"), stream=True)
             for chunk in stream:
                 token = chunk.choices[0].delta.content
                 if token:
-                    safe = stripper.feed(token)
+                    safe = dashes.feed(stripper.feed(token))
                     if safe:
                         accumulated += safe
                         yield f"data: {json.dumps({'text': safe})}\n\n"
-            tail = stripper.flush()
+            tail = dashes.feed(stripper.flush()) + dashes.flush() + _missing_game_redirect(accumulated)
             if tail:
                 accumulated += tail
                 yield f"data: {json.dumps({'text': tail})}\n\n"
@@ -669,7 +700,7 @@ async def orion_message(
 
     research_context = _research_context(current_user.id, data.content, orion_settings, db)
 
-    system_prompt = ORION_SYSTEM_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
+    system_prompt = ORION_SYSTEM_PROMPT + GAME_BUTTON_PROMPT + settings_prompt + right_panel_prompt + cognitive_context + user_memory + research_context + _now_block()
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in data.history[-12:]:
@@ -684,6 +715,7 @@ async def orion_message(
         response = _call_groq(messages, model=_model_for("chat"))
         reply = response.choices[0].message.content or ""
         reply = _strip_em_dashes(_strip_think_tags(reply))
+        reply += _missing_game_redirect(reply)
         _save_orion_message(conversation_id, current_user.id, "assistant", reply, db)
         return {"response": reply, "conversation_id": conversation_id}
     except Exception as e:

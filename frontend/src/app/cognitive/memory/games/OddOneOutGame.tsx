@@ -1,19 +1,21 @@
 'use client'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
 import { ConsecutiveFailBar, LevelProgress } from '../components/LevelProgress'
 import { Shape } from '../components/Shape'
 import { generateOdd, resetOddHistory } from '../lib/generators/odd'
 import { nextPuzzleState } from '../lib/utils'
 import { BaseRound, MAX_CONSEC, MUTED, OddPuzzle, PuzzleState, ROUNDS_PER_LEVEL, SAGE } from '../types'
 
-export function OddOneOutGame({ onQuit, onComplete }: {
+export function OddOneOutGame({ onQuit, onComplete, startLevel = 1 }: {
+  startLevel?: number
   onQuit: (rounds: BaseRound[]) => void
   onComplete: (rounds: BaseRound[]) => void
 }) {
   const color = MUTED
-  const [ps, setPs] = useState<PuzzleState>({ level: 1, roundInLevel: 0 })
-  const [puzzle, setPuzzle] = useState<OddPuzzle>(() => generateOdd(1, 0))
+  const [ps, setPs] = useState<PuzzleState>({ level: startLevel, roundInLevel: 0 })
+  const [puzzle, setPuzzle] = useState<OddPuzzle>(() => generateOdd(startLevel, 0))
   const [selected, setSelected] = useState<number | null>(null)
   const [phase, setPhase] = useState<'play' | 'feedback'>('play')
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
@@ -21,6 +23,7 @@ export function OddOneOutGame({ onQuit, onComplete }: {
   const [consecutiveFails, setConsecutiveFails] = useState(0)
   const mountedRef = useRef(true)
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
+  useEffect(() => { dispatchOrionLiveEvent('session_start', { game_type: 'oddoneout' }) }, [])
   useEffect(() => { resetOddHistory() }, [])
 
   const next = useCallback((newPs: PuzzleState) => {
@@ -35,6 +38,13 @@ export function OddOneOutGame({ onQuit, onComplete }: {
     const newConsecFails = correct ? 0 : consecutiveFails + 1
     setConsecutiveFails(newConsecFails)
     const newRounds = [...rounds, { level: ps.level, correct }]
+    if (correct) {
+      dispatchOrionLiveEvent('correct', { game_type: 'oddoneout', level: ps.level, roundInLevel: ps.roundInLevel })
+      if (ps.roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: 'oddoneout', level: ps.level + 1 })
+    } else {
+      dispatchOrionLiveEvent('wrong', { game_type: 'oddoneout', level: ps.level, roundInLevel: ps.roundInLevel })
+      if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: 'oddoneout', consecutive_fails: newConsecFails })
+    }
     setRounds(newRounds); setLastCorrect(correct); setPhase('feedback')
     if (newConsecFails >= MAX_CONSEC) {
       setTimeout(() => { if (mountedRef.current) onComplete(newRounds) }, 1600)

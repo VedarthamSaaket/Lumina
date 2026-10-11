@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/lib/themeStore'
 import Grainient from '@/components/ui/Grainient'
+import { OrionMessageBody } from './GameRedirect'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -230,11 +231,11 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                             }}>*</div>
                             <div>
                                 <p style={{
-                                    fontFamily: "'Cinzel', serif", fontSize: '11px',
+                                    fontFamily: "var(--font-cinzel), serif", fontSize: '11px',
                                     letterSpacing: '0.14em', color: accentColor, margin: 0,
                                 }}>ORION</p>
                                 <p style={{
-                                    fontFamily: "'Jost', sans-serif", fontSize: '10px',
+                                    fontFamily: "var(--font-jost), sans-serif", fontSize: '10px',
                                     color: textMuted, margin: 0,
                                 }}>Brain training companion</p>
                             </div>
@@ -264,7 +265,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                     borderRadius: '12px', marginBottom: '10px',
                                 }}>
                                     <p style={{
-                                        fontFamily: "'Jost', sans-serif", fontSize: '9px',
+                                        fontFamily: "var(--font-jost), sans-serif", fontSize: '9px',
                                         letterSpacing: '0.1em', color: textMuted,
                                         textTransform: 'uppercase', marginBottom: '8px',
                                     }}>Quick questions</p>
@@ -273,7 +274,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                             <button key={q} onClick={() => send(q)}
                                                 style={{
                                                     padding: '5px 10px', borderRadius: '20px', cursor: 'pointer',
-                                                    fontFamily: "'Jost', sans-serif", fontSize: '11px',
+                                                    fontFamily: "var(--font-jost), sans-serif", fontSize: '11px',
                                                     background: isDark ? 'rgba(196,146,58,0.07)' : 'rgba(122,140,110,0.07)',
                                                     border: `1px solid ${isDark ? 'rgba(196,146,58,0.20)' : 'rgba(122,140,110,0.20)'}`,
                                                     color: `${accentColor}cc`, transition: 'all 0.15s',
@@ -320,11 +321,11 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                     borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                                     background: msg.role === 'user' ? userBubbleBg : assistantBubbleBg,
                                     border: `1px solid ${msg.role === 'user' ? userBubbleBorder : assistantBubbleBorder}`,
-                                    fontFamily: "'Jost', sans-serif", fontSize: '13px',
+                                    fontFamily: "var(--font-jost), sans-serif", fontSize: '13px',
                                     lineHeight: '1.65', color: textPrimary,
                                     whiteSpace: 'pre-wrap',
                                 }}>
-                                    {msg.content}
+                                    <OrionMessageBody text={msg.content} color={accentColor} streaming={msg.streaming} />
                                     {msg.streaming && msg.content === '' && (
                                         <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '2px 0' }}>
                                             {[0, 1, 2].map(i => (
@@ -368,14 +369,14 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                                 placeholder="Ask Orion about memory, thinking, or brain training..."
                                 style={{
                                     flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                    resize: 'none', fontFamily: "'Jost', sans-serif", fontSize: '12px',
+                                    resize: 'none', fontFamily: "var(--font-jost), sans-serif", fontSize: '12px',
                                     color: textPrimary, lineHeight: '1.5', maxHeight: '100px',
                                 }}
                             />
                             <button onClick={() => send()} disabled={!input.trim() || loading}
                                 style={{
                                     flexShrink: 0, padding: '6px 14px', borderRadius: '10px', cursor: 'pointer',
-                                    fontFamily: "'Jost', sans-serif", fontSize: '10px', fontWeight: 600,
+                                    fontFamily: "var(--font-jost), sans-serif", fontSize: '10px', fontWeight: 600,
                                     letterSpacing: '0.14em', textTransform: 'uppercase',
                                     background: isDark ? 'rgba(196,146,58,0.16)' : 'rgba(122,140,110,0.14)',
                                     border: `1px solid ${isDark ? 'rgba(196,146,58,0.32)' : 'rgba(122,140,110,0.30)'}`,
@@ -387,7 +388,7 @@ export default function OrionChat({ isOpen, onClose }: OrionChatProps) {
                         </div>
                         <p style={{
                             textAlign: 'center', marginTop: '6px',
-                            fontFamily: "'Jost', sans-serif", fontSize: '9px',
+                            fontFamily: "var(--font-jost), sans-serif", fontSize: '9px',
                             color: textMuted, letterSpacing: '0.08em',
                         }}>
                             Orion handles thinking and memory, Lumina handles feelings

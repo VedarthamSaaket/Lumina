@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navigation } from '@/components/layout/Navigation'
 import { ParticleCanvas } from '@/components/ui/ParticleCanvas'
@@ -7,6 +7,7 @@ import { GoldHeading } from '@/components/ui/GoldHeading'
 import OrionLiveObserver from '@/components/orion/OrionLiveObserver'
 import OrionDebrief from '@/components/orion/OrionDebrief'
 import OrionRightPanel from '@/components/orion/OrionRightPanel'
+import { MAX_START_LEVEL } from '@/components/orion/GameRedirect'
 import { useThemeStore } from '@/lib/themeStore'
 import Grainient from '@/components/ui/Grainient'
 
@@ -33,15 +34,33 @@ export default function MemoryPage() {
   const [puzzleRounds, setPuzzleRounds] = useState<BaseRound[]>([])
   const [orionRightContent, setOrionRightContent] = useState<string | null>(null)
   const [activeGameType, setActiveGameType] = useState<string | null>(null)
+  const [startLevel, setStartLevel] = useState(1)
   const sessionStartRef = useRef<number>(Date.now())
 
-  const selectGame = (id: GameId) => {
+  const selectGame = (id: GameId, level = 1) => {
     setSelected(id)
+    setStartLevel(level)
     setActiveGameType(id)
     sessionStartRef.current = Date.now()
     setPhase('intro')
   }
   const startGame = () => setPhase('playing')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('game')
+    if (!id) return
+    const level = Math.max(1, Math.min(MAX_START_LEVEL, Math.round(Number(params.get('level'))) || 1))
+    if (id in GAMES) selectGame(id as GameId, level)
+    else if (id in PUZZLE_GAMES) {
+      setPuzzleSelected(id as PuzzleGameId)
+      setActiveGameType(id)
+      setStartLevel(level)
+      sessionStartRef.current = Date.now()
+      setPhase('puzzle-intro')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const retake = () => setPhase('intro')
   const back = () => { setSelected(null); setPhase('selector'); setRounds([]) }
   const game = selected ? (GAMES as any)[selected] : null
@@ -143,6 +162,7 @@ export default function MemoryPage() {
                       whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         setPuzzleSelected(g.id)
+                        setStartLevel(1)
                         setActiveGameType(g.id)
                         sessionStartRef.current = Date.now()
                         setPhase('puzzle-intro')
@@ -215,13 +235,13 @@ export default function MemoryPage() {
           {phase === 'playing' && selected && (
             <motion.div key="play" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
               <div className="glass-strong rounded-2xl p-7" style={{ border: `1px solid ${GAMES[selected].color}18` }}>
-                {selected === 'digit' && <SequenceGame gameId="digit" onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'letter' && <SequenceGame gameId="letter" onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'math' && <MathGame onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'color' && <ColorGame onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'spatial' && <SpatialGame reverse={false} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'spatial_reverse' && <SpatialGame reverse={true} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
-                {selected === 'word' && <WordGame onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'digit' && <SequenceGame startLevel={startLevel} gameId="digit" onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'letter' && <SequenceGame startLevel={startLevel} gameId="letter" onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'math' && <MathGame startLevel={startLevel} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'color' && <ColorGame startLevel={startLevel} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'spatial' && <SpatialGame startLevel={startLevel} reverse={false} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'spatial_reverse' && <SpatialGame startLevel={startLevel} reverse={true} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
+                {selected === 'word' && <WordGame startLevel={startLevel} onQuit={r => quitMemoryGame(r as AnyRound[])} onComplete={r => completeMemoryGame(r as AnyRound[])} />}
               </div>
             </motion.div>
           )}
@@ -288,11 +308,11 @@ export default function MemoryPage() {
           {phase === 'puzzle-playing' && puzzleSelected && (
             <motion.div key="puzzle-play" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
               <div className="glass-strong rounded-2xl p-7" style={{ border: `1px solid ${PUZZLE_GAMES[puzzleSelected].color}18` }}>
-                {puzzleSelected === 'matrix' && <MatrixGame onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
-                {puzzleSelected === 'oddoneout' && <OddOneOutGame onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
-                {puzzleSelected === 'series' && <SeriesGame onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
-                {puzzleSelected === 'analogy' && <AnalogyGame onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
-                {puzzleSelected === 'paperfold' && <PaperFoldGame onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
+                {puzzleSelected === 'matrix' && <MatrixGame startLevel={startLevel} onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
+                {puzzleSelected === 'oddoneout' && <OddOneOutGame startLevel={startLevel} onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
+                {puzzleSelected === 'series' && <SeriesGame startLevel={startLevel} onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
+                {puzzleSelected === 'analogy' && <AnalogyGame startLevel={startLevel} onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
+                {puzzleSelected === 'paperfold' && <PaperFoldGame startLevel={startLevel} onQuit={quitPuzzleGame} onComplete={completePuzzleGame} />}
               </div>
             </motion.div>
           )}

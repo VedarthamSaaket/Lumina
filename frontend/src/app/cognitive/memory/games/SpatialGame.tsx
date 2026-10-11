@@ -7,8 +7,9 @@ import { generateSpatialPattern, resetSpatialHistory } from '../lib/generators/s
 import { GAMES, MAX_CONSEC, ROUNDS_PER_LEVEL, SAGE, SpatialRound } from '../types'
 
 export function SpatialGame({
-  reverse, onQuit, onComplete,
+  startLevel = 1, reverse, onQuit, onComplete,
 }: {
+  startLevel?: number
   reverse?: boolean
   onQuit: (rounds: SpatialRound[]) => void
   onComplete: (rounds: SpatialRound[]) => void
@@ -20,7 +21,7 @@ export function SpatialGame({
 
   const [phase, setPhase] = useState<P>('countdown')
   const [countdown, setCountdown] = useState(3)
-  const [level, setLevel] = useState(1)
+  const [level, setLevel] = useState(startLevel)
   const [roundInLevel, setRoundInLevel] = useState(0)
   const [pattern, setPattern] = useState<number[]>([])
   const [showStep, setShowStep] = useState(0)
@@ -46,10 +47,10 @@ export function SpatialGame({
       const t = setTimeout(() => { if (mountedRef.current) setCountdown(c => c - 1) }, 800)
       return () => clearTimeout(t)
     }
-    const count = getPatternCount(1, 0)
-    const gSize = getGridCols(1) * getGridCols(1)
+    const count = getPatternCount(startLevel, 0)
+    const gSize = getGridCols(startLevel) * getGridCols(startLevel)
     const cells = generateSpatialPattern(count, gSize)
-    setPattern(cells); setLevel(1); setRoundInLevel(0); setShowStep(0); setSelected([]); setLit([]); setPhase('show')
+    setPattern(cells); setLevel(startLevel); setRoundInLevel(0); setShowStep(0); setSelected([]); setLit([]); setPhase('show')
   }, [phase, countdown])
 
   const startRound = useCallback((lvl: number, ril: number) => {

@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/lib/themeStore'
 import Grainient from '@/components/ui/Grainient'
+import { OrionMessageBody } from './GameRedirect'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -322,7 +323,7 @@ export default function OrionChatPanel({
             boxShadow: `0 0 12px ${color}28`,
           }}>*</div>
           <div>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', letterSpacing: '0.14em', color, margin: 0 }}>ORION</p>
+            <p style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '11px', letterSpacing: '0.14em', color, margin: 0 }}>ORION</p>
             <p style={{ fontFamily: 'var(--font-jost)', fontSize: '10px', color: textMuted, margin: 0 }}>
               {isMemoryPage ? (gameType ? `Observing: ${gameType}` : 'Ready to observe') : 'Brain training companion'}
             </p>
@@ -422,7 +423,7 @@ export default function OrionChatPanel({
                 fontFamily: 'var(--font-jost)', fontSize: '12.5px',
                 lineHeight: '1.65', color: textPrimary, whiteSpace: 'pre-wrap',
               }}>
-                {msg.content}
+                <OrionMessageBody text={msg.content} color={color} streaming={msg.streaming} />
                 {msg.streaming && msg.content === '' && (
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '2px 0' }}>
                     {[0, 1, 2].map(i => (

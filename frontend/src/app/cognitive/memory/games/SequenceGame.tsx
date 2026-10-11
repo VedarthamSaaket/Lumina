@@ -10,8 +10,9 @@ import { getTimeLimit, useLiveTimer } from '../lib/timer'
 import { GAMES, MAX_CONSEC, MODE_LABELS, ROUNDS_PER_LEVEL, SeqMode, SeqRound } from '../types'
 
 export function SequenceGame({
-  gameId, onQuit, onComplete,
+  startLevel = 1, gameId, onQuit, onComplete,
 }: {
+  startLevel?: number
   gameId: 'digit' | 'letter'
   onQuit: (rounds: SeqRound[]) => void
   onComplete: (rounds: SeqRound[]) => void
@@ -23,7 +24,7 @@ export function SequenceGame({
 
   const [phase, setPhase] = useState<P>('countdown')
   const [countdown, setCountdown] = useState(3)
-  const [level, setLevel] = useState(1)
+  const [level, setLevel] = useState(startLevel)
   const [roundInLevel, setRoundInLevel] = useState(0)
   const [mode, setMode] = useState<SeqMode>('forward')
   const [seq, setSeq] = useState<(number | string)[]>([])
@@ -54,10 +55,10 @@ export function SequenceGame({
       const t = setTimeout(() => { if (mountedRef.current) setCountdown(c => c - 1) }, 800)
       return () => clearTimeout(t)
     }
-    const len = getSeqLen(3, 1, 0)
+    const len = getSeqLen(3, startLevel, 0)
     const s = gameId === 'digit' ? randSeqUnique(len) : randLetterSeqUnique(len)
-    setSeq(s); setShowIdx(0); setMode(getModeForRound(1, 0, availableModes)); setPhase('show')
-    orion.gameStart(GAMES[gameId].title, 1)
+    setSeq(s); setShowIdx(0); setMode(getModeForRound(startLevel, 0, availableModes)); setPhase('show')
+    orion.gameStart(GAMES[gameId].title, startLevel)
     dispatchOrionLiveEvent('session_start', { game_type: gameId })
   }, [phase, countdown])
 

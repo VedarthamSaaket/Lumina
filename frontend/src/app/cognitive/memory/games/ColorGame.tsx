@@ -7,8 +7,9 @@ import { generateColorSeq, resetColorHistory } from '../lib/generators/color'
 import { COLORS, ColorRound, GAMES, MAX_CONSEC, ROUNDS_PER_LEVEL } from '../types'
 
 export function ColorGame({
-  onQuit, onComplete,
+  startLevel = 1, onQuit, onComplete,
 }: {
+  startLevel?: number
   onQuit: (rounds: ColorRound[]) => void
   onComplete: (rounds: ColorRound[]) => void
 }) {
@@ -17,7 +18,7 @@ export function ColorGame({
 
   const [phase, setPhase] = useState<P>('countdown')
   const [countdown, setCountdown] = useState(3)
-  const [level, setLevel] = useState(1)
+  const [level, setLevel] = useState(startLevel)
   const [roundInLevel, setRoundInLevel] = useState(0)
   const [seq, setSeq] = useState<string[]>([])
   const [showIdx, setShowIdx] = useState(0)
@@ -39,8 +40,8 @@ export function ColorGame({
       const t = setTimeout(() => { if (mountedRef.current) setCountdown(c => c - 1) }, 800)
       return () => clearTimeout(t)
     }
-    const s = generateColorSeq(getColorLen(1, 0))
-    setSeq(s); setLevel(1); setRoundInLevel(0); setShowIdx(0); setGiven([]); setPhase('show')
+    const s = generateColorSeq(getColorLen(startLevel, 0))
+    setSeq(s); setLevel(startLevel); setRoundInLevel(0); setShowIdx(0); setGiven([]); setPhase('show')
   }, [phase, countdown])
 
   const startRound = useCallback((lvl: number, ril: number) => {

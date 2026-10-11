@@ -8,8 +8,9 @@ import { getTimeLimit, useLiveTimer } from '../lib/timer'
 import { GAMES, MAX_CONSEC, MathRound, ROUNDS_PER_LEVEL } from '../types'
 
 export function MathGame({
-  onQuit, onComplete,
+  startLevel = 1, onQuit, onComplete,
 }: {
+  startLevel?: number
   onQuit: (rounds: MathRound[]) => void
   onComplete: (rounds: MathRound[]) => void
 }) {
@@ -18,7 +19,7 @@ export function MathGame({
 
   const [phase, setPhase] = useState<P>('countdown')
   const [countdown, setCountdown] = useState(3)
-  const [level, setLevel] = useState(1)
+  const [level, setLevel] = useState(startLevel)
   const [roundInLevel, setRoundInLevel] = useState(0)
   const [mathData, setMathData] = useState<{ sequence: number[]; answer: number; rule: string } | null>(null)
   const [input, setInput] = useState('')
@@ -46,8 +47,8 @@ export function MathGame({
       const t = setTimeout(() => { if (mountedRef.current) setCountdown(c => c - 1) }, 800)
       return () => clearTimeout(t)
     }
-    const d = generateMathSeq(1, 0)
-    setMathData(d); setLevel(1); setRoundInLevel(0); setInput(''); setPhase('show')
+    const d = generateMathSeq(startLevel, 0)
+    setMathData(d); setLevel(startLevel); setRoundInLevel(0); setInput(''); setPhase('show')
   }, [phase, countdown])
 
   const startRound = useCallback((lvl: number, ril: number) => {

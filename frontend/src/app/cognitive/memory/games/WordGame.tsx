@@ -1,14 +1,16 @@
 'use client'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { dispatchOrionLiveEvent } from '@/components/orion/OrionLiveObserver'
 import { ConsecutiveFailBar, LevelProgress } from '../components/LevelProgress'
 import { getTimeLimit, useLiveTimer } from '../lib/timer'
 import { shuffle } from '../lib/utils'
 import { GAMES, MAX_CONSEC, ROUNDS_PER_LEVEL, SAGE, WORD_BANK, WordRound } from '../types'
 
 export function WordGame({
-  onQuit, onComplete,
+  startLevel = 1, onQuit, onComplete,
 }: {
+  startLevel?: number
   onQuit: (rounds: WordRound[]) => void
   onComplete: (rounds: WordRound[]) => void
 }) {
@@ -17,7 +19,7 @@ export function WordGame({
 
   const [phase, setPhase] = useState<P>('countdown')
   const [countdown, setCountdown] = useState(3)
-  const [level, setLevel] = useState(1)
+  const [level, setLevel] = useState(startLevel)
   const [roundInLevel, setRoundInLevel] = useState(0)
   const [fullPool, setFullPool] = useState<string[]>([])
   const [cumulativeList, setCumulativeList] = useState<string[]>([])
@@ -35,7 +37,8 @@ export function WordGame({
   useEffect(() => {
     const list = shuffle(WORD_BANK)
     setFullPool(list)
-    setCumulativeList([list[0]])
+    setCumulativeList(list.slice(0, 1 + (startLevel - 1) * ROUNDS_PER_LEVEL))
+    dispatchOrionLiveEvent('session_start', { game_type: 'word' })
   }, [])
 
   const submitRef = useRef<() => void>(() => { })
@@ -98,6 +101,13 @@ export function WordGame({
     setConsecutiveFails(newConsecFails)
     const round: WordRound = { level, correct: pass, words: [...cumulativeList], recalled, type: 'word' }
     const newRounds = [...rounds, round]
+    if (pass) {
+      dispatchOrionLiveEvent('correct', { game_type: 'word', level, roundInLevel })
+      if (roundInLevel + 1 >= ROUNDS_PER_LEVEL) dispatchOrionLiveEvent('level_up', { game_type: 'word', level: level + 1 })
+    } else {
+      dispatchOrionLiveEvent('wrong', { game_type: 'word', level, roundInLevel })
+      if (newConsecFails >= 2) dispatchOrionLiveEvent('consecutive_fails', { game_type: 'word', consecutive_fails: newConsecFails })
+    }
     setRounds(newRounds); setLastCorrect(pass); setLastScore(score); setPhase('feedback')
     if (newConsecFails >= MAX_CONSEC) {
       setTimeout(() => { if (mountedRef.current) onComplete(newRounds) }, 2200)
