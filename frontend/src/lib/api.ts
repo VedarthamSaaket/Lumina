@@ -78,6 +78,8 @@ export const journalAPI = {
     api.post('/api/journal', { content, mood_score: moodScore, tags, stickers: stickers || [], look: look || {} }),
   list:   () => api.get('/api/journal'),
   delete: (id: string) => api.delete(`/api/journal/${id}`),
+  updateStickers: (id: string, stickers: Record<string, any>[]) =>
+    api.patch(`/api/journal/${id}/stickers`, { stickers }),
 }
 
 // ── Mood ──────────────────────────────────────────────────────────────────

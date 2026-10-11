@@ -289,7 +289,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                             border: '2px solid rgba(212,175,55,0.12)',
                             borderTopColor: 'rgba(212,175,55,0.65)', marginBottom: '14px',
                         }} />
-                    <span style={{ fontFamily: "'Cinzel', serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.32)' }}>Loading</span>
+                    <span style={{ fontFamily: "var(--font-cinzel), serif", fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.32)' }}>Loading</span>
                 </div>
             )}
 
@@ -342,7 +342,7 @@ function BookScene({ onBookClick }: { onBookClick: () => void }) {
                             animate={{ opacity: [0.4, 1, 0.4] }}
                             transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
                             style={{
-                                fontFamily: "'Cinzel', serif", fontSize: '9px',
+                                fontFamily: "var(--font-cinzel), serif", fontSize: '9px',
                                 letterSpacing: '0.32em', textTransform: 'uppercase',
                                 color: 'rgba(212,175,55,0.60)',
                             }}
@@ -437,6 +437,17 @@ export default function JournalPage() {
         }
     }
 
+    const handleUpdateStickers = async (id: string, stickers: any[]) => {
+        const before = entries
+        setEntries(prev => prev.map(e => e.id === id ? { ...e, stickers } : e))
+        try {
+            await journalAPI.updateStickers(id, stickers)
+        } catch (err: any) {
+            setEntries(before)
+            toast.error(err?.response?.data?.detail ?? 'Could not remove that.')
+        }
+    }
+
     const handleSave = async (content: string, mood: number, tags: string[], stickers: any[], look: Record<string, string>) => {
         setIsSaving(true)
         try {
@@ -506,7 +517,7 @@ export default function JournalPage() {
                             whiteSpace: 'nowrap',
                         }}>
                             <h1 style={{
-                                fontFamily: "'Libre Baskerville', 'Baskerville Old Face', Baskerville, Georgia, serif",
+                                fontFamily: "var(--font-baskerville), 'Baskerville Old Face', Baskerville, Georgia, serif",
                                 fontWeight: 400,
                                 fontStyle: 'italic',
                                 fontSize: 'clamp(1.4rem, 2.2vw, 1.9rem)',
@@ -531,6 +542,7 @@ export default function JournalPage() {
                             entries={entries}
                             onSave={handleSave}
                             onDelete={handleDelete}
+                            onUpdateStickers={handleUpdateStickers}
                             onClose={() => setStage('scene')}
                             isSaving={isSaving}
                         />

@@ -24,6 +24,7 @@ export interface Decor {
   label: string
   url: string
   scale: number
+  tile?: string
 }
 
 const RULE = 'rgba(120,84,36,0.22)'
@@ -88,33 +89,50 @@ const pinked = (() => {
   return `M6 0 L${TAPE_W - 6} 0${right} L6 ${TAPE_H}${left} Z`
 })()
 
+const tapeBody = (base: string, edge: string, pattern: string) =>
+  `<rect width='${TAPE_W}' height='${TAPE_H}' fill='${base}'/>${pattern}` +
+  `<rect width='${TAPE_W}' height='7' fill='${edge}'/><rect y='${TAPE_H - 7}' width='${TAPE_W}' height='7' fill='${edge}'/>` +
+  `<rect y='10' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/><rect y='${TAPE_H - 11.4}' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/>` +
+  `<rect width='${TAPE_W}' height='${TAPE_H}' fill='url(#g)'/>`
+
+const TAPE_SHEEN = `<linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff' stop-opacity='0.28'/><stop offset='0.45' stop-color='#fff' stop-opacity='0'/><stop offset='1' stop-color='#000' stop-opacity='0.08'/></linearGradient>`
+
 const tape = (base: string, edge: string, pattern: string) =>
   svg(
-    `<defs><clipPath id='c'><path d='${pinked}'/></clipPath>` +
-    `<linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff' stop-opacity='0.28'/><stop offset='0.45' stop-color='#fff' stop-opacity='0'/><stop offset='1' stop-color='#000' stop-opacity='0.08'/></linearGradient></defs>` +
-    `<g clip-path='url(#c)'><rect width='${TAPE_W}' height='${TAPE_H}' fill='${base}'/>${pattern}` +
-    `<rect width='${TAPE_W}' height='7' fill='${edge}'/><rect y='${TAPE_H - 7}' width='${TAPE_W}' height='7' fill='${edge}'/>` +
-    `<rect y='10' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/><rect y='${TAPE_H - 11.4}' width='${TAPE_W}' height='1.4' fill='${edge}' opacity='0.7'/>` +
-    `<rect width='${TAPE_W}' height='${TAPE_H}' fill='url(#g)'/></g>` +
+    `<defs><clipPath id='c'><path d='${pinked}'/></clipPath>${TAPE_SHEEN}</defs>` +
+    `<g clip-path='url(#c)'>${tapeBody(base, edge, pattern)}</g>` +
     `<path d='${pinked}' fill='none' stroke='${edge}' stroke-width='1.6' stroke-linejoin='round'/>`,
     TAPE_W, TAPE_H,
   )
 
+const tapeTile = (base: string, edge: string, pattern: string) =>
+  svg(`<defs>${TAPE_SHEEN}</defs>${tapeBody(base, edge, pattern)}`, TAPE_W, TAPE_H)
+
+const washi = (id: string, label: string, base: string, edge: string, pattern: string): Decor =>
+  ({ id, label, url: tape(base, edge, pattern), tile: tapeTile(base, edge, pattern), scale: 3 })
+
+export const TAPE_CLIP = (() => {
+  const teeth = 8
+  const right = Array.from({ length: teeth }, (_, i) => `100% ${((i + 0.5) / teeth) * 100}%, calc(100% - 4px) ${((i + 1) / teeth) * 100}%`)
+  const left = Array.from({ length: teeth }, (_, i) => `0 ${(1 - (i + 0.5) / teeth) * 100}%, 4px ${(1 - (i + 1) / teeth) * 100}%`)
+  return `polygon(4px 0, calc(100% - 4px) 0, ${right.join(', ')}, ${left.join(', ')})`
+})()
+
 const stripes = (color: string) =>
-  Array.from({ length: 16 }, (_, i) => `<rect x='${i * 20 - 30}' y='-20' width='9' height='110' fill='${color}' transform='rotate(28 ${i * 20} 32)'/>`).join('')
+  Array.from({ length: 22 }, (_, k) => k - 3).map(i => `<rect x='${i * 20 - 30}' y='-20' width='9' height='110' fill='${color}' transform='rotate(28 ${i * 20} 32)'/>`).join('')
 
 const dots = (color: string) =>
   Array.from({ length: 3 }, (_, row) =>
-    Array.from({ length: 13 }, (_, i) => `<circle cx='${(row % 2 ? 20 : 10) + i * 20}' cy='${20 + row * 12}' r='3.4' fill='${color}'/>`).join('')
+    Array.from({ length: 14 }, (_, i) => `<circle cx='${(row % 2 ? 0 : -10) + i * 20}' cy='${20 + row * 12}' r='3.4' fill='${color}'/>`).join('')
   ).join('')
 
 const gingham = (color: string) =>
-  Array.from({ length: 12 }, (_, i) => `<rect x='${i * 22}' y='0' width='11' height='${TAPE_H}' fill='${color}' opacity='0.4'/>`).join('') +
+  Array.from({ length: 10 }, (_, i) => `<rect x='${i * 24}' y='0' width='12' height='${TAPE_H}' fill='${color}' opacity='0.4'/>`).join('') +
   [14, 36].map(y => `<rect x='0' y='${y}' width='${TAPE_W}' height='11' fill='${color}' opacity='0.4'/>`).join('')
 
 const blossoms = (petal: string, heart: string) =>
-  Array.from({ length: 9 }, (_, i) => {
-    const cx = 14 + i * 27
+  Array.from({ length: 8 }, (_, i) => {
+    const cx = 15 + i * 30
     const cy = i % 2 ? 24 : 41
     const petals = [0, 72, 144, 216, 288].map(a => `<ellipse cx='${cx}' cy='${cy - 6.5}' rx='3.4' ry='5.6' fill='${petal}' transform='rotate(${a} ${cx} ${cy})'/>`).join('')
     return `${petals}<circle cx='${cx}' cy='${cy}' r='2.6' fill='${heart}'/>`
@@ -138,38 +156,74 @@ const diamonds = (color: string, line: string) =>
   `<path d='M0 15 ${Array.from({ length: 8 }, () => 'l15 17 l15 -17').join(' ')}' fill='none' stroke='${line}' stroke-width='1.2'/>` +
   `<path d='M0 49 ${Array.from({ length: 8 }, () => 'l15 -17 l15 17').join(' ')}' fill='none' stroke='${line}' stroke-width='1.2'/>`
 
-const ring = (color: string, icon: string) =>
-  svg(
-    `<g fill='none' stroke='${color}' stroke-linecap='round' stroke-linejoin='round' opacity='0.86'>` +
-    `<circle cx='60' cy='60' r='53' stroke-width='3.2'/><circle cx='60' cy='60' r='45' stroke-width='1.3' stroke-dasharray='2.5 4.5'/>${icon}</g>`,
-    120, 120,
-  )
+const chevrons = (color: string) =>
+  [22, 32, 42].map(y => `<path d='M0 ${y + 4} ${Array.from({ length: 12 }, () => 'l10 -8 l10 8').join(' ')}' fill='none' stroke='${color}' stroke-width='2.4' stroke-linejoin='round'/>`).join('')
 
-const SUN = `<circle cx='60' cy='60' r='12' stroke-width='3'/>` +
-  Array.from({ length: 12 }, (_, i) => `<path d='M60 ${i % 2 ? 38 : 34} V${i % 2 ? 42 : 41}' stroke-width='3' transform='rotate(${i * 30} 60 60)'/>`).join('')
-const MOON = `<path d='M70 38 a24 24 0 1 0 12 40 a19 19 0 0 1 -12 -40 Z' stroke-width='3'/><path d='M44 44 v6 M41 47 h6' stroke-width='2.2'/><circle cx='52' cy='70' r='1.6' stroke-width='2.2'/>`
-const SPRIG = `<path d='M60 86 C60 66 60 50 60 34' stroke-width='2.8'/>` +
-  [40, 52, 64, 76].map((y, i) => `<path d='M60 ${y} q${i % 2 ? 16 : -16} -3 ${i % 2 ? 19 : -19} -15 q${i % 2 ? -15 : 15} 1 ${i % 2 ? -19 : 19} 15 Z' stroke-width='2.4'/>`).join('')
-const HEART = `<path d='M60 82 C36 66 38 42 52 42 c5 0 8 4 8 8 c0 -4 3 -8 8 -8 c14 0 16 24 -8 40 Z' stroke-width='3'/><path d='M60 70 C50 62 50 53 55 52' stroke-width='2'/>`
-const SPIRAL = `<path d='M60 60 m0 -3 a3 3 0 0 1 3 3 a7 7 0 0 1 -7 7 a11 11 0 0 1 -11 -11 a15 15 0 0 1 15 -15 a19 19 0 0 1 19 19 a23 23 0 0 1 -23 23' stroke-width='3'/>`
-const HILLS = `<path d='M30 74 q15 -22 30 0 q15 -22 30 0' stroke-width='3'/><path d='M34 84 h52' stroke-width='2.4'/><circle cx='60' cy='44' r='7' stroke-width='2.8'/>`
+const waves = (color: string) =>
+  [22, 32, 42].map(y => `<path d='M0 ${y} ${Array.from({ length: 4 }, () => 'q15 -9 30 0 q15 9 30 0').join(' ')}' fill='none' stroke='${color}' stroke-width='2.2'/>`).join('')
+
+const checker = (color: string) =>
+  [14, 26, 38].map((y, row) =>
+    Array.from({ length: 10 }, (_, i) => `<rect x='${(row % 2 ? 12 : 0) + i * 24}' y='${y}' width='12' height='12' fill='${color}' opacity='0.72'/>`).join('')
+  ).join('')
+
+const hearts = (color: string) =>
+  Array.from({ length: 8 }, (_, i) => {
+    const cx = 15 + i * 30
+    const cy = i % 2 ? 26 : 38
+    return `<path d='M${cx} ${cy + 6} C${cx - 10} ${cy - 1} ${cx - 6} ${cy - 8} ${cx} ${cy - 3} C${cx + 6} ${cy - 8} ${cx + 10} ${cy - 1} ${cx} ${cy + 6} Z' fill='${color}'/>`
+  }).join('')
+
+const stars = (color: string) =>
+  Array.from({ length: 8 }, (_, i) => {
+    const cx = 15 + i * 30
+    const cy = i % 2 ? 25 : 39
+    const r = i % 2 ? 7 : 5
+    return `<path d='M${cx} ${cy - r} Q${cx} ${cy} ${cx + r} ${cy} Q${cx} ${cy} ${cx} ${cy + r} Q${cx} ${cy} ${cx - r} ${cy} Q${cx} ${cy} ${cx} ${cy - r} Z' fill='${color}'/>`
+  }).join('')
+
+const pinstripe = (color: string) =>
+  [19, 25.5, 32, 38.5, 45].map(y => `<rect y='${y - 0.8}' width='${TAPE_W}' height='1.6' fill='${color}'/>`).join('')
+
+const leaves = (color: string) =>
+  `<rect y='31.4' width='${TAPE_W}' height='1.2' fill='${color}'/>` +
+  Array.from({ length: 10 }, (_, i) => {
+    const cx = 12 + i * 24
+    return `<ellipse cx='${cx}' cy='32' rx='4' ry='9' fill='${color}' transform='rotate(${i % 2 ? -35 : 35} ${cx} 32)'/>`
+  }).join('')
+
+const crosses = (color: string) =>
+  [24, 40].map((cy, row) =>
+    Array.from({ length: 13 }, (_, i) => {
+      const cx = (row % 2 ? 0 : 10) + i * 20
+      return `<rect x='${cx - 4}' y='${cy - 1}' width='8' height='2' fill='${color}'/><rect x='${cx - 1}' y='${cy - 4}' width='2' height='8' fill='${color}'/>`
+    }).join('')
+  ).join('')
+
+const bunting = (first: string, second: string) =>
+  Array.from({ length: 10 }, (_, i) => `<path d='M${i * 24} 12 h24 l-12 22 Z' fill='${i % 2 ? second : first}'/>`).join('')
+
+const polka = (big: string, small: string) =>
+  Array.from({ length: 6 }, (_, i) => `<circle cx='${20 + i * 40}' cy='32' r='7' fill='${big}'/>`).join('') +
+  Array.from({ length: 7 }, (_, i) => `<circle cx='${i * 40}' cy='22' r='2.6' fill='${small}'/><circle cx='${i * 40}' cy='42' r='2.6' fill='${small}'/>`).join('')
 
 export const WASHI: Decor[] = [
-  { id: 'washi-caramel', label: 'Caramel stripe', url: tape('#f1dcb4', '#a8743a', stripes('#cfa468')), scale: 3 },
-  { id: 'washi-cocoa', label: 'Cocoa dots', url: tape('#6b4a30', '#3d2716', dots('#f1dfbd')), scale: 3 },
-  { id: 'washi-gingham', label: 'Cream gingham', url: tape('#f8eed8', '#a8743a', gingham('#b98350')), scale: 3 },
-  { id: 'washi-blossom', label: 'Blossom', url: tape('#f6e1d2', '#b65f38', blossoms('#cf7a5e', '#8a3d1c')), scale: 3 },
-  { id: 'washi-vine', label: 'Olive vine', url: tape('#ece6c8', '#6f7f55', vine('#6f7f55', '#8fa06f')), scale: 3 },
-  { id: 'washi-scallop', label: 'Gold scallop', url: tape('#f7e7b8', '#b08a2a', scallops('#b08a2a')), scale: 3 },
-  { id: 'washi-argyle', label: 'Rust argyle', url: tape('#f1d3bd', '#8a3d1c', diamonds('#c97a52', '#8a3d1c')), scale: 3 },
-  { id: 'washi-plum', label: 'Plum blossom', url: tape('#ecdbe3', '#5f3554', blossoms('#8a5a7a', '#4d2b45')), scale: 3 },
-]
-
-export const STAMPS: Decor[] = [
-  { id: 'stamp-sun', label: 'Sun', url: ring('#a8601e', SUN), scale: 1.5 },
-  { id: 'stamp-moon', label: 'Moon', url: ring('#4d2b45', MOON), scale: 1.5 },
-  { id: 'stamp-sprig', label: 'Sprig', url: ring('#2f4a35', SPRIG), scale: 1.5 },
-  { id: 'stamp-heart', label: 'Heart', url: ring('#8a3d1c', HEART), scale: 1.5 },
-  { id: 'stamp-spiral', label: 'Spiral', url: ring('#7a5a10', SPIRAL), scale: 1.5 },
-  { id: 'stamp-hills', label: 'Hills', url: ring('#5c3d28', HILLS), scale: 1.5 },
+  washi('washi-caramel', 'Caramel stripe', '#f1dcb4', '#a8743a', stripes('#cfa468')),
+  washi('washi-cocoa', 'Cocoa dots', '#6b4a30', '#3d2716', dots('#f1dfbd')),
+  washi('washi-gingham', 'Cream gingham', '#f8eed8', '#a8743a', gingham('#b98350')),
+  washi('washi-blossom', 'Blossom', '#f6e1d2', '#b65f38', blossoms('#cf7a5e', '#8a3d1c')),
+  washi('washi-vine', 'Olive vine', '#ece6c8', '#6f7f55', vine('#6f7f55', '#8fa06f')),
+  washi('washi-scallop', 'Gold scallop', '#f7e7b8', '#b08a2a', scallops('#b08a2a')),
+  washi('washi-argyle', 'Rust argyle', '#f1d3bd', '#8a3d1c', diamonds('#c97a52', '#8a3d1c')),
+  washi('washi-plum', 'Plum blossom', '#ecdbe3', '#5f3554', blossoms('#8a5a7a', '#4d2b45')),
+  washi('washi-chevron', 'Mocha chevron', '#ead9bd', '#7a5230', chevrons('#7a5230')),
+  washi('washi-wave', 'Honey wave', '#f7e9c4', '#b8862e', waves('#c99a3c')),
+  washi('washi-checker', 'Espresso check', '#f3e6cf', '#4a2f1c', checker('#4a2f1c')),
+  washi('washi-hearts', 'Rose hearts', '#f8e4dc', '#a8504a', hearts('#c66a60')),
+  washi('washi-stars', 'Midnight stars', '#3b2a3f', '#241728', stars('#f1d98a')),
+  washi('washi-pinstripe', 'Latte pinstripe', '#efdcbc', '#8a6238', pinstripe('#a87a48')),
+  washi('washi-leaf', 'Sage leaf', '#e8ecd6', '#5d7049', leaves('#7d9163')),
+  washi('washi-cross', 'Terracotta cross', '#f4d9c4', '#a2532c', crosses('#b8663a')),
+  washi('washi-bunting', 'Bunting', '#fbf1dc', '#9a6a34', bunting('#c98a4a', '#8a3d1c')),
+  washi('washi-polka', 'Caramel polka', '#f6e3bf', '#9c6b2f', polka('#c8924a', '#8a5a24')),
 ]

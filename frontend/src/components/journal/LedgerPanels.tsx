@@ -1,5 +1,5 @@
 'use client'
-import { HANDS, INKS, PAPERS, PROMPTS, STAMPS, WASHI, type Decor, type PromptTemplate } from './ledgerLooks'
+import { HANDS, INKS, PAPERS, PROMPTS, WASHI, type Decor, type PromptTemplate } from './ledgerLooks'
 
 interface WritingFont { id: string; label: string; family: string; style: string }
 
@@ -82,7 +82,7 @@ export function PromptsPanel({ tb, onPick }: { tb: any; onPick: (prompt: PromptT
               textAlign: 'left', padding: '10px 11px', borderRadius: '10px', cursor: 'pointer',
               background: tb.closeBtnBg, border: `1px solid ${tb.iconBorder}`, color: tb.panelBtnActiveColor,
             }}>
-            <span style={{ display: 'block', fontFamily: "'Playfair Display', serif", fontSize: '14px', lineHeight: 1.15 }}>{prompt.label}</span>
+            <span style={{ display: 'block', fontFamily: "var(--font-playfair), serif", fontSize: '14px', lineHeight: 1.15 }}>{prompt.label}</span>
             <span style={{ display: 'block', fontFamily: 'var(--font-jost)', fontSize: '9.5px', marginTop: '3px', color: tb.panelBtnInactiveColor }}>{prompt.hint}</span>
           </button>
         ))}
@@ -100,15 +100,6 @@ export function DecorPanel({ tb, onPick }: { tb: any; onPick: (decor: Decor) => 
           <button key={tape.id} type="button" onClick={() => onPick(tape)} title={tape.label}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'block' }}>
             <img src={tape.url} alt={tape.label} style={{ width: '100%', height: 'auto', display: 'block', filter: 'drop-shadow(0 2px 3px rgba(60,38,12,0.25))' }} />
-          </button>
-        ))}
-      </div>
-      <Label color={tb.labelColor}>Stamps</Label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-        {STAMPS.map(item => (
-          <button key={item.id} type="button" onClick={() => onPick(item)} title={item.label}
-            style={{ background: 'rgba(255,250,238,0.6)', border: `1px solid ${tb.iconBorder}`, borderRadius: '10px', padding: '6px', cursor: 'pointer' }}>
-            <img src={item.url} alt={item.label} style={{ width: '100%', height: 'auto', display: 'block', transform: 'rotate(-6deg)' }} />
           </button>
         ))}
       </div>

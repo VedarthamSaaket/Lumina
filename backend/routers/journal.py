@@ -58,6 +58,25 @@ def list_entries(db: Session = Depends(get_db), user: User = Depends(get_current
     )
 
 
+class JournalStickersUpdate(BaseModel):
+    stickers: list[dict] = []
+
+
+@router.patch("/{entry_id}/stickers")
+def update_stickers(
+    entry_id: str,
+    data: JournalStickersUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    entry = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+    require_owner(entry, current_user_id=user.id, resource_name="Journal entry")
+    entry.stickers = data.stickers
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
 @router.delete("/{entry_id}")
 def delete_entry(
     entry_id: str,

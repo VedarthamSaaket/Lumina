@@ -5,13 +5,7 @@ import { format } from 'date-fns'
 import JournalStickers, { type Sticker } from './JournalStickers'
 import { DecorPanel, PagePanel, PromptsPanel } from './LedgerPanels'
 import { INKS, PAPERS, type Decor, type PromptTemplate } from './ledgerLooks'
-
-interface PlacedSticker extends Sticker {
-    stickerId: string
-    x: number
-    y: number
-    scale: number
-}
+import { DraggableSticker, SavedStickers, type PlacedSticker } from './PlacedDecor'
 
 interface JournalEntry {
     id: string
@@ -27,6 +21,7 @@ interface OpenBookProps {
     entries: JournalEntry[]
     onSave: (content: string, mood: number, tags: string[], stickers: PlacedSticker[], look: Record<string, string>) => Promise<void>
     onDelete: (id: string) => Promise<void>
+    onUpdateStickers: (id: string, stickers: PlacedSticker[]) => Promise<void>
     onClose: () => void
     isSaving: boolean
 }
@@ -45,16 +40,16 @@ const MOOD_LABELS: Record<number, { label: string; color: string }> = {
 }
 
 const WRITING_FONTS = [
-    { id: 'garamond', label: 'EB Garamond', family: "'EB Garamond', serif", style: 'italic' },
-    { id: 'cormorant', label: 'Cormorant', family: "'Cormorant Garamond', serif", style: 'italic' },
-    { id: 'playfair', label: 'Playfair Display', family: "'Playfair Display', serif", style: 'italic' },
-    { id: 'baskerville', label: 'Baskerville', family: "'Baskerville Old Face', Baskerville, serif", style: 'italic' },
+    { id: 'garamond', label: 'EB Garamond', family: "var(--font-eb-garamond), serif", style: 'italic' },
+    { id: 'cormorant', label: 'Cormorant', family: "var(--font-cormorant), serif", style: 'italic' },
+    { id: 'playfair', label: 'Playfair Display', family: "var(--font-playfair), serif", style: 'italic' },
+    { id: 'baskerville', label: 'Baskerville', family: "var(--font-baskerville), 'Baskerville Old Face', Baskerville, serif", style: 'italic' },
     { id: 'tangerine', label: 'Tangerine', family: "'Tangerine', cursive", style: 'normal' },
     { id: 'dancing', label: 'Dancing Script', family: "'Dancing Script', cursive", style: 'normal' },
     { id: 'josefin', label: 'Josefin Sans', family: "'Josefin Sans', sans-serif", style: 'normal' },
-    { id: 'fraunces', label: 'Fraunces', family: "'Fraunces', serif", style: 'italic' },
-    { id: 'crimson', label: 'Crimson Pro', family: "'Crimson Pro', serif", style: 'italic' },
-    { id: 'philosopher', label: 'Philosopher', family: "'Philosopher', serif", style: 'italic' },
+    { id: 'fraunces', label: 'Fraunces', family: "var(--font-fraunces), serif", style: 'italic' },
+    { id: 'crimson', label: 'Crimson Pro', family: "var(--font-crimson), serif", style: 'italic' },
+    { id: 'philosopher', label: 'Philosopher', family: "var(--font-philosopher), serif", style: 'italic' },
     { id: 'spectral', label: 'Spectral', family: "'Spectral', serif", style: 'italic' },
     { id: 'lora', label: 'Lora', family: "'Lora', serif", style: 'italic' },
 ]
@@ -98,7 +93,7 @@ function useToolbarPalette() {
     return isDark
 }
 
-export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving }: OpenBookProps) {
+export default function OpenBook({ entries, onSave, onDelete, onUpdateStickers, onClose, isSaving }: OpenBookProps) {
     const isDark = useToolbarPalette()
 
     // Toolbar palette, light theme gets warm parchment tones to complement the book
@@ -259,6 +254,15 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         if (textareaRef.current) textareaRef.current.value = ''
     }
 
+    const handleErasePage = () => {
+        setContent('')
+        setSelectedTags([])
+        setPageStickers([])
+        setActiveStickerId(null)
+        prevContentRef.current = ''
+        if (textareaRef.current) textareaRef.current.value = ''
+    }
+
     const handleDeleteEntry = async (id: string) => {
         await onDelete(id)
         // The entry list just shrank by one, so step back a page to stay in
@@ -270,13 +274,14 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
         setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
     }
 
-    const handleStickerDrop = useCallback((sticker: Sticker, scale = 1) => {
+    const handleStickerDrop = useCallback((sticker: Sticker, scale = 1, length?: number) => {
         const id = `${sticker.id}-${Date.now()}`
         setPageStickers(prev => [...prev, {
             ...sticker, stickerId: id,
             x: 15 + Math.random() * (scale > 1 ? 30 : 60),
             y: 20 + Math.random() * 50,
             scale,
+            ...(length ? { length } : {}),
         }])
     }, [])
 
@@ -285,7 +290,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
             id: decor.id, label: decor.label, category: 'decor',
             url: decor.url, thumbUrl: decor.url, color: '#b98a4c',
             rotation: Math.floor(Math.random() * 9) - 4, source: 'local',
-        }, decor.scale)
+        }, decor.scale, decor.tile ? 60 * decor.scale : undefined)
     }, [handleStickerDrop])
 
     const insertPrompt = (prompt: PromptTemplate) => {
@@ -461,6 +466,8 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                         onRemove={() => removeSticker(s.stickerId)}
                                         onPositionChange={(x, y) => setPageStickers(prev => prev.map(ps => ps.stickerId === s.stickerId ? { ...ps, x, y } : ps))}
                                         onScaleChange={(scale) => setPageStickers(prev => prev.map(ps => ps.stickerId === s.stickerId ? { ...ps, scale } : ps))}
+                                        onLengthChange={(length) => setPageStickers(prev => prev.map(ps => ps.stickerId === s.stickerId ? { ...ps, length } : ps))}
+                                        onRotationChange={(rotation) => setPageStickers(prev => prev.map(ps => ps.stickerId === s.stickerId ? { ...ps, rotation } : ps))}
                                     />
                                 ))}
 
@@ -472,10 +479,12 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                             selectedTags={selectedTags} toggleTag={toggleTag}
                                             writingFont={writingFont} fontStyle={fontStyle} ink={ink}
                                             isSaving={isSaving} onSave={handleSave}
+                                            canErase={content.length > 0 || pageStickers.length > 0 || selectedTags.length > 0} onErase={handleErasePage}
                                             textareaRef={textareaRef}
                                         />
                                     ) : rightEntry ? (
-                                        <EntryContent entry={rightEntry} writingFont={entryFont} ink={entryInk} pageNum={currentPage} onDelete={handleDeleteEntry} />
+                                        <EntryContent entry={rightEntry} writingFont={entryFont} ink={entryInk} pageNum={currentPage} onDelete={handleDeleteEntry}
+                                            onRemoveSticker={index => onUpdateStickers(rightEntry.id, (rightEntry.stickers || []).filter((_, i) => i !== index))} />
                                     ) : <BlankPage />}
                                 </div>
                             </motion.div>
@@ -550,7 +559,7 @@ export default function OpenBook({ entries, onSave, onDelete, onClose, isSaving 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.18 }}
                                     style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                    <PanelHeader title="Washi and Stamps" tb={TB} />
+                                    <PanelHeader title="Washi Tape" tb={TB} />
                                     <DecorPanel tb={TB} onPick={handleDecorDrop} />
                                 </motion.div>
                             )}
@@ -651,7 +660,7 @@ function IndexPage({ entries, writingFont, onEntryClick }: {
     )
 }
 
-function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTag, writingFont, fontStyle, ink, isSaving, onSave, textareaRef }: {
+function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTag, writingFont, fontStyle, ink, isSaving, onSave, canErase, onErase, textareaRef }: {
     content: string
     ink: string
     setContent: (v: string) => void
@@ -663,8 +672,11 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
     fontStyle: typeof FONT_STYLES[0]
     isSaving: boolean
     onSave: () => void
+    canErase: boolean
+    onErase: () => void
     textareaRef: React.RefObject<HTMLTextAreaElement>
 }) {
+    const [confirmErase, setConfirmErase] = useState(false)
     return (
         <>
             <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
@@ -708,8 +720,27 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
                 }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '7px', borderTop: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED, letterSpacing: '0.1em' }}>
-                    {content.length > 0 ? `${content.split(/\s+/).filter(Boolean).length} words` : 'empty page'}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED, letterSpacing: '0.1em' }}>
+                    {content.length > 0 && `${content.split(/\s+/).filter(Boolean).length} words`}
+                    <button type="button" disabled={!canErase}
+                        onClick={e => {
+                            e.preventDefault(); e.stopPropagation()
+                            if (!confirmErase) { setConfirmErase(true); return }
+                            setConfirmErase(false); onErase()
+                        }}
+                        onBlur={() => setConfirmErase(false)}
+                        title="Erase everything on this page"
+                        style={{
+                            padding: '4px 11px', borderRadius: '14px', fontFamily: 'var(--font-cinzel)', fontSize: '8px',
+                            letterSpacing: '0.14em', textTransform: 'uppercase',
+                            cursor: canErase ? 'pointer' : 'not-allowed',
+                            background: confirmErase ? 'rgba(160,60,40,0.16)' : 'transparent',
+                            border: `1px solid ${confirmErase ? 'rgba(160,60,40,0.55)' : 'rgba(180,130,60,0.4)'}`,
+                            color: confirmErase ? '#8a2f1c' : PAPER_TEXT, opacity: canErase ? 1 : 0.38,
+                            transition: 'all 0.18s',
+                        }}>
+                        {confirmErase ? 'Tap again to erase' : 'Empty page'}
+                    </button>
                 </span>
                 <motion.button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); onSave() }}
                     disabled={isSaving || !content.trim()} whileHover={{ scale: content.trim() && !isSaving ? 1.04 : 1 }}
@@ -729,12 +760,13 @@ function WritePage({ content, setContent, mood, moodInfo, selectedTags, toggleTa
     )
 }
 
-function EntryContent({ entry, writingFont, ink, pageNum, onDelete }: {
+function EntryContent({ entry, writingFont, ink, pageNum, onDelete, onRemoveSticker }: {
     entry: JournalEntry
     ink: string
     writingFont: typeof WRITING_FONTS[0]
     pageNum: number
     onDelete?: (id: string) => void
+    onRemoveSticker?: (index: number) => void
 }) {
     const moodInfo = entry.mood_score ? MOOD_LABELS[entry.mood_score] : null
     const [confirming, setConfirming] = useState(false)
@@ -742,25 +774,7 @@ function EntryContent({ entry, writingFont, ink, pageNum, onDelete }: {
     return (
         <>
             {entry.stickers && entry.stickers.length > 0 && (
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, overflow: 'hidden' }}>
-                    {entry.stickers.map((s: any) => (
-                        <img key={s.stickerId || s.id + '-' + Math.random()}
-                            src={s.url} alt={s.label || ''}
-                            width={60 * (s.scale || 1)} height={60 * (s.scale || 1)}
-                            style={{
-                                position: 'absolute',
-                                left: `${s.x}%`, top: `${s.y}%`,
-                                display: 'block',
-                                objectFit: 'contain',
-                                transform: `rotate(${s.rotation || 0}deg)`,
-                                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 3px white)',
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                            }}
-                            draggable={false}
-                        />
-                    ))}
-                </div>
+                <SavedStickers stickers={entry.stickers} onRemove={onRemoveSticker} />
             )}
             <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: `0.5px solid ${PAPER_BORDER}`, flexShrink: 0 }}>
                 <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: '8px', letterSpacing: '0.18em', color: PAPER_MUTED, textTransform: 'uppercase' }}>
@@ -831,7 +845,6 @@ function EntryContent({ entry, writingFont, ink, pageNum, onDelete }: {
                 lineHeight: '24px',
                 padding: '2px',
                 color: ink, overflow: 'auto', flex: 1, whiteSpace: 'pre-wrap', overflowWrap: 'break-word',
-                WebkitUserSelect: 'text' as any, userSelect: 'text' as any,
             }}>{entry.content}</div>
             <div style={{ position: 'absolute', bottom: '14px', right: '20px', fontFamily: 'var(--font-cinzel)', fontSize: '8px', color: PAPER_MUTED }}>{pageNum}</div>
         </>
@@ -864,113 +877,5 @@ function NavButton({ onClick, disabled, label, title, small, nb }: {
                 userSelect: 'none',
                 boxShadow: disabled ? 'none' : '0 2px 8px rgba(0,0,0,0.18)',
             }}>{label}</motion.button>
-    )
-}
-
-function DraggableSticker({ sticker, isActive, onActivate, onDeactivate, onRemove, onPositionChange, onScaleChange }: {
-    sticker: PlacedSticker; isActive: boolean; onActivate: () => void; onDeactivate: () => void
-    onRemove: () => void; onPositionChange: (x: number, y: number) => void; onScaleChange: (scale: number) => void
-}) {
-    const ref = useRef<HTMLDivElement>(null)
-    const [dragging, setDragging] = useState(false)
-    const [hovered, setHovered] = useState(false)
-    const dragStart = useRef<{ mx: number; my: number; sx: number; sy: number; moved: boolean } | null>(null)
-    const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-    // Auto-hide the remove control after a short idle period. The countdown is
-    // paused while the sticker is hovered so it never vanishes as the user
-    // reaches for the X. Any fresh interaction restarts it.
-    const clearIdleTimer = useCallback(() => {
-        if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null }
-    }, [])
-
-    const armIdleTimer = useCallback(() => {
-        clearIdleTimer()
-        idleTimer.current = setTimeout(() => onDeactivate(), 2500)
-    }, [clearIdleTimer, onDeactivate])
-
-    useEffect(() => {
-        if (!isActive) { clearIdleTimer(); return }
-        if (hovered) { clearIdleTimer(); return }  // pause countdown while hovered
-        armIdleTimer()
-        return clearIdleTimer
-    }, [isActive, hovered, armIdleTimer, clearIdleTimer])
-
-    useEffect(() => clearIdleTimer, [clearIdleTimer])
-
-    const handlePointerDown = (e: React.PointerEvent) => {
-        e.preventDefault(); e.stopPropagation(); setDragging(true)
-        dragStart.current = { mx: e.clientX, my: e.clientY, sx: sticker.x, sy: sticker.y, moved: false }
-        const handleMove = (ev: PointerEvent) => {
-            if (!dragStart.current || !ref.current) return
-            const parent = ref.current.closest('[data-page="right"]') as HTMLElement
-            if (!parent) return
-            const rect = parent.getBoundingClientRect()
-            const totalDx = ev.clientX - dragStart.current.mx
-            const totalDy = ev.clientY - dragStart.current.my
-            // Treat tiny pointer travel as a click, not a drag.
-            if (Math.abs(totalDx) > 4 || Math.abs(totalDy) > 4) dragStart.current.moved = true
-            const dx = (totalDx / rect.width) * 100
-            const dy = (totalDy / rect.height) * 100
-            onPositionChange(Math.max(2, Math.min(88, dragStart.current.sx + dx)), Math.max(2, Math.min(88, dragStart.current.sy + dy)))
-        }
-        const handleUp = () => {
-            setDragging(false)
-            // A click (no meaningful movement) toggles the remove control.
-            // A real drag leaves activation state untouched.
-            if (dragStart.current && !dragStart.current.moved) {
-                if (isActive) onDeactivate(); else onActivate()
-            } else if (isActive) {
-                armIdleTimer()  // restart countdown after a drag
-            }
-            dragStart.current = null
-            document.removeEventListener('pointermove', handleMove)
-            document.removeEventListener('pointerup', handleUp)
-        }
-        document.addEventListener('pointermove', handleMove); document.addEventListener('pointerup', handleUp)
-    }
-
-    return (
-        <div ref={ref} data-sticker-id={sticker.stickerId} onPointerDown={handlePointerDown}
-            onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-            onWheel={e => { e.stopPropagation(); onScaleChange(Math.max(0.3, Math.min(3, sticker.scale + (e.deltaY > 0 ? -0.1 : 0.1)))) }}
-            style={{ position: 'absolute', left: `${sticker.x}%`, top: `${sticker.y}%`, zIndex: isActive ? 50 : 15, cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none', touchAction: 'none' }}>
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
-                <img src={sticker.url} alt={sticker.label} width={60 * sticker.scale} height={60 * sticker.scale}
-                    style={{ display: 'block', objectFit: 'contain', transform: `rotate(${sticker.rotation || 0}deg)`, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 3px white)', pointerEvents: 'none', userSelect: 'none' }}
-                    draggable={false} />
-                <AnimatePresence>
-                    {isActive && (
-                        <motion.button
-                            key="remove"
-                            initial={{ opacity: 0, scale: 0.4 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.4 }}
-                            transition={{ type: 'spring', stiffness: 520, damping: 28 }}
-                            whileHover={{ scale: 1.12, boxShadow: '0 3px 14px rgba(212,175,55,0.45)' }}
-                            whileTap={{ scale: 0.9 }}
-                            onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
-                            onClick={e => { e.stopPropagation(); e.preventDefault(); clearIdleTimer(); onRemove() }}
-                            title="Remove sticker"
-                            style={{
-                                position: 'absolute', top: '-11px', right: '-11px',
-                                width: '22px', height: '22px', borderRadius: '50%',
-                                background: 'linear-gradient(145deg, rgba(38,22,9,0.96), rgba(20,11,4,0.96))',
-                                border: '1px solid rgba(212,175,55,0.65)',
-                                cursor: 'pointer', zIndex: 100, padding: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 2px 10px rgba(0,0,0,0.5), inset 0 0 6px rgba(212,175,55,0.12)',
-                                backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
-                                userSelect: 'none',
-                            }}>
-                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                                <path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5"
-                                    stroke="#e8c869" strokeWidth="1.6" strokeLinecap="round" />
-                            </svg>
-                        </motion.button>
-                    )}
-                </AnimatePresence>
-            </div>
-        </div>
     )
 }
