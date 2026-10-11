@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useThemeStore } from '@/lib/themeStore'
 import { authAPI } from '@/lib/api'
+import { LuminaMark } from '@/components/ui/LuminaMark'
 
 export function Navigation() {
   const pathname = usePathname()
@@ -46,7 +47,7 @@ export function Navigation() {
   }
 
   const navLinks = [
-    { href: '/chat',             label: 'LUMINA',     icon: '*', orion: false },
+    { href: '/chat',             label: 'LUMINA',     icon: <LuminaMark size={10} />, orion: false },
     { href: '/journal',          label: 'JOURNAL',    icon: '◈', orion: false },
     { href: '/screening',        label: 'REFLECT',    icon: '◎', orion: false },
     { href: '/cbt',              label: 'INNER WORK', icon: '❋', orion: false },

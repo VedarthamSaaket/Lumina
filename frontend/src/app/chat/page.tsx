@@ -12,6 +12,7 @@ import '@/components/DarkVeil.css'
 import { useThemeStore } from '@/lib/themeStore'
 import { usePsychWarmup } from '@/lib/usePsychWarmup'
 import Grainient from '@/components/ui/Grainient'
+import { LuminaMark } from '@/components/ui/LuminaMark'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -89,7 +90,7 @@ const Avatar = ({ riskLevel }: { riskLevel: RiskLevel }) => (
       boxShadow: riskLevel >= 2
         ? '0 0 16px rgba(220,38,38,0.4)'
         : '0 0 14px rgba(212,175,55,0.28), inset 0 1px 0 rgba(212,175,55,0.22)',
-    }}>*</motion.div>
+    }}><LuminaMark size={15} /></motion.div>
 )
 
 const StreamCursor = () => (
@@ -495,7 +496,7 @@ export default function ChatPage() {
               fontFamily: 'var(--font-jost)', fontSize: '11px', fontWeight: 500,
               letterSpacing: '0.1em', transition: 'all 0.2s',
             }}>
-              <span style={{ fontSize: '11px', color: 'var(--gold)', opacity: 0.7 }}>*</span>
+              <span style={{ color: 'var(--gold)', opacity: 0.7, display: 'inline-flex' }}><LuminaMark size={11} /></span>
               New conversation
             </button>
           </div>
@@ -504,7 +505,7 @@ export default function ChatPage() {
             {convos.length === 0 ? (
               <div style={{
                 padding: '44px 24px', textAlign: 'center',
-                fontFamily: '"Baskerville", "Libre Baskerville", "Book Antiqua", Georgia, serif',
+                fontFamily: 'var(--font-baskerville), "Baskerville", "Book Antiqua", Georgia, serif',
                 fontSize: '15px', fontWeight: 400, lineHeight: 1.6,
               }}>
                 Your conversations<br />will appear here
