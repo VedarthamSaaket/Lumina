@@ -1,8 +1,11 @@
 import asyncio
+import os
 import threading
 from typing import Optional
 
-MODEL_ID = "j-hartmann/emotion-english-distilroberta-base"
+BASE_MODEL_ID = "j-hartmann/emotion-english-distilroberta-base"
+FINETUNED_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "emotion")
+MODEL_ID = os.getenv("EMOTION_MODEL") or (FINETUNED_DIR if os.path.isfile(os.path.join(FINETUNED_DIR, "config.json")) else BASE_MODEL_ID)
 
 _pipeline = None
 _lock = threading.Lock()

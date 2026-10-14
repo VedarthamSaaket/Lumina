@@ -40,3 +40,6 @@ Thumbs.db
 
 # Nested duplicate
 Lumina/
+
+# Fine-tuned emotion classifier weights (rebuild with backend/scripts/train_emotion.py)
+backend/models/emotion/
