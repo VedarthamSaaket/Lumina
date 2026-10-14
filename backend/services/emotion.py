@@ -57,3 +57,14 @@ def unload() -> None:
     global _pipeline
     with _lock:
         _pipeline = None
+
+
+async def signal_block(text: str) -> str:
+    found = await readings([text]) if text and text.strip() else None
+    if not found or not found[0]:
+        return ""
+    return (
+        f"\n\nEMOTION SIGNAL for the latest message (on-device emotion classifier): {found[0]}. "
+        "Treat it as a hint about how they feel right now. Their own words win if they point elsewhere. "
+        "Never mention the classifier, these labels or the scores."
+    )

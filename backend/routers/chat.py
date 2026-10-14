@@ -14,7 +14,7 @@ from services.llm import (
     detect_risk_level, detect_risk_augmented, detect_risk_full,
     post_process_response, build_user_context,
 )
-from services import wellbeing
+from services import emotion, wellbeing
 from services.signals import review_reply
 from middleware.ownership import require_owner
 from datetime import datetime
@@ -427,7 +427,7 @@ async def stream_message(
     user_settings          = _get_user_settings(current_user.id, db)
     user_context           = _get_user_context(current_user.id, db, user_settings)
     settings_prompt        = _build_settings_prompt(user_settings)
-    priority_prompt        = wellbeing.priority_block(current_user.id, db)
+    priority_prompt        = wellbeing.priority_block(current_user.id, db) + await emotion.signal_block(data.content)
 
     async def generate():
         full_response = ""
@@ -542,7 +542,7 @@ async def send_message(
     user_settings   = _get_user_settings(current_user.id, db)
     user_context    = _get_user_context(current_user.id, db, user_settings)
     settings_prompt = _build_settings_prompt(user_settings)
-    priority_prompt = wellbeing.priority_block(current_user.id, db)
+    priority_prompt = wellbeing.priority_block(current_user.id, db) + await emotion.signal_block(data.content)
 
     response = await chat_with_llama(
         data.content, history, risk_level,
